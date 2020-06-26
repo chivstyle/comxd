@@ -25,21 +25,40 @@ public:
 		//
 		Upp::CtrlLayout(*this);
 	}
-	
+	//
+	struct TabCloseBtn : public Button {
+	public:
+	    TabCloseBtn(Ctrl* conn, TabCtrl* tab_bar)
+	        : mConn(conn)
+	        , mTabbar(tab_bar)
+	    {
+	        *this << [&]() { //<! on clicked
+	            // the callback will execute in the main thread (i.e GUI-thread), so
+	            // we should save the conn and tab_bar in the instance of TabCloseBtn.
+	            Upp::PostCallback([=]() {
+	                delete this; // delete myself.
+	            });
+	        };
+	    }
+	    virtual ~TabCloseBtn()
+	    {
+	        mTabbar->Remove(*mConn);
+	        delete mConn;
+	    }
+	    //
+    private:
+        Ctrl* mConn;
+        TabCtrl* mTabbar;
+	};
 	// create a new connection
 	void NewConn()
 	{
 	    SerialDevsDialog d;
 		auto conn = d.RequestConn();
 		if (conn) {
-		    Button* btn_close = new Button();
+		    auto btn_close = new TabCloseBtn(conn, &mDevsTab);
 		    btn_close->SetImage(comxd::close_little());
-		    btn_close->SetRect(0, 0, 20, 20);
-		    *btn_close << [&]() {
-		        mDevsTab.Remove(*conn);
-		        delete conn;
-		        delete btn_close;
-		    };
+		    btn_close->SetRect(0, 0, 16, 16);
 		    mDevsTab.Add(conn->SizePos(), conn->ConnName()).SetCtrl(btn_close);
 		}
 	}

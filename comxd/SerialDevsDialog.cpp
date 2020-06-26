@@ -103,8 +103,8 @@ std::shared_ptr<serial::Serial> SerialDevsDialog::NewSerial()
             (serial::stopbits_t)mStopBits.GetKey(mStopBits.GetIndex()).To<int>(),
             (serial::flowcontrol_t)mFlowCtrl.GetKey(mFlowCtrl.GetIndex()).To<int>());
     } catch (const std::exception&) {
-        Upp::PromptOK(t_("Can't open:") + mDevsList.GetData().ToString() + ",because\n"
-                      + t_("1. Not supported settings\n")
+        Upp::PromptOK(t_("Can't open:") + mDevsList.GetData().ToString() + "&"
+                      + t_("1. Not supported settings") + "&"
                       + t_("2. Device was opened already"));
     }
 
