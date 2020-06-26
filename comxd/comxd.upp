@@ -1,0 +1,24 @@
+description "Another serialbus tool\377";
+
+uses
+	CtrlLib,
+	serial;
+
+file
+	ConnFactory.cpp,
+	ConnFactory.h,
+	Conn.h,
+	comxd.t,
+	comxd.iml,
+	SerialConnRaw.cpp,
+	SerialConnRaw.h,
+	comxd.lay,
+	resource.cpp,
+	resource.h,
+	SerialDevsDialog.h,
+	SerialDevsDialog.cpp,
+	main.cpp;
+
+mainconfig
+	"" = "GUI";
+

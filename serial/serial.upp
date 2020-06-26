@@ -1,0 +1,19 @@
+description "support serial\377";
+
+library
+	setupapi;
+
+options
+	"-DUNICODE -D_UNICODE";
+
+include
+	include;
+
+file
+	src\impl\list_ports\list_ports_win.cc,
+	src\impl\win.cc,
+	include\serial\v8stdint.h,
+	include\serial\serial.h,
+	include\serial\impl\win.h,
+	src\serial.cc;
+
