@@ -1,4 +1,4 @@
-LAYOUT(MainWindow, 648, 572)
+LAYOUT(MainWindow, 648, 420)
 	ITEM(TabCtrl, mDevsTab, HSizePosZ(8, 8).VSizePosZ(8, 8))
 END_LAYOUT
 
@@ -39,5 +39,9 @@ LAYOUT(SerialDevs, 276, 212)
 	ITEM(Label, dv___12, SetLabel(t_("Baudrate")).LeftPosZ(8, 52).TopPosZ(80, 20))
 	ITEM(DropList, mBaudrate, LeftPosZ(68, 116).TopPosZ(80, 19))
 	ITEM(DropList, mTypes, LeftPosZ(196, 72).TopPosZ(16, 19))
+END_LAYOUT
+
+LAYOUT(ConnVT102, 576, 516)
+	ITEM(RichTextView, mConsole, HSizePosZ(4, 4).VSizePosZ(4, 4))
 END_LAYOUT
 

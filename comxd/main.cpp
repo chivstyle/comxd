@@ -17,13 +17,20 @@ public:
 		this->Sizeable();
 		this->Icon(comxd::app_icon()).MaximizeBox().MinimizeBox();
 		// initialize widgets
-		InitToolbar();
 		InitStatusbar();
 		//
 		AddFrame(mToolbar);
 		AddFrame(mStatusbar);
+		mToolbar.Set(THISBACK(MainToolbar));
+		mDevsTab.WhenSet = THISBACK(OnDevsTabSet);
 		//
 		Upp::CtrlLayout(*this);
+	}
+	~MainWindow()
+	{
+	    for (int i = 0; i < mDevsTab.GetCount(); ++i) {
+	        delete mDevsTab.GetItem(i).GetCtrl();
+	    }
 	}
 	//
 	struct TabCloseBtn : public Button {
@@ -60,15 +67,30 @@ public:
 		    btn_close->SetImage(comxd::close_little());
 		    btn_close->SetRect(0, 0, 16, 16);
 		    mDevsTab.Add(conn->SizePos(), conn->ConnName()).SetCtrl(btn_close);
+		    mDevsTab.Set(*conn);
 		}
 	}
 	// change current settings
 	void ChangeSettings()
 	{
-	    auto conn = dynamic_cast<SerialConn*>(mDevsTab.GetItem(mDevsTab.Get()).GetSlave());
-	    if (conn) {
-            SerialDevsDialog d;
-            d.ChangeSettings(conn->GetSerial());
+	    if (mDevsTab.GetCount()) {
+            auto conn = dynamic_cast<SerialConn*>(mDevsTab.GetItem(mDevsTab.Get()).GetSlave());
+            if (conn) {
+                SerialDevsDialog d;
+                d.ChangeSettings(conn->GetSerial());
+            }
+	    }
+	}
+	//
+	void OnDevsTabSet()
+	{
+	    mToolbar.Set(THISBACK(MainToolbar));
+	    // focus it
+	    if (mDevsTab.GetCount()) {
+            auto conn = dynamic_cast<SerialConn*>(mDevsTab.GetItem(mDevsTab.Get()).GetSlave());
+            if (conn) {
+                conn->SetFocus();
+            }
 	    }
 	}
 	//
@@ -84,11 +106,32 @@ protected:
 	ToolBar mToolbar;
 	StatusBar mStatusbar;
 	// Add a toolbar for window
-	void InitToolbar()
+	void MainToolbar(Bar& bar)
 	{
-		mToolbar.Add(t_("New Connection"), comxd::new_conn(), THISBACK(NewConn));
-		mToolbar.Add(t_("Settings"), comxd::settings(), THISBACK(ChangeSettings));
+		bar.Add(t_("New Connection"), comxd::new_conn(), THISBACK(NewConn));
+		bar.Add(t_("Settings"), comxd::settings(), THISBACK(ChangeSettings));
+		bar.ToolSeparator();
+		//
+		OndemandToolbar(bar);
+		//
+		bar.ToolGapRight();
+	    bar.Add(t_("About"), comxd::about(), [=](){
+	        PromptOK(Upp::GetTopicLNG("comxd/comxd/about"));
+	    });
 	}
+	void OndemandToolbar(Bar& bar)
+	{
+	    if (mDevsTab.GetCount()) {
+	        auto conn = dynamic_cast<SerialConn*>(mDevsTab.GetItem(mDevsTab.Get()).GetSlave());
+	        if (conn) {
+	            auto actions = conn->GetActions();
+	            for (auto it = actions.begin(); it != actions.end(); ++it) {
+	                bar.Add((*it)->Text, (*it)->Icon, (*it)->Func).Help((*it)->Help);
+	            }
+	        }
+	    }
+	}
+	
 	void InitStatusbar()
 	{
 		mStatusbar.Set(0, t_("Welcom to comxd!"), 100);

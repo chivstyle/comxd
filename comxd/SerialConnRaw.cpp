@@ -2,8 +2,11 @@
 // (c) 2020 chiv, all rights reserved
 //
 #include "SerialConnRaw.h"
+#include "ConnFactory.h"
 #include <functional>
 #include <stdio.h>
+//
+REGISTER_CONN_INSTANCE("Raw", SerialConnRaw);
 //
 namespace {
 enum LineBreak_ {
@@ -42,7 +45,7 @@ SerialConnRaw::~SerialConnRaw()
     if (mRxThr.joinable()) {
         mRxThr.join();
     }
-    Ctrl::KillTimeCallback(0);
+    Ctrl::KillTimeCallback(kPeriodicTimerId);
 }
 
 void SerialConnRaw::InstallActions()
@@ -77,7 +80,7 @@ void SerialConnRaw::InstallActions()
     this->mTxPeriod.WhenAction = [=]() {
         if (mTxPeriod.Get()) {
             mTxInterval.SetReadOnly();
-            Ctrl::SetTimeCallback(-mTxInterval.GetData().To<int>(), [=]() { OnSend(); }, 0); // ID-0
+            SetTimeCallback(-mTxInterval.GetData().To<int>(), [=]() { OnSend(); }, kPeriodicTimerId); // ID-0
         } else {
             mTxInterval.SetEditable(true);
             Ctrl::KillTimeCallback(0);

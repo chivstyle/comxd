@@ -2,8 +2,13 @@
 #define _comxd_Conn_h_
 
 #include <CtrlLib/CtrlLib.h>
-#include "serial/serial.h"
 #include <memory>
+#include <functional>
+#include <list>
+
+#include "serial/serial.h"
+#include "Action.h"
+
 
 class SerialConn : public Upp::TopWindow {
 public:
@@ -20,14 +25,12 @@ public:
         return mSerial->getPort().c_str();
     }
     //
-    serial::Serial* GetSerial() const { return mSerial.get(); }
+    virtual std::list<const UsrAction*> GetActions() const
+    {
+        return std::list<const UsrAction*>(); // default: No actions supported
+    }
     //
-    enum ConnTypes {
-        eRaw,
-        eVT102,
-        eModebusRTU,
-        eModebusAscii
-    };
+    serial::Serial* GetSerial() const { return mSerial.get(); }
     
 protected:
     std::shared_ptr<serial::Serial> mSerial;

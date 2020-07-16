@@ -5,8 +5,16 @@ uses
 	serial;
 
 file
+	comxd.rc,
+	comxd.tpp,
 	ConnFactory.cpp,
 	ConnFactory.h,
+	SerialConnVT102.h,
+	SerialConnVT102.cpp,
+	Action.h,
+	XtermControlSeq.h,
+	SerialConnXterm.h,
+	SerialConnXterm.cpp,
 	Conn.h,
 	comxd.t,
 	comxd.iml,
@@ -17,8 +25,9 @@ file
 	resource.h,
 	SerialDevsDialog.h,
 	SerialDevsDialog.cpp,
-	main.cpp;
+	main.cpp,
+	VT102ControlSeq.h;
 
 mainconfig
-	"" = "GUI";
+	"" = "GUI MT";
 

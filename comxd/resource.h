@@ -14,4 +14,7 @@ using namespace Upp;
 #define IMAGEFILE  <comxd/comxd.iml>
 #include <Draw/iml_header.h>
 
+#define TOPICFILE <comxd/comxd.tpp/all.i>
+#include <Core/topic_group.h>
+
 #endif

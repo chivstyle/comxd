@@ -12,7 +12,7 @@ SerialDevsDialog::SerialDevsDialog()
 {
     CtrlLayout(*this);
     //
-    Icon(comxd::new_conn());
+    Icon(comxd::settings());
     // list all ports
     std::vector<serial::PortInfo> ports = serial::list_ports();
     for (size_t k = 0; k < ports.size(); ++k) {
@@ -49,10 +49,10 @@ SerialDevsDialog::SerialDevsDialog()
     mFlowCtrl.Add(serial::flowcontrol_software, "Software");
     mFlowCtrl.SetIndex(0);
     // types
-    mTypes.Add(SerialConn::eRaw, "Raw");
-    mTypes.Add(SerialConn::eVT102, "VT102");
-    mTypes.Add(SerialConn::eModebusRTU, "Modebus RTU");
-    mTypes.Add(SerialConn::eModebusAscii, "Modebus ASCII");
+    auto types = ConnFactory::Inst()->GetSupportedConnTypes();
+    for (size_t k = 0; k < types.size(); ++k) {
+        mTypes.Add(types[k].c_str());
+    }
     mTypes.SetIndex(0);
     //
     Acceptor(mBtnOk, IDOK).Acceptor(mBtnCancel, IDCANCEL);
@@ -97,7 +97,7 @@ std::shared_ptr<serial::Serial> SerialDevsDialog::NewSerial()
         return std::make_shared<serial::Serial>(
             mDevsList.GetData().ToString().ToStd(),
             mBaudrate.GetKey(mBaudrate.GetIndex()).To<int>(),
-            serial::Timeout(), 
+            serial::Timeout(),
             (serial::bytesize_t)mDataBits.GetKey(mDataBits.GetIndex()).To<int>(),
             (serial::parity_t)mParity.GetKey(mParity.GetIndex()).To<int>(),
             (serial::stopbits_t)mStopBits.GetKey(mStopBits.GetIndex()).To<int>(),
@@ -115,10 +115,10 @@ SerialConn* SerialDevsDialog::RequestConn()
 {
     int ret = Run(true);
     if (ret == IDOK) {
-        int type = mTypes.GetKey(mTypes.GetIndex()).To<int>();
+        String type_name = mTypes.Get().ToString();
         auto serial = NewSerial();
         if (serial) {
-            auto conn = ConnFactory::Inst()->CreateInst(serial, type);
+            auto conn = ConnFactory::Inst()->CreateInst(type_name, serial);
             if (!conn) {
                 String type_name = mTypes.GetValue(mTypes.GetIndex()).ToString();
                 Upp::PromptOK(t_("Dose not support:") + type_name);
