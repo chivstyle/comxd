@@ -26,6 +26,9 @@ protected:
     virtual void MouseWheel(Upp::Point, int zdelta, Upp::dword);
     virtual void LeftUp(Upp::Point p, Upp::dword keyflags);
     virtual void LeftDown(Upp::Point p, Upp::dword keyflags);
+    virtual void MouseMove(Upp::Point p, Upp::dword keyflags);
+    virtual void MouseLeave();
+    virtual Upp::Image& CursorOverride();
     //
     void ShowOptionsDialog();
     //
@@ -77,6 +80,24 @@ protected:
     std::vector<VTLine> GetBufferLines(size_t p, int& y);
     //
     bool mScrollToEnd;
+    // selection
+    struct SelectionSpan {
+        int X0, Y0;
+        int X1, Y1;
+        SelectionSpan()
+            : X0(0)
+            , Y0(0)
+            , X1(0)
+            , Y1(0)
+        {
+        }
+    };
+    bool mPressed;
+    SelectionSpan mSelectionSpan;
+    std::vector<std::string> GetSelection() const;
+    Upp::Image mImageIbeam;
+    /// the x,y is relative position.
+    inline bool IsCharInSelectionSpan(int x, int y) const;
     //
     UsrAction mActOptions; // Action to show options dialog
     // font of console
