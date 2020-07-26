@@ -27,6 +27,7 @@ protected:
     virtual void LeftUp(Upp::Point p, Upp::dword keyflags);
     virtual void LeftDown(Upp::Point p, Upp::dword keyflags);
     virtual void MouseMove(Upp::Point p, Upp::dword keyflags);
+    virtual void RightUp(Upp::Point p, Upp::dword keyflags);
     virtual void MouseLeave();
     virtual Upp::Image CursorImage(Upp::Point p, Upp::dword keyflags);
     //
@@ -100,7 +101,7 @@ protected:
     bool mPressed;
     SelectionSpan mSelectionSpan;
     std::vector<std::string> GetSelection() const;
-    Upp::Image mImageIbeam;
+    Upp::String GetSelectedText() const;
     /// the x,y is relative position.
     inline bool IsCharInSelectionSpan(int x, int y) const;
     //

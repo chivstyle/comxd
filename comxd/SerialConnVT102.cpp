@@ -27,7 +27,6 @@ SerialConnVT102::SerialConnVT102(std::shared_ptr<serial::Serial> serial)
     , mBlink(false)
     , mScrollToEnd(true)
     , mPressed(false)
-    , mImageIbeam(Image::IBeam())
 {
     mActOptions = UsrAction(comxd::about(), "Options", "Change console options", [=](){
         ShowOptionsDialog();
@@ -222,6 +221,8 @@ void SerialConnVT102::InstallVT102ControlSeqHandlers()
     };
     // attributes, the real renderer will use them
     mCtrlHandlers["[m"] = [&]() {
+        // restore default attrs
+        mCurrAttrFuncs.clear();
         mCurrAttrFuncs.push_back([=]() { SetDefaultStyle(); });
     };
     mCtrlHandlers["[0m"] = mCtrlHandlers["[m"]; // no attributes
@@ -300,11 +301,10 @@ void SerialConnVT102::RenderText(const std::string& seq)
     if (seq[0] != 0x1b) { // Not VT102 control seq
         for (size_t k = 0; k < seq.size(); ++k) {
             VTChar chr = seq[k];
-            chr.SetAttrFuns(mCurrAttrFuncs);
-            // chr consumed the attrfunc, so empty it
-            mCurrAttrFuncs.clear();
-            //
             if (isprint(chr)) {
+                // chr always uses the last attr funcs
+                chr.SetAttrFuns(mCurrAttrFuncs);
+                //
                 VTLine& vline = mLines[mCursorY];
                 if (mCursorX < vline.size()) {
                     vline[mCursorX++] = chr;
@@ -344,7 +344,7 @@ Upp::Image SerialConnVT102::CursorImage(Point p, dword keyflags)
     (void)p;
     (void)keyflags;
     //
-    return mImageIbeam;
+    return Image::IBeam();
 }
 
 void SerialConnVT102::MouseWheel(Point, int zdelta, dword)
@@ -356,9 +356,12 @@ void SerialConnVT102::MouseMove(Upp::Point p, Upp::dword)
 {
     if (mPressed) {
         mSelectionSpan.X1 = p.x / mFontW;
-        int y = mSbV.Get() + p.y / mFontH; // absolute position
-        if (abs(y - mSelectionSpan.Y0) < (int)mLinesBuffer.size()) {
+        int y = (mSbV.Get() + p.y) / mFontH; // absolute position
+        if (abs(y - mSelectionSpan.Y0) < (int)mLinesBuffer.size()+1) {
             mSelectionSpan.Y1 = y;
+        }
+        if (p.y <= 0) {
+            mSbV.PrevLine();
         }
         //
         Refresh();
@@ -367,10 +370,18 @@ void SerialConnVT102::MouseMove(Upp::Point p, Upp::dword)
 
 void SerialConnVT102::MouseLeave()
 {
-    if (mPressed) {
-        mPressed = false;
-        Refresh();
-    }
+}
+
+void SerialConnVT102::RightUp(Point, dword)
+{
+	MenuBar::Execute(
+		[=](Bar& bar) {
+			bar.Add(t_("Copy"), [=] {
+			    // copy to clipboard
+			    Upp::AppendClipboardText(GetSelectedText());
+			});
+		}
+	);
 }
 
 void SerialConnVT102::LeftUp(Point p, dword)
@@ -386,9 +397,21 @@ void SerialConnVT102::LeftDown(Point p, dword)
 {
     mPressed = true;
     mSelectionSpan.X0 = p.x / mFontW;
-    mSelectionSpan.Y0 = mSbV.Get() + p.y / mFontH;
+    mSelectionSpan.Y0 = (mSbV.Get() + p.y) / mFontH;
     mSelectionSpan.X1 = p.x / mFontW;
-    mSelectionSpan.Y1 = mSbV.Get() + p.y / mFontH;
+    mSelectionSpan.Y1 = (mSbV.Get() + p.y) / mFontH;
+    int maxy = std::max(mSelectionSpan.Y0, mSelectionSpan.Y1);
+    if (maxy > (int)mLinesBuffer.size()) {
+        if (mSelectionSpan.Y1 > mSelectionSpan.Y0) {
+            mSelectionSpan.Y1 = (int)mLinesBuffer.size();
+            mSelectionSpan.Y0 = mSelectionSpan.Y1;
+        } else {
+            mSelectionSpan.Y0 = (int)mLinesBuffer.size();
+            mSelectionSpan.Y1 = mSelectionSpan.Y0;
+        }
+    }
+    SetFocus();
+    SetCapture();
 }
 //----------------------------------------------
 bool SerialConnVT102::ProcessKeyDown(dword key, dword flags)
@@ -558,46 +581,64 @@ std::vector<SerialConnVT102::VTLine> SerialConnVT102::GetBufferLines(size_t p, i
 std::vector<std::string> SerialConnVT102::GetSelection() const
 {
     auto span = mSelectionSpan;
-    // topleft
     if (span.Y0 > span.Y1) { // top left
         std::swap(span.Y0, span.Y1);
         std::swap(span.X0, span.X1);
-    }
-    // bottomright
-    size_t i, j;
-    std::vector<std::string> out;
-    // first line
-    if (span.Y0 < (int)mLinesBuffer.size()) {
-        const auto& vline = mLinesBuffer[span.Y0];
-        std::string sline;
-        for (j = span.X0; j < (int)vline.size(); ++j) {
-            // If only 1 line in selection, it's in span [x0,x1]
-            if (span.Y1-span.Y0 == 0 && j > span.X1) {
-                break;
-            }
-            sline.push_back(vline[j]);
+    } else if (span.Y0 == span.Y1) {
+        if (span.X0 > span.X1) {
+            std::swap(span.X0, span.X1);
         }
-        out.push_back(sline);
-        span.Y0 += 1;
+    }
+    int i, j;
+    std::vector<std::string> out;
+    auto templines = mLinesBuffer;
+    templines.push_back(mLines[mRealLines]);
+    //
+    if (span.Y0 >= templines.size()) return out;
+    // first line
+    if (1) {
+        std::string line;
+        int first_ep = span.Y0 == span.Y1 ? span.X1 : (int)templines[span.Y0].size()-1;
+        for (i = span.X0; i <= first_ep; ++i) {
+            line.push_back(templines[span.Y0][i]);
+        }
+        out.push_back(line);
+    }
+    // entire lines
+    for (i = span.Y0+1; i < span.Y1 && i < (int)templines.size(); ++i) {
+        auto& vline = templines[i];
+        std::string line;
+        for (int j = 0; j < (int)vline.size(); ++j) {
+            line.push_back(vline[j]);
+        }
+        out.push_back(line);
     }
     // tail line
-    if (span.Y1 < (int)mLinesBuffer.size()) {
-        const auto& vline = mLinesBuffer[span.Y1];
-        std::string sline;
-        for (j = 0; j <= span.X1 && j < (int)vline.size(); ++j) {
-            sline.push_back(vline[j]);
+    if (i == span.Y1 && i < (int)templines.size()) {
+        auto& vline = templines[i];
+        std::string line;
+        for (int j = 0; j <= span.X1; ++j) {
+            line.push_back(vline[j]);
         }
-        out.push_back(sline);
-        span.Y1 -= 1;
+        out.push_back(line);
     }
-    //
-    for (i = span.Y0; i <= span.Y1 && j < mLinesBuffer.size(); ++i) {
-        const auto& vline = mLinesBuffer[i];
-        std::string sline;
-        for (j = 0; j < (int)vline.size(); ++j) {
-            sline.push_back(vline[j]);
+    return out;
+}
+//
+String SerialConnVT102::GetSelectedText() const
+{
+    String out;
+    auto lines = GetSelection();
+    for (size_t k = 0; k < lines.size(); ++k) {
+        if (k != 0) {
+            out += "\n";
         }
-        out.push_back(sline);
+        // strip tail blanks of lines
+        size_t n = 0;
+        while (lines[k][lines[k].size()-1-n] == ' ' && n < lines[k].size()) {
+            n++;
+        }
+        out += lines[k].substr(0, lines[k].size() - n);
     }
     return out;
 }
@@ -608,11 +649,15 @@ bool SerialConnVT102::IsCharInSelectionSpan(int x, int y) const
     if (span.Y0 > span.Y1) { // top left
         std::swap(span.Y0, span.Y1);
         std::swap(span.X0, span.X1);
+    } else if (span.Y0 == span.Y1) {
+        if (span.X0 > span.X1) {
+            std::swap(span.X0, span.X1);
+        }
     }
     // calculate absolute position
     if (span.X1 - span.X0 <= 0 &&
         span.Y1 - span.Y0 <= 0) return false;
-    int abs_x = x, abs_y = mSbV.Get() + y;
+    int abs_x = x, abs_y = mSbV.Get() / mFontH + y;
     if (abs_y == span.Y0) { // head line
         if (span.Y1-span.Y0 == 0) {
             if (abs_x >= span.X0 && abs_x <= span.X1) return true;
