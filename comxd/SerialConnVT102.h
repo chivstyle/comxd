@@ -28,7 +28,7 @@ protected:
     virtual void LeftDown(Upp::Point p, Upp::dword keyflags);
     virtual void MouseMove(Upp::Point p, Upp::dword keyflags);
     virtual void MouseLeave();
-    virtual Upp::Image& CursorOverride();
+    virtual Upp::Image CursorImage(Upp::Point p, Upp::dword keyflags);
     //
     void ShowOptionsDialog();
     //
@@ -40,7 +40,6 @@ protected:
         }
         VTChar(const char c)
             : mC(c)
-            , mAttrFun([]() {})
         {
         }
         // operators
@@ -54,14 +53,20 @@ protected:
             return *this;
         }
         //
-        void SetAttrFun(std::function<void()> attr_fun)
+        void SetAttrFuns(const std::vector<std::function<void()> >& attr_funs)
         {
-            mAttrFun = attr_fun;
+            mAttrFuns = attr_funs;
         }
-        void ApplyAttr() const { mAttrFun(); }
+        //
+        void ApplyAttrs() const
+        {
+            for (size_t k = 0; k < mAttrFuns.size(); ++k) {
+                mAttrFuns[k]();
+            }
+        }
     private:
         char mC;
-        std::function<void()> mAttrFun;
+        std::vector<std::function<void()> > mAttrFuns;
     };
     typedef std::vector<VTChar> VTLine;
     VTChar mBlankChr;
@@ -113,7 +118,7 @@ protected:
     volatile bool mBlink;
     const int kBlinkTimerId = 0;
     // before render character, use this attribute function
-    std::function<void()> mCurrAttrFunc;
+    std::vector<std::function<void()> > mCurrAttrFuncs;
     // scroll bar
     Upp::VScrollBar mSbV;
     //

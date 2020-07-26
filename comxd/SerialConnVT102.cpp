@@ -40,7 +40,7 @@ SerialConnVT102::SerialConnVT102(std::shared_ptr<serial::Serial> serial)
     mFontW = mFont.GetWidth('M');
     mFontH = mFont.GetLineHeight();
     // default style
-    mCurrAttrFunc = [&]() { SetDefaultStyle(); };
+    mCurrAttrFuncs.push_back([=]() { SetDefaultStyle(); });
     // enable scroll bar
     mSbV.WhenScroll = [=]() {
         int pp = mSbV.Get() / mFontH;
@@ -60,7 +60,7 @@ SerialConnVT102::SerialConnVT102(std::shared_ptr<serial::Serial> serial)
         }, kBlinkTimerId);
     //
     mBlankChr = ' ';
-    mBlankChr.SetAttrFun([=](){ SetDefaultStyle(); });
+    mBlankChr.SetAttrFuns(mCurrAttrFuncs);
     //
     mRxThr = std::thread([=]() { RxProc(); });
 }
@@ -222,20 +222,20 @@ void SerialConnVT102::InstallVT102ControlSeqHandlers()
     };
     // attributes, the real renderer will use them
     mCtrlHandlers["[m"] = [&]() {
-        mCurrAttrFunc = [=]() { SetDefaultStyle(); };
+        mCurrAttrFuncs.push_back([=]() { SetDefaultStyle(); });
     };
     mCtrlHandlers["[0m"] = mCtrlHandlers["[m"]; // no attributes
     mCtrlHandlers["[1m"] = [&]() { // bold
-        mCurrAttrFunc = [=]() { mFont.Bold(); };
+        mCurrAttrFuncs.push_back([=]() { mFont.Bold(); });
     };
     mCtrlHandlers["[4m"] = [=]() { // underline
-        mCurrAttrFunc = [=]() { mFont.Underline(); };
+        mCurrAttrFuncs.push_back([=]() { mFont.Underline(); });
     };
     mCtrlHandlers["[5m"] = [=]() { // blink
-        mCurrAttrFunc = [=]() { mBlink = true; };
+        mCurrAttrFuncs.push_back([=]() { mBlink = true; });
     };
     mCtrlHandlers["[7m"] = [=]() {
-        mCurrAttrFunc = [=]() { mFgColor = Color::FromRaw(~mFgColor.GetRaw()); };
+        mCurrAttrFuncs.push_back([=]() { mFgColor = Color::FromRaw(~mFgColor.GetRaw()); });
     };
 }
 //
@@ -300,7 +300,10 @@ void SerialConnVT102::RenderText(const std::string& seq)
     if (seq[0] != 0x1b) { // Not VT102 control seq
         for (size_t k = 0; k < seq.size(); ++k) {
             VTChar chr = seq[k];
-            chr.SetAttrFun(mCurrAttrFunc);
+            chr.SetAttrFuns(mCurrAttrFuncs);
+            // chr consumed the attrfunc, so empty it
+            mCurrAttrFuncs.clear();
+            //
             if (isprint(chr)) {
                 VTLine& vline = mLines[mCursorY];
                 if (mCursorX < vline.size()) {
@@ -336,8 +339,11 @@ void SerialConnVT102::Paint(Upp::Draw& draw)
     Render(draw);
 }
 
-Image& SerialConnVT102::CursorOverride()
+Upp::Image SerialConnVT102::CursorImage(Point p, dword keyflags)
 {
+    (void)p;
+    (void)keyflags;
+    //
     return mImageIbeam;
 }
 
@@ -552,8 +558,12 @@ std::vector<SerialConnVT102::VTLine> SerialConnVT102::GetBufferLines(size_t p, i
 std::vector<std::string> SerialConnVT102::GetSelection() const
 {
     auto span = mSelectionSpan;
-    if (span.X0 > span.X1) std::swap(span.X0, span.X1);
-    if (span.Y0 > span.Y1) std::swap(span.Y0, span.Y1);
+    // topleft
+    if (span.Y0 > span.Y1) { // top left
+        std::swap(span.Y0, span.Y1);
+        std::swap(span.X0, span.X1);
+    }
+    // bottomright
     size_t i, j;
     std::vector<std::string> out;
     // first line
@@ -595,8 +605,10 @@ std::vector<std::string> SerialConnVT102::GetSelection() const
 bool SerialConnVT102::IsCharInSelectionSpan(int x, int y) const
 {
     auto span = mSelectionSpan;
-    if (span.X0 > span.X1) std::swap(span.X0, span.X1);
-    if (span.Y0 > span.Y1) std::swap(span.Y0, span.Y1);
+    if (span.Y0 > span.Y1) { // top left
+        std::swap(span.Y0, span.Y1);
+        std::swap(span.X0, span.X1);
+    }
     // calculate absolute position
     if (span.X1 - span.X0 <= 0 &&
         span.Y1 - span.Y0 <= 0) return false;
@@ -650,7 +662,7 @@ void SerialConnVT102::Render(Upp::Draw& draw, const std::vector<VTLine>& vlines)
     for (size_t k = 0; k < mRealLines+1; ++k) {
         const VTLine& vline = vlines[k];
         for (size_t i = 0; i < vline.size() && i < csz.cx; ++i) {
-            vline[i].ApplyAttr();
+            vline[i].ApplyAttrs();
             bool is_selected = IsCharInSelectionSpan((int)i, (int)k);
             if (is_selected) {
                 std::swap(mBgColor, mFgColor);
@@ -676,9 +688,15 @@ void SerialConnVT102::Render(Upp::Draw& draw, const std::vector<VTLine>& vlines)
                 std::swap(mBgColor, mFgColor);
             }
         }
+        #if 0
         for (size_t i = csz.cx; i < vline.size(); ++i) {
-            vline[i].ApplyAttr();
+            vline[i].ApplyAttrs();
+            bool is_selected = IsCharInSelectionSpan((int)i, (int)k);
+            if (is_selected) {
+                draw.DrawRect(mX, mY, mFontW, mFontH, mFgColor);
+            }
         }
+        #endif
         // move to next line
         mX = 0;
         mY += mFontH;

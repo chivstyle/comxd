@@ -34,109 +34,109 @@ void SerialConnXterm::InstallXtermControlSeqHandlers()
     mCtrlHandlers["[1;0m"] = mCtrlHandlers["[m"];
     //
     mCtrlHandlers["[1;30m"] = [=]() {
-        mCurrAttrFunc = [=]() {
+        mCurrAttrFuncs.push_back([=]() {
             mFgColor = Color(0, 0, 0);
-        };
+        });
     };
     mCtrlHandlers["[1;31m"] = [=]() {
-        mCurrAttrFunc = [=]() {
+        mCurrAttrFuncs.push_back([=]() {
             mFgColor = Color(255, 0, 0);
-        };
+        });
     };
     mCtrlHandlers["[1;32m"] = [=]() {
-        mCurrAttrFunc = [=]() {
+        mCurrAttrFuncs.push_back([=]() {
             mFgColor = Color(0, 255, 0);
-        };
+        });
     };
     mCtrlHandlers["[1;33m"] = [=]() {
-        mCurrAttrFunc = [=]() {
+        mCurrAttrFuncs.push_back([=]() {
             mFgColor = Color(255, 255, 0);
-        };
+        });
     };
     mCtrlHandlers["[1;34m"] = [=]() {
-        mCurrAttrFunc = [=]() {
+        mCurrAttrFuncs.push_back([=]() {
             mFgColor = Color(0, 0, 255);
-        };
+        });
     };
     mCtrlHandlers["[1;35m"] = [=]() {
-        mCurrAttrFunc = [=]() {
+        mCurrAttrFuncs.push_back([=]() {
             mFgColor = Color(255, 0, 255);
-        };
+        });
     };
     mCtrlHandlers["[1;36m"] = [=]() {
-        mCurrAttrFunc = [=]() {
+        mCurrAttrFuncs.push_back([=]() {
             mFgColor = Color(0, 255, 255);
-        };
+        });
     };
     mCtrlHandlers["[1;37m"] = [=]() {
-        mCurrAttrFunc = [=]() {
+        mCurrAttrFuncs.push_back([=]() {
             mFgColor = Color(255, 255, 255);
-        };
+        });
     };
     /// reserved for future standardization
     mCtrlHandlers["[1;38m"] = [=]() {
-        mCurrAttrFunc = [=]() {
+        mCurrAttrFuncs.push_back([=]() {
             mFgColor = Color(255, 255, 255);
-        };
+        });
     };
     /// default display color
     mCtrlHandlers["[1;39m"] = [=]() {
-        mCurrAttrFunc = [=]() {
+        mCurrAttrFuncs.push_back([=]() {
             mFgColor = mDefaultFgColor;
-        };
+        });
     };
     // background
     mCtrlHandlers["[1;40m"] = [=]() {
-        mCurrAttrFunc = [=]() {
+        mCurrAttrFuncs.push_back([=]() {
             mBgColor = Color(0, 0, 0);
-        };
+        });
     };
     mCtrlHandlers["[1;41m"] = [=]() {
-        mCurrAttrFunc = [=]() {
+        mCurrAttrFuncs.push_back([=]() {
             mBgColor = Color(255, 0, 0);
-        };
+        });
     };
     mCtrlHandlers["[1;42m"] = [=]() {
-        mCurrAttrFunc = [=]() {
+        mCurrAttrFuncs.push_back([=]() {
             mBgColor = Color(0, 255, 0);
-        };
+        });
     };
     mCtrlHandlers["[1;43m"] = [=]() {
-        mCurrAttrFunc = [=]() {
+        mCurrAttrFuncs.push_back([=]() {
             mBgColor = Color(255, 255, 0);
-        };
+        });
     };
     mCtrlHandlers["[1;44m"] = [=]() {
-        mCurrAttrFunc = [=]() {
+        mCurrAttrFuncs.push_back([=]() {
             mBgColor = Color(0, 0, 255);
-        };
+        });
     };
     mCtrlHandlers["[1;45m"] = [=]() {
-        mCurrAttrFunc = [=]() {
+        mCurrAttrFuncs.push_back([=]() {
             mBgColor = Color(255, 0, 255);
-        };
+        });
     };
     mCtrlHandlers["[1;46m"] = [=]() {
-        mCurrAttrFunc = [=]() {
+        mCurrAttrFuncs.push_back([=]() {
             mBgColor = Color(0, 255, 255);
-        };
+        });
     };
     mCtrlHandlers["[1;47m"] = [=]() {
-        mCurrAttrFunc = [=]() {
+        mCurrAttrFuncs.push_back([=]() {
             mBgColor = Color(255, 255, 255);
-        };
+        });
     };
     /// reserved for future standardization
     mCtrlHandlers["[1;48m"] = [=]() {
-        mCurrAttrFunc = [=]() {
+        mCurrAttrFuncs.push_back([=]() {
             mBgColor = Color(255, 255, 255);
-        };
+        });
     };
     /// default display color
     mCtrlHandlers["[1;49m"] = [=]() {
-        mCurrAttrFunc = [=]() {
+        mCurrAttrFuncs.push_back([=]() {
             mBgColor = mDefaultFgColor;
-        };
+        });
     };
     ///
     mCtrlHandlers["[0;0m"] = mCtrlHandlers["[m"];
