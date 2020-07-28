@@ -9,6 +9,7 @@ file
 	comxd.tpp,
 	ConnFactory.cpp,
 	ConnFactory.h,
+	VT102ControlSeq.h,
 	SerialConnVT102.h,
 	SerialConnVT102.cpp,
 	Action.h,
@@ -25,8 +26,7 @@ file
 	resource.h,
 	SerialDevsDialog.h,
 	SerialDevsDialog.cpp,
-	main.cpp,
-	VT102ControlSeq.h;
+	main.cpp;
 
 mainconfig
 	"" = "GUI MT";

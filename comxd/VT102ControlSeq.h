@@ -5,7 +5,8 @@
 #define _comxd_VT102ControlSeq_h_
 
 #include <string>
-
+/// VT102 Control Codes
+/// please read [VT102 Manual](https://vt100.net/docs/vt102-ug/appendixc.html)
 static const char* kVT102CtrlSeqs[] = {
     "[2h",
     "[4h",
@@ -71,6 +72,7 @@ static const char* kVT102CtrlSeqs[] = {
     "[4m",
     "[5m",
     "[7m",
+#if 0
     // Cursor key codes
     "[A",
     "[0A",
@@ -80,6 +82,7 @@ static const char* kVT102CtrlSeqs[] = {
     "[0C",
     "[D",
     "[0D",
+#endif
     // Cursor movement commands
     "[Pt:Pbr",
     "[PnA",
@@ -194,7 +197,7 @@ static inline int IsVT102CursorKeyCodes(const std::string& seq)
                 bool nb = true;
                 size_t b = 2;
                 while (b < seq_sz-1) {
-                    if (!(seq[1] >= '0' && seq[1] <= '9')) {
+                    if (!(seq[b] >= '0' && seq[b] <= '9')) {
                         nb = false;
                         break;
                     }
@@ -212,7 +215,10 @@ static inline int IsVT102CursorKeyCodes(const std::string& seq)
                 }
             }
         }
-    }
+    } else if (seq_sz == 2 && seq[0] == '[' && seq[1] >= '0' && seq[1] <= '9') {
+        return 1;
+    } else if (seq_sz == 1 && seq[0] == '[') return 1;
+    //
     return 0;
 }
 // match the control seq

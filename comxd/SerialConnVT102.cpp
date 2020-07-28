@@ -9,8 +9,7 @@
 REGISTER_CONN_INSTANCE("VT102", SerialConnVT102);
 //
 using namespace Upp;
-/// VT102 Control Codes
-/// please read [VT102 Manual](https://vt100.net/docs/vt102-ug/appendixc.html)
+
 SerialConnVT102::SerialConnVT102(std::shared_ptr<serial::Serial> serial)
     : SerialConn(serial)
     , mCursorX(0)
@@ -21,12 +20,12 @@ SerialConnVT102::SerialConnVT102(std::shared_ptr<serial::Serial> serial)
     , mPaperColor(Color(110, 110, 0))
     , mDefaultBgColor(Color(110, 110, 0))
     , mDefaultFgColor(Color(255, 255, 255))
-    , mRealLines(0)
     , mRealX(0)
     , mBlinkSignal(true)
     , mBlink(false)
     , mScrollToEnd(true)
     , mPressed(false)
+    , mMaxLinesBufferSize(5000)
 {
     mActOptions = UsrAction(comxd::about(), "Options", "Change console options", [=](){
         ShowOptionsDialog();
@@ -156,6 +155,14 @@ Size SerialConnVT102::GetConsoleSize() const
     return Upp::Size(sz.cx / mFontW, sz.cy / mFontH);
 }
 //
+void SerialConnVT102::PushToLinesBufferAndCheck(const VTLine& vline)
+{
+    mLinesBuffer.push_back(vline);
+    if (mLinesBuffer.size() > mMaxLinesBufferSize) {
+        mLinesBuffer.erase(mLinesBuffer.begin());
+    }
+}
+//
 void SerialConnVT102::InstallVT102ControlSeqHandlers()
 {
     // erasing
@@ -177,18 +184,19 @@ void SerialConnVT102::InstallVT102ControlSeqHandlers()
         mLines[mCursorY] = VTLine(csz.cx, mBlankChr);
     };
     mCtrlHandlers["[J"] = [=]() { // erase in display, cursor to end of screen
+        // clear entire screen, push
+        if (mCursorX == 0 && mCursorY == 0) {
+            int nlines = (int)mLines.size() - this->CalculateNumberOfBlankLinesFromEnd(mLines);
+            for (int i = 0; i < nlines; ++i) {
+                this->PushToLinesBufferAndCheck(mLines[i]);
+            }
+        }
         Size csz = GetConsoleSize();
         for (int i = mCursorX; i < csz.cx; ++i) {
             mLines[mCursorY][i] = mBlankChr;
         }
         for (int i = mCursorY+1; i < csz.cy; ++i) {
             mLines[i] = VTLine(csz.cx, mBlankChr);
-        }
-        //
-        mRealLines = mCursorY;
-        mLinesBuffer.clear();
-        for (int i = 0; i < mCursorY; ++i) {
-            mLinesBuffer.push_back(mLines[i]);
         }
     };
     mCtrlHandlers["[0J"] = mCtrlHandlers["[J"];
@@ -200,17 +208,12 @@ void SerialConnVT102::InstallVT102ControlSeqHandlers()
         for (int i = 0; i < mCursorY; ++i) {
             mLines[i] = VTLine(csz.cx, mBlankChr);
         }
-        //
-        mLinesBuffer = mLines;
-        mRealLines = (int)mLines.size() - 1;
     };
     mCtrlHandlers["[2J"] = [=]() { // erase in display, entire screen
         Size csz = GetConsoleSize();
         for (size_t k = 0; k < mLines.size(); ++k) {
             mLines[k] = VTLine(csz.cx, mBlankChr);
         }
-        mLinesBuffer.clear();
-        mRealLines = 0;
     };
     // cursor
     mCtrlHandlers["[H"] = [=]() { // cursor position (home)
@@ -277,11 +280,6 @@ void SerialConnVT102::ProcessAsciiControlChar(unsigned char cc)
 {
     switch (cc) {
     case '\n':
-        // Add last line to the buffer
-        mLinesBuffer.push_back(mLines[mCursorY]);
-        //
-        mRealLines++;
-        //
         mCursorY += 1;
         mCursorX = 0;
         break;
@@ -318,11 +316,11 @@ void SerialConnVT102::RenderText(const std::string& seq)
             if (mCursorY >= csz.cy) { // scroll
                 size_t cn = mCursorY - csz.cy + 1;
                 for (size_t k = 0; k < cn; ++k) {
+                    PushToLinesBufferAndCheck(*mLines.begin());
                     mLines.erase(mLines.begin());
                     mLines.push_back(VTLine(csz.cx, ' '));
                 }
                 mCursorY = csz.cy - 1; // move to last line
-                mRealLines = csz.cy - 1;
             }
         }
     } else {
@@ -355,14 +353,21 @@ void SerialConnVT102::MouseWheel(Point, int zdelta, dword)
 void SerialConnVT102::MouseMove(Upp::Point p, Upp::dword)
 {
     if (mPressed) {
+        int nlines = (int)mLinesBuffer.size() + \
+            (int)mLines.size() - this->CalculateNumberOfBlankLinesFromEnd(mLines);
         mSelectionSpan.X1 = p.x / mFontW;
         int y = (mSbV.Get() + p.y) / mFontH; // absolute position
-        if (abs(y - mSelectionSpan.Y0) < (int)mLinesBuffer.size()+1) {
+        if (abs(y - mSelectionSpan.Y0) < nlines) {
             mSelectionSpan.Y1 = y;
         }
         if (p.y <= 0) {
             mSbV.PrevLine();
         }
+        // fix it
+        if (mSelectionSpan.X0 < 0) mSelectionSpan.X0 = 0;
+        if (mSelectionSpan.X1 < 0) mSelectionSpan.X1 = 0;
+        if (mSelectionSpan.Y0 < 0) mSelectionSpan.Y0 = 0;
+        if (mSelectionSpan.Y1 < 0) mSelectionSpan.Y1 = 0;
         //
         Refresh();
     }
@@ -395,18 +400,20 @@ void SerialConnVT102::LeftUp(Point p, dword)
 
 void SerialConnVT102::LeftDown(Point p, dword)
 {
+    int nlines = (int)mLinesBuffer.size() + \
+        (int)mLines.size() - this->CalculateNumberOfBlankLinesFromEnd(mLines);
     mPressed = true;
     mSelectionSpan.X0 = p.x / mFontW;
     mSelectionSpan.Y0 = (mSbV.Get() + p.y) / mFontH;
     mSelectionSpan.X1 = p.x / mFontW;
     mSelectionSpan.Y1 = (mSbV.Get() + p.y) / mFontH;
     int maxy = std::max(mSelectionSpan.Y0, mSelectionSpan.Y1);
-    if (maxy > (int)mLinesBuffer.size()) {
+    if (maxy >= nlines) {
         if (mSelectionSpan.Y1 > mSelectionSpan.Y0) {
-            mSelectionSpan.Y1 = (int)mLinesBuffer.size();
+            mSelectionSpan.Y1 = nlines-1;
             mSelectionSpan.Y0 = mSelectionSpan.Y1;
         } else {
-            mSelectionSpan.Y0 = (int)mLinesBuffer.size();
+            mSelectionSpan.Y0 = nlines-1;
             mSelectionSpan.Y1 = mSelectionSpan.Y0;
         }
     }
@@ -503,6 +510,26 @@ bool SerialConnVT102::Key(dword key, int)
 	}
 	return processed;
 }
+//
+inline int SerialConnVT102::CalculateNumberOfBlankLinesFromEnd(const std::vector<SerialConnVT102::VTLine>& lines) const
+{
+    int cn = 0;
+    size_t sz = lines.size();
+    while (sz--) {
+        const VTLine& vline = lines[sz];
+        bool blank = true;
+        for (size_t k = 0; k < vline.size(); ++k) {
+            if (vline[k] != ' ') {
+                blank = false;
+                break;
+            }
+        }
+        if (blank) {
+            cn++;
+        } else break;
+    }
+    return cn;
+}
 
 void SerialConnVT102::Layout()
 {
@@ -518,38 +545,38 @@ void SerialConnVT102::Layout()
 	// extend or shrink the virtual screen
 	if (mLines.size() < csz.cy) {
 	    // extend virtual screen
-	    size_t cn = csz.cy - mLines.size();
-	    size_t hn = mLinesBuffer.size() >= mLines.size() ? mLinesBuffer.size() - mLines.size() : 0;
-	    size_t ln = 0;
-        for (size_t k = 0; !mLinesBuffer.empty() && mLinesBuffer.size() >= mLines.size()
-            && k < cn && k <= hn; ++k)
-        {
-            VTLine vline = mLinesBuffer[hn-k];
-            for (size_t i = vline.size(); i < csz.cx; ++i) {
-                vline.push_back(mBlankChr);
-            }
-            mLines.insert(mLines.begin(), vline);
-            ln++;
-            mCursorY++;
-            mRealLines++;
-        }
-	    //
-	    for (size_t k = ln; k < cn; ++k) {
+	    // 0. pull lines from lines buffer
+	    int extcn = csz.cy - (int)mLines.size();
+	    int ln = 0;
+	    for (int i = 0; i < extcn && !mLinesBuffer.empty(); ++i) {
+	        VTLine vline = *mLinesBuffer.rbegin(); mLinesBuffer.pop_back();
+	        for (int n = (int)vline.size(); n < csz.cx; ++n) {
+	            vline.push_back(' ');
+	        }
+	        mLines.insert(mLines.begin(), vline);
+	        ln++;
+	    }
+	    mCursorY += ln;
+	    // 1. push blanks
+	    for (int i = ln; i < csz.cy; ++i) {
 	        mLines.push_back(VTLine(csz.cx, mBlankChr));
 	    }
 	    //--------------------------------------------------------------------------------------
 	} else {
-	    size_t cn = mLines.size() - csz.cy;
-	    size_t bn = mLines.size() - mRealLines-1;
-	    size_t ln = 0;
-	    for (size_t i = 0; i < cn && i < bn; ++i) {
+	    // shrink virtual screen
+	    // 0. remove blanks firstly
+	    int blankcnt = CalculateNumberOfBlankLinesFromEnd(mLines);
+	    int shkcn = (int)mLines.size() - csz.cy;
+	    int ln;
+	    for (int i = 0; i < shkcn && i < blankcnt; ++i) {
 	        mLines.pop_back();
 	        ln++;
 	    }
-	    for (size_t i = ln; i < cn; ++i) {
+	    // 1. remove from head
+	    for (int i = ln; i < shkcn; ++i) {
+	        PushToLinesBufferAndCheck(*mLines.begin());
 	        mLines.erase(mLines.begin());
 	        mCursorY--;
-	        mRealLines--;
 	    }
 	}
 	mScrollToEnd = true;
@@ -557,22 +584,24 @@ void SerialConnVT102::Layout()
 
 std::vector<SerialConnVT102::VTLine> SerialConnVT102::GetBufferLines(size_t p, int& y)
 {
-    Size csz = GetConsoleSize(); y = -1;
+    Size csz = GetConsoleSize(); y = mCursorY;
     std::vector<VTLine> out(csz.cy);
     // fetch lines from lines buffer
     size_t ln = 0;
-    for (size_t k = p; ln < (size_t)csz.cy && k < mLinesBuffer.size(); ++k) {
-        out[ln++] = mLinesBuffer[k];
+    for (size_t k = p; k < mLinesBuffer.size() && (int)ln < csz.cy; ++k) {
+        out[ln] = mLinesBuffer[k];
+        for (int i = out[ln].size(); i < csz.cx; ++i) {
+            out[ln][i] = ' ';
+        }
+        ln++;
+        y++;
     }
-    y = mCursorY + (int)ln;
-    //
-    size_t cn = csz.cy - ln;
-    for (size_t k = 0; k < cn && k <= mRealLines; ++k) {
-        out[ln++] = mLines[k];
+    int cn = 0;
+    for (size_t k = ln; (int)k < csz.cy; ++k) {
+        out[ln++] = mLines[cn++];
     }
-    size_t bn = csz.cy - ln;
-    for (size_t k = 0; k < bn; ++k) {
-        out[ln++] = VTLine(csz.cx, mBlankChr);
+    if (y >= (int)mLines.size()) {
+        y = -1;
     }
     
     return out;
@@ -592,7 +621,10 @@ std::vector<std::string> SerialConnVT102::GetSelection() const
     int i, j;
     std::vector<std::string> out;
     auto templines = mLinesBuffer;
-    templines.push_back(mLines[mRealLines]);
+    int nlines = (int)mLines.size() - this->CalculateNumberOfBlankLinesFromEnd(mLines);
+    for (int i = 0; i < nlines; ++i) {
+        templines.push_back(mLines[i]);
+    }
     //
     if (span.Y0 >= templines.size()) return out;
     // first line
@@ -679,8 +711,9 @@ void SerialConnVT102::Render(Upp::Draw& draw)
     // draw background
     draw.DrawRect(GetRect(), mPaperColor);
     // set total
-    mSbV.SetTotal(mFontH*
-        (mLinesBuffer.size() + 1)); //<! 1 is the last line, not in buffer
+    int nlines = (int)mLinesBuffer.size() + \
+        (int)mLines.size();// - this->CalculateNumberOfBlankLinesFromEnd(mLines);
+    mSbV.SetTotal(mFontH * nlines);
     // draw VT102 chars
     if (mScrollToEnd) { // draw current screen
         draw.DrawRect(mCursorX*mFontW, mCursorY*mFontH, mFontW, mFontH, Color(0, 255, 0));
@@ -704,7 +737,8 @@ void SerialConnVT102::Render(Upp::Draw& draw, const std::vector<VTLine>& vlines)
     // from 0
     mX = 0;
     mY = 0;
-    for (size_t k = 0; k < mRealLines+1; ++k) {
+    int nlines = (int)mLines.size() - this->CalculateNumberOfBlankLinesFromEnd(vlines);
+    for (size_t k = 0; k < nlines; ++k) {
         const VTLine& vline = vlines[k];
         for (size_t i = 0; i < vline.size() && i < csz.cx; ++i) {
             vline[i].ApplyAttrs();
@@ -733,15 +767,9 @@ void SerialConnVT102::Render(Upp::Draw& draw, const std::vector<VTLine>& vlines)
                 std::swap(mBgColor, mFgColor);
             }
         }
-        #if 0
         for (size_t i = csz.cx; i < vline.size(); ++i) {
             vline[i].ApplyAttrs();
-            bool is_selected = IsCharInSelectionSpan((int)i, (int)k);
-            if (is_selected) {
-                draw.DrawRect(mX, mY, mFontW, mFontH, mFgColor);
-            }
         }
-        #endif
         // move to next line
         mX = 0;
         mY += mFontH;

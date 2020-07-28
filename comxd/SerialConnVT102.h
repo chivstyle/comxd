@@ -75,15 +75,17 @@ protected:
     std::mutex mLinesLock; //<! Protect virtual screen
     std::vector<VTLine> mLinesBuffer; //<! All rendered text
     std::vector<VTLine> mLines; //<! Text on current screen, treat is as virtual screen
-    int mRealLines; //<! real lines in the virtual screen
     int mRealX;
     /// Position of virtual cursor
     int mCursorX, mCursorY;
     /// \brief Render text on virtual screen
     /// \param seq complete VT characters
     void RenderText(const std::string& seq);
-    //
+    // push to lines buffer and check, fix if needed
+    void PushToLinesBufferAndCheck(const VTLine& vline);
     std::vector<VTLine> GetBufferLines(size_t p, int& y);
+    // calcualte blank lines from end of lines
+    inline int CalculateNumberOfBlankLinesFromEnd(const std::vector<VTLine>& lines) const;
     //
     bool mScrollToEnd;
     // selection
@@ -138,6 +140,7 @@ protected:
     // the position of current pen
     int mX;
     int mY;
+    size_t mMaxLinesBufferSize;
     // render text
     void Render(Upp::Draw& draw);
     void Render(Upp::Draw& draw, const std::vector<VTLine>& vlines);
