@@ -580,7 +580,7 @@ void SerialConnVT102::Layout()
 	    }
 	    mCursorY += ln;
 	    // 1. push blanks
-	    for (int i = ln; i < csz.cy; ++i) {
+	    for (int i = ln; i < csz.cy && i < extcn; ++i) {
 	        mLines.push_back(VTLine(csz.cx, mBlankChr));
 	    }
 	    //--------------------------------------------------------------------------------------
@@ -589,7 +589,7 @@ void SerialConnVT102::Layout()
 	    // 0. remove blanks firstly
 	    int blankcnt = CalculateNumberOfBlankLinesFromEnd(mLines);
 	    int shkcn = (int)mLines.size() - csz.cy;
-	    int ln;
+	    int ln = 0;
 	    for (int i = 0; i < shkcn && i < blankcnt; ++i) {
 	        mLines.pop_back();
 	        ln++;
@@ -598,7 +598,9 @@ void SerialConnVT102::Layout()
 	    for (int i = ln; i < shkcn; ++i) {
 	        PushToLinesBufferAndCheck(*mLines.begin());
 	        mLines.erase(mLines.begin());
-	        mCursorY--;
+	        if (mCursorY > 0) {
+	            mCursorY--;
+	        }
 	    }
 	}
 	mScrollToEnd = true;
@@ -734,7 +736,7 @@ void SerialConnVT102::Render(Upp::Draw& draw)
     draw.DrawRect(GetRect(), mPaperColor);
     // set total
     int nlines = (int)mLinesBuffer.size() + \
-        (int)mLines.size() - this->CalculateNumberOfBlankLinesFromEnd(mLines);
+        (int)mLines.size();// - this->CalculateNumberOfBlankLinesFromEnd(mLines);
     mSbV.SetTotal(mFontH * nlines);
     // draw VT102 chars
     if (mScrollToEnd) { // draw current screen
