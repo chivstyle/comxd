@@ -20,7 +20,6 @@ SerialConnVT102::SerialConnVT102(std::shared_ptr<serial::Serial> serial)
     , mPaperColor(Color(110, 110, 0))
     , mDefaultBgColor(Color(110, 110, 0))
     , mDefaultFgColor(Color(255, 255, 255))
-    , mRealX(0)
     , mBlinkSignal(true)
     , mBlink(false)
     , mScrollToEnd(true)
@@ -113,7 +112,7 @@ void SerialConnVT102::RxProc()
                     }
                     pretty_buff = "";
                     pending = true; // continue
-                } else if (buff[k] == '\r') continue; else {
+                } else {
                     pretty_buff.push_back(buff[k]);
                 }
             }
@@ -279,16 +278,19 @@ void SerialConnVT102::ProcessControlSeq(const std::string& seq)
 void SerialConnVT102::ProcessAsciiControlChar(unsigned char cc)
 {
     switch (cc) {
-    case '\n':
-        mCursorY += 1;
+    case '\r':
         mCursorX = 0;
         break;
+    case '\n':
+        mCursorY += 1;
+        break;
     case 0x08: // backspace
-        mCursorX -= 1;
+        if (mCursorX > 0) {
+            mCursorX -= 1;
+        }
         break;
-    case 0x07: // bell
-        mCursorX = mRealX;
-        break;
+    case 0x07: { // bell
+    } break;
     }
 }
 
@@ -300,6 +302,10 @@ void SerialConnVT102::RenderText(const std::string& seq)
         for (size_t k = 0; k < seq.size(); ++k) {
             VTChar chr = seq[k];
             if (isprint(chr)) {
+                if (mTabWasSent) {
+                    mTabWasSent = false;
+                    mCursorX = 0;
+                }
                 // chr always uses the last attr funcs
                 chr.SetAttrFuns(mCurrAttrFuncs);
                 //
@@ -318,7 +324,7 @@ void SerialConnVT102::RenderText(const std::string& seq)
                 for (size_t k = 0; k < cn; ++k) {
                     PushToLinesBufferAndCheck(*mLines.begin());
                     mLines.erase(mLines.begin());
-                    mLines.push_back(VTLine(csz.cx, ' '));
+                    mLines.push_back(VTLine(csz.cx, mBlankChr));
                 }
                 mCursorY = csz.cy - 1; // move to last line
             }
@@ -326,7 +332,6 @@ void SerialConnVT102::RenderText(const std::string& seq)
     } else {
         ProcessControlSeq(seq.substr(1));
     }
-    mRealX = mCursorX;
 }
 
 void SerialConnVT102::Paint(Upp::Draw& draw)
@@ -357,11 +362,15 @@ void SerialConnVT102::MouseMove(Upp::Point p, Upp::dword)
             (int)mLines.size() - this->CalculateNumberOfBlankLinesFromEnd(mLines);
         mSelectionSpan.X1 = p.x / mFontW;
         int y = (mSbV.Get() + p.y) / mFontH; // absolute position
-        if (abs(y - mSelectionSpan.Y0) < nlines) {
+        if (y >= nlines) {
+            mSelectionSpan.Y1 = nlines - 1;
+        } else {
             mSelectionSpan.Y1 = y;
         }
         if (p.y <= 0) {
             mSbV.PrevLine();
+        } else if (p.y > GetSize().cy) {
+            mSbV.NextLine();
         }
         // fix it
         if (mSelectionSpan.X0 < 0) mSelectionSpan.X0 = 0;
@@ -466,7 +475,7 @@ bool SerialConnVT102::ProcessKeyUp(dword key, dword flags)
     if (flags & K_CTRL) {
         std::vector<uint8_t> d;
         switch (key) {
-        case K_C:
+        case K_C: // CTRL+C
             d.push_back(3);
             break;
         }
@@ -496,8 +505,9 @@ bool SerialConnVT102::Key(dword key, int)
 	    dword d_key = key & ~(flags | K_KEYUP);
 	    flags = key & flags;
 	    if ((key & K_KEYUP) == 0) { // key down, most ascii
-	        if (key == 0x09) { // Tab
-	            mCursorX = 0;
+	        if (key == 0x9) { // Tab, When tab was sent, the shell will send
+	                          // xxdfdadadfadsdf\033[J
+	            mTabWasSent = true;
 	        }
 	        if (d_key >= 0 && d_key <= 0x7f) {
 	            GetSerial()->write((uint8_t*)&d_key, 1);
@@ -511,7 +521,7 @@ bool SerialConnVT102::Key(dword key, int)
 	return processed;
 }
 //
-inline int SerialConnVT102::CalculateNumberOfBlankLinesFromEnd(const std::vector<SerialConnVT102::VTLine>& lines) const
+int SerialConnVT102::CalculateNumberOfBlankLinesFromEnd(const std::vector<SerialConnVT102::VTLine>& lines) const
 {
     int cn = 0;
     size_t sz = lines.size();
@@ -527,6 +537,18 @@ inline int SerialConnVT102::CalculateNumberOfBlankLinesFromEnd(const std::vector
         if (blank) {
             cn++;
         } else break;
+    }
+    return cn;
+}
+
+int SerialConnVT102::CalculateNumberOfBlankCharsFromEnd(const VTLine& vline) const
+{
+    int cn = 0;
+    size_t sz = vline.size();
+    while (sz--) {
+        if (vline[sz] == ' ')
+            cn++;
+        else break;
     }
     return cn;
 }
@@ -551,7 +573,7 @@ void SerialConnVT102::Layout()
 	    for (int i = 0; i < extcn && !mLinesBuffer.empty(); ++i) {
 	        VTLine vline = *mLinesBuffer.rbegin(); mLinesBuffer.pop_back();
 	        for (int n = (int)vline.size(); n < csz.cx; ++n) {
-	            vline.push_back(' ');
+	            vline.push_back(mBlankChr);
 	        }
 	        mLines.insert(mLines.begin(), vline);
 	        ln++;
@@ -712,7 +734,7 @@ void SerialConnVT102::Render(Upp::Draw& draw)
     draw.DrawRect(GetRect(), mPaperColor);
     // set total
     int nlines = (int)mLinesBuffer.size() + \
-        (int)mLines.size();// - this->CalculateNumberOfBlankLinesFromEnd(mLines);
+        (int)mLines.size() - this->CalculateNumberOfBlankLinesFromEnd(mLines);
     mSbV.SetTotal(mFontH * nlines);
     // draw VT102 chars
     if (mScrollToEnd) { // draw current screen

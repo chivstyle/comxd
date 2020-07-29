@@ -75,7 +75,8 @@ protected:
     std::mutex mLinesLock; //<! Protect virtual screen
     std::vector<VTLine> mLinesBuffer; //<! All rendered text
     std::vector<VTLine> mLines; //<! Text on current screen, treat is as virtual screen
-    int mRealX;
+    /// Tab was sent
+    volatile bool mTabWasSent;
     /// Position of virtual cursor
     int mCursorX, mCursorY;
     /// \brief Render text on virtual screen
@@ -86,6 +87,7 @@ protected:
     std::vector<VTLine> GetBufferLines(size_t p, int& y);
     // calcualte blank lines from end of lines
     inline int CalculateNumberOfBlankLinesFromEnd(const std::vector<VTLine>& lines) const;
+    inline int CalculateNumberOfBlankCharsFromEnd(const VTLine& vline) const;
     //
     bool mScrollToEnd;
     // selection
