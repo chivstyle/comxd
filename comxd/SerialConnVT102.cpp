@@ -89,10 +89,19 @@ void SerialConnVT102::RxProc()
         size_t sz = mSerial->available();
         if (sz) {
             std::string pretty_buff;
-            std::string buff = GetSerial()->read(sz);
+            std::vector<uint8_t> buff;
+            GetSerial()->read(buff, sz);
             for (size_t k = 0; k < buff.size(); ++k) {
                 if (pending) {
-                    pattern.push_back(buff[k]);
+#if 0 // Support VT102 CANCEL(0x18)
+                    if (buff[k] == 0x18) {
+                        pretty_buff.push_back('@'); // replace it with @
+                        pending = false;
+                        pattern = "";
+                        continue;
+                    }
+#endif
+                    pattern.push_back((char)buff[k]);
                     int ret = IsControlSeq(pattern);
                     if (ret == 2) { // bingo
                         // found it.
@@ -113,7 +122,7 @@ void SerialConnVT102::RxProc()
                     pretty_buff = "";
                     pending = true; // continue
                 } else {
-                    pretty_buff.push_back(buff[k]);
+                    pretty_buff.push_back((char)buff[k]);
                 }
             }
             // render the pretty_buff
@@ -183,7 +192,7 @@ void SerialConnVT102::InstallVT102ControlSeqHandlers()
         mLines[mCursorY] = VTLine(csz.cx, mBlankChr);
     };
     mCtrlHandlers["[J"] = [=]() { // erase in display, cursor to end of screen
-        // clear entire screen, push
+        // clear entire screen, push lines to buffer.
         if (mCursorX == 0 && mCursorY == 0) {
             int nlines = (int)mLines.size() - this->CalculateNumberOfBlankLinesFromEnd(mLines);
             for (int i = 0; i < nlines; ++i) {
@@ -221,6 +230,19 @@ void SerialConnVT102::InstallVT102ControlSeqHandlers()
         mCursorX = 0;
         mCursorY = 0;
     };
+    mCtrlHandlers["[f"] = mCtrlHandlers["[H"];
+    mCtrlHandlers["[A"] = [=]() {
+        if (mCursorY > 0) mCursorY--;
+    };
+    mCtrlHandlers["[B"] = [=]() {
+        mCursorY++;
+    };
+    mCtrlHandlers["[C"] = [=]() {
+        mCursorX++;
+    };
+    mCtrlHandlers["[D"] = [=]() {
+        if (mCursorX > 0) mCursorX--;
+    };
     // attributes, the real renderer will use them
     mCtrlHandlers["[m"] = [&]() {
         // restore default attrs
@@ -240,24 +262,46 @@ void SerialConnVT102::InstallVT102ControlSeqHandlers()
     mCtrlHandlers["[7m"] = [=]() {
         mCurrAttrFuncs.push_back([=]() { mFgColor = Color::FromRaw(~mFgColor.GetRaw()); });
     };
+    // reset mode
+    mCtrlHandlers["[20l"] = [=]() {
+        mCursorY++;
+    };
 }
 //
 void SerialConnVT102::ProcessVT102CursorKeyCodes(const std::string& seq)
 {
-    int n = atoi(seq.substr(1, seq.length() - 2).c_str());
     Size csz = GetConsoleSize();
     switch (*seq.rbegin()) {
-    case 'A':
-        break;
-    case 'B':
-        break;
+    case 'A':if (1) {
+        int n = atoi(seq.substr(1, seq.length() - 2).c_str());
+        mCursorY += n;
+        mCursorY = std::min(mCursorY, csz.cy - 1);
+    } break;
+    case 'B':if (1) {
+        int n = atoi(seq.substr(1, seq.length() - 2).c_str());
+        mCursorY -= n;
+        mCursorY = std::max(mCursorY, 0);
+    } break;
     case 'C':if (1) {
+        int n = atoi(seq.substr(1, seq.length() - 2).c_str());
         mCursorX += n;
         mCursorX = std::min(mCursorX, csz.cx-1);
     } break;
     case 'D':if (1) {
+        int n = atoi(seq.substr(1, seq.length() - 2).c_str());
         mCursorX -= n;
         mCursorX = std::max(mCursorX, 0);
+    } break;
+    case 'H':
+    case 'f':if (1) {
+        auto p = seq.find(';');
+        ASSERT(p != seq.npos);
+        int x = atoi(seq.substr(1, p-1).c_str());
+        int y = atoi(seq.substr(p+1, seq.size() - p - 1).c_str());
+        if (x < 0) x = 0; if (x >= csz.cx) x = csz.cx - 1;
+        if (y < 0) y = 0; if (y >= csz.cy) y = csz.cy - 1;
+        mCursorX = x;
+        mCursorY = y;
     } break;
     default:break;
     }
@@ -269,7 +313,9 @@ void SerialConnVT102::ProcessControlSeq(const std::string& seq)
     if (it != mCtrlHandlers.end()) {
         it->second();
     } else {
-        if (IsVT102CursorKeyCodes(seq)) {
+        if (IsVT102ScrollingRegion(seq)) {
+            // NOTE: does not support this feature.
+        } else if (IsVT102CursorKeyCodes(seq)) {
             ProcessVT102CursorKeyCodes(seq);
         }
     }
@@ -284,6 +330,9 @@ void SerialConnVT102::ProcessAsciiControlChar(unsigned char cc)
     case '\n':
         mCursorY += 1;
         break;
+    case '\t':
+        mCursorX += 4;
+        break;
     case 0x08: // backspace
         if (mCursorX > 0) {
             mCursorX -= 1;
@@ -293,7 +342,19 @@ void SerialConnVT102::ProcessAsciiControlChar(unsigned char cc)
     } break;
     }
 }
-
+void SerialConnVT102::ProcessOverflowLines()
+{
+    Size csz = GetConsoleSize();
+    if (mCursorY >= csz.cy) { // scroll
+        size_t cn = mCursorY - csz.cy + 1;
+        for (size_t k = 0; k < cn; ++k) {
+            PushToLinesBufferAndCheck(*mLines.begin());
+            mLines.erase(mLines.begin());
+            mLines.push_back(VTLine(csz.cx, mBlankChr));
+        }
+        mCursorY = csz.cy - 1; // move to last line
+    }
+}
 void SerialConnVT102::RenderText(const std::string& seq)
 {
     std::lock_guard<std::mutex> _(mLinesLock);
@@ -302,10 +363,6 @@ void SerialConnVT102::RenderText(const std::string& seq)
         for (size_t k = 0; k < seq.size(); ++k) {
             VTChar chr = seq[k];
             if (isprint(chr)) {
-                if (mTabWasSent) {
-                    mTabWasSent = false;
-                    mCursorX = 0;
-                }
                 // chr always uses the last attr funcs
                 chr.SetAttrFuns(mCurrAttrFuncs);
                 //
@@ -313,21 +370,16 @@ void SerialConnVT102::RenderText(const std::string& seq)
                 if (mCursorX < vline.size()) {
                     vline[mCursorX++] = chr;
                 } else {
-                    // extend this line, we'll record all chars
-                    vline.push_back(chr);
+                    // wrap lines longer than screen width
+                    mCursorY++;
+                    mCursorX = 0;
+                    ProcessOverflowLines();
+                    vline[mCursorX++] = chr;
                 }
             } else {
                 ProcessAsciiControlChar(chr);
             }
-            if (mCursorY >= csz.cy) { // scroll
-                size_t cn = mCursorY - csz.cy + 1;
-                for (size_t k = 0; k < cn; ++k) {
-                    PushToLinesBufferAndCheck(*mLines.begin());
-                    mLines.erase(mLines.begin());
-                    mLines.push_back(VTLine(csz.cx, mBlankChr));
-                }
-                mCursorY = csz.cy - 1; // move to last line
-            }
+            ProcessOverflowLines();
         }
     } else {
         ProcessControlSeq(seq.substr(1));
@@ -432,9 +484,8 @@ void SerialConnVT102::LeftDown(Point p, dword)
 //----------------------------------------------
 bool SerialConnVT102::ProcessKeyDown(dword key, dword flags)
 {
-    std::string text = std::to_string(K_DELETE);
+    std::vector<uint8_t> d;
     if ((flags & (K_CTRL | K_ALT | K_SHIFT)) == 0) {
-        std::vector<uint8_t> d;
         switch (key) {
         case K_BACKSPACE:
             d.push_back(8);
@@ -450,39 +501,74 @@ bool SerialConnVT102::ProcessKeyDown(dword key, dword flags)
             d.push_back('C');
             break;
         case K_UP:
-            mCursorX = 0;
             d.push_back(0x1b);
             d.push_back('[');
             d.push_back('A');
             break;
         case K_DOWN:
-            mCursorX = 0;
             d.push_back(0x1b);
             d.push_back('[');
             d.push_back('B');
             break;
+        case K_DELETE:
+            //
+            break;
+        case K_HOME:
+            d = std::vector<uint8_t>({0x1b, '[', 'H'});
+            break;
+        case K_END:
+            d = std::vector<uint8_t>({0x1b, '[', 'H'});
+            break;
         default:break;
         }
-        if (!d.empty()) {
-            GetSerial()->write(d);
-            return true;
+    } else if ((flags & K_CTRL) == K_CTRL) {
+        // https://vt100.net/docs/vt102-ug/chapter4.html#T4-1
+        key = key & ~K_CTRL;
+        if (key >= K_A && key <= K_Z) {
+            d.push_back(1 + key - K_A);
         }
+    }
+    if (!d.empty()) {
+        GetSerial()->write(d);
+        return true;
     }
     return false;
 }
 bool SerialConnVT102::ProcessKeyUp(dword key, dword flags)
 {
-    if (flags & K_CTRL) {
-        std::vector<uint8_t> d;
+    return false;
+}
+bool SerialConnVT102::ProcessKeyDown_Ascii(Upp::dword key, Upp::dword flags)
+{
+    std::vector<uint8_t> d;
+    if (flags == 0) {
+        d.push_back((uint8_t)(key & 0xff));
+    } else if ((flags & K_CTRL) == K_CTRL) {
+        // https://vt100.net/docs/vt102-ug/chapter4.html#T4-1
         switch (key) {
-        case K_C: // CTRL+C
-            d.push_back(3);
+        case '[':
+            d.push_back(0x1b); // ESC
+            break;
+        case '/':
+            d.push_back(0x1c); // FS
+            break;
+        case ']':
+            d.push_back(0x1d); // GS
+            break;
+        case '~':
+            d.push_back(0x1e); // RS
+            break;
+        case '?':
+            d.push_back(0x1f); // US
+            break;
+        case ' ':
+            d.push_back('\0'); // NUL
             break;
         }
-        if (!d.empty()) {
-            GetSerial()->write(d);
-            return true;
-        }
+    }
+    if (!d.empty()) {
+        GetSerial()->write(d);
+        return true;
     }
     return false;
 }
@@ -501,18 +587,11 @@ bool SerialConnVT102::Key(dword key, int)
 	        processed = ProcessKeyDown(d_key, flags);
 	    }
 	} else {
-	    dword flags = K_CTRL | K_ALT | K_SHIFT;
-	    dword d_key = key & ~(flags | K_KEYUP);
+	    dword flags = K_CTRL | K_ALT | K_SHIFT | K_KEYUP;
 	    flags = key & flags;
-	    if ((key & K_KEYUP) == 0) { // key down, most ascii
-	        if (key == 0x9) { // Tab, When tab was sent, the shell will send
-	                          // xxdfdadadfadsdf\033[J
-	            mTabWasSent = true;
-	        }
-	        if (d_key >= 0 && d_key <= 0x7f) {
-	            GetSerial()->write((uint8_t*)&d_key, 1);
-	            processed = true;
-	        }
+	    dword d_key = key & ~flags;
+	    if (d_key > 0 && d_key < 0x7f) {
+	        processed = ProcessKeyDown_Ascii(key, flags);
 	    }
 	}
 	if (processed) {
@@ -615,7 +694,7 @@ std::vector<SerialConnVT102::VTLine> SerialConnVT102::GetBufferLines(size_t p, i
     for (size_t k = p; k < mLinesBuffer.size() && (int)ln < csz.cy; ++k) {
         out[ln] = mLinesBuffer[k];
         for (int i = out[ln].size(); i < csz.cx; ++i) {
-            out[ln][i] = ' ';
+            out[ln].push_back(mBlankChr);
         }
         ln++;
         y++;
@@ -778,19 +857,28 @@ void SerialConnVT102::Render(Upp::Draw& draw, const std::vector<VTLine>& vlines)
                     if (mBgColor != mDefaultBgColor) {
                         draw.DrawRect(mX, mY, mFontW, mFontH, mBgColor);
                     }
-                    draw.DrawText(mX, mY, buff, mFont, mFgColor);
+                    if (mFgColor != mBgColor) {
+                        if (buff[0] != ' ') {
+                            draw.DrawText(mX, mY, buff, mFont, mFgColor);
+                        }
+                    }
                 }
             } else {
                 if (mBgColor != mDefaultBgColor) {
                     draw.DrawRect(mX, mY, mFontW, mFontH, mBgColor);
                 }
-                draw.DrawText(mX, mY, buff, mFont, mFgColor);
+                if (mFgColor != mBgColor) {
+                    if (buff[0] != ' ') {
+                        draw.DrawText(mX, mY, buff, mFont, mFgColor);
+                    }
+                }
             }
             mX += mFontW;
             if (is_selected) {
                 std::swap(mBgColor, mFgColor);
             }
         }
+        // apply attrs for those lines longer than screen width
         for (size_t i = csz.cx; i < vline.size(); ++i) {
             vline[i].ApplyAttrs();
         }

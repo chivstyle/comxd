@@ -8,6 +8,26 @@
 #include <string>
 // ECMA-48, .etc
 static const char* kXtermCtrlSeqs[] = {
+    "[30m", // black
+    "[31m", // red
+    "[32m", // green
+    "[33m", // yellow
+    "[34m", // blue
+    "[35m", // magenta
+    "[36m", // cyan
+    "[37m", // white
+    "[38m", // reserved for future standardization
+    "[39m", // default color
+    "[40m", // black background
+    "[41m", // red background
+    "[42m", // green background
+    "[43m", // yellow background
+    "[44m", // blue background
+    "[45m", // magenta background
+    "[46m", // cyan background
+    "[47m", // black background
+    "[48m", // reserved for future standardization
+    "[49m", // default background
     "[1;0m",
     "[1;30m", // black
     "[1;31m", // red

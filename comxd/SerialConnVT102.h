@@ -75,15 +75,14 @@ protected:
     std::mutex mLinesLock; //<! Protect virtual screen
     std::vector<VTLine> mLinesBuffer; //<! All rendered text
     std::vector<VTLine> mLines; //<! Text on current screen, treat is as virtual screen
-    /// Tab was sent
-    volatile bool mTabWasSent;
     /// Position of virtual cursor
     int mCursorX, mCursorY;
     /// \brief Render text on virtual screen
     /// \param seq complete VT characters
     void RenderText(const std::string& seq);
     // push to lines buffer and check, fix if needed
-    void PushToLinesBufferAndCheck(const VTLine& vline);
+    inline void PushToLinesBufferAndCheck(const VTLine& vline);
+    inline void ProcessOverflowLines();
     std::vector<VTLine> GetBufferLines(size_t p, int& y);
     // calcualte blank lines from end of lines
     inline int CalculateNumberOfBlankLinesFromEnd(const std::vector<VTLine>& lines) const;
@@ -135,8 +134,11 @@ protected:
     virtual void ProcessAsciiControlChar(unsigned char cc);
     virtual void InstallVT102ControlSeqHandlers();
     virtual void ProcessControlSeq(const std::string& seq);
+    // with K_DELTA
     virtual bool ProcessKeyDown(Upp::dword key, Upp::dword flags);
     virtual bool ProcessKeyUp(Upp::dword key, Upp::dword flags);
+    // pure ascii, 32 ~ 126
+    virtual bool ProcessKeyDown_Ascii(Upp::dword key, Upp::dword flags);
     //
     virtual void SetDefaultStyle();
     // the position of current pen

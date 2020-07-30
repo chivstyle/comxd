@@ -215,7 +215,6 @@ void SerialConnRaw::RxProc()
             mRxBufferLock.unlock();
             //
             Upp::PostCallback([=]() { mRxHex.Get() ? UpdateAsHex() : UpdateAsTxt(); });
-        }
-        std::this_thread::sleep_for(std::chrono::duration<double>(0.01));
+        } else std::this_thread::sleep_for(std::chrono::duration<double>(0.01));
     }
 }

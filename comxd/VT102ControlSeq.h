@@ -5,26 +5,53 @@
 #define _comxd_VT102ControlSeq_h_
 
 #include <string>
+/// WE DO NOT SUPPORT VT52 compatible mode
 /// VT102 Control Codes
 /// please read [VT102 Manual](https://vt100.net/docs/vt102-ug/appendixc.html)
 static const char* kVT102CtrlSeqs[] = {
-    "[2h",
-    "[4h",
-    "[12h",
-    "[20h",
-    "[?1h",
-    "[?3h",
-    "[?4h",
-    "[?5h",
-    "[?6h",
-    "[?7h",
-    "[?8h",
-    "[?18h",
-    "[?19h",
-    "[2l",
-    "[4l",
-    "[12l",
-    "[20l",
+    // attributes
+    "[m",
+    "[0m",
+    "[1m",
+    "[4m",
+    "[5m",
+    "[7m",
+    // Cursor movement commands, Pt, Pb, Pn, .etc are parameters
+    "[H", // home
+    "[f", // horizontal and vertical position HOME
+    "[A",
+    "[B",
+    "[C",
+    "[D",
+    "D", // index
+    "M", // reverse index
+    "E", // next line
+    "7", // save cursor (and attributes)
+    "8", // restore cursor (and attributes)
+    // Tab stops
+    "H", // horizontal tab set (at current column)
+    "[g", // tabulation clear (at current column)
+    "[0g", // see above
+    "[3g", // tabulation clear (all tabs)
+    // Line attributes
+    "#3", // double-height top half
+    "#4", // double-height bottom half
+    "#5", // single-width single-height
+    "#6", // double-width single-height
+    // Erasing
+    "[K",
+    "[0K",
+    "[1K",
+    "[2K",
+    "[J",
+    "[0J",
+    "[1J",
+    "[2J",
+    // reset mode
+    "[2l", // keyboard action
+    "[4l", // insertion-replacement
+    "[12l", // send-receive
+    "[20l", // linefeed/newline
     "[?1l",
     "[?2l",
     "[?3l",
@@ -35,25 +62,7 @@ static const char* kVT102CtrlSeqs[] = {
     "[?8l",
     "[?18l",
     "[?19l",
-    "[=",
-    "[>",
-    "?p",
-    "?q",
-    "?r",
-    "?t",
-    "?u",
-    "?v",
-    "?w",
-    "?x",
-    "?y",
-    "?m",
-    "?l*",
-    "?n",
-    "?M",
-    "P",
-    "Q",
-    "R",
-    "S",
+    // select character sets
     "(A",
     ")A",
     "(B",
@@ -65,160 +74,87 @@ static const char* kVT102CtrlSeqs[] = {
     "(2",
     ")2",
     "N",
-    "O",
-    "[m",
-    "[0m",
-    "[1m",
-    "[4m",
-    "[5m",
-    "[7m",
-#if 0
-    // Cursor key codes
-    "[A",
-    "[0A",
-    "[B",
-    "[0B",
-    "[C",
-    "[0C",
-    "[D",
-    "[0D",
-#endif
-    // Cursor movement commands
-    "[Pt:Pbr",
-    "[PnA",
-    "[PnB",
-    "[PnC",
-    "[PnD",
-    "[Pl;PcH",
-    "[H",
-    "[Pl;Pcf]",
-    "[f",
-    "D",
-    "M",
-    "E",
-    "7",
-    "8",
-    // Tab stops
-    "H",
-    "[g",
-    "[0g",
-    "[3g",
-    "#3",
-    "#4",
-    "#5",
-    "#6",
-    // Erasing
-    "[K",
-    "[0K",
-    "[1K",
-    "[2K",
-    "[J",
-    "[0J",
-    "[1J",
-    "[2J",
-    // Editing functions
-    "[PnP",
-    "[PnL",
-    "[PnM",
-    // Print commands
-    "[?5i",
-    "[?4i",
-    "[5i",
-    "[4i",
-    "[i",
-    "[0i",
-    "[?1i",
-    // Reports
-    "[5n",
-    "[0n",
-    "[3n",
-    "[?15n",
-    "[?10n",
-    "[?11n",
-    "[?13n",
-    "[6n",
-    "[Pl;PcR",
-    "[c",
-    "[0c",
-    "Z",
-    "[?6c",
-    // Reset
-    "c",
-    // Tests and adjustments
-    "#8",
-    "[2;1y",
-    "[2;2y",
-    "[2;4y",
-    "[2;9y",
-    "[2;10y",
-    "[2;12y",
-    "[2;16y",
-    "[2;24y",
-    // Keyboard LED(s)
-    "[q",
-    "[0q",
-    "[1q",
-    // VT52 compatible mode
-    "<",
-    // Keypad character selection
-    "=",
-    ">",
-    // Character sets
-    "F*",
-    "G",
-    // Cursor position
-    "A",
-    "B",
-    "C",
-    "D",
-    "H",
-    "YPlPc\037",
-    "I\x49", /// o'111
-    // Erasing
-    "K",
-    "J",
-    // Print commands
-    "^",
-    "_",
-    "W",
-    "X",
-    "]",
-    "V",
-    // Reports
-    "Z",
-    "/Z"
+    "O"
 };
+//
+static inline int IsVT102ScrollingRegion(const std::string& seq)
+{
+    size_t seq_sz = seq.length();
+    if (seq_sz == 1 && seq[0] == '[') return 1; // pending
+    else if (seq_sz == 2 && seq[0] == '[' && seq[1] >= '0' && seq[1] <= '9') return 1; // pending
+    else {
+        // [Pt; Pb r]
+        if (seq[0] == '[' && seq[1] >= '0' && seq[1] <= '9') {
+            bool nb = true;
+            size_t b = 2;
+            while (b < seq_sz) {
+                if (!(seq[b] >= '0' && seq[b] <= '9')) {
+                    nb = false;
+                    break;
+                }
+                b++;
+            }
+            // contiguous numbers
+            if (nb) return 1; // pending
+            else if (b < seq_sz) {
+                nb = true;
+                if (seq[b] != ';') return 0; else {
+                    b++; // skip ;
+                    while (b < seq_sz) {
+                        if (!(seq[b] >= '0' && seq[b] <= '9')) {
+                            nb = false;
+                            break;
+                        }
+                        b++;
+                    }
+                }
+                if (nb) return 1;
+                else if (b < seq_sz && seq[b] == 'r') return 2;
+                else return 0;
+            }
+        }
+    }
+    return 0;
+}
+
 static inline int IsVT102CursorKeyCodes(const std::string& seq)
 {
     size_t seq_sz = seq.length();
-    if (seq_sz > 2) {
-        if (seq[0] == '[') {
-            if (seq[1] >= '0' && seq[1] <= '9') {
-                bool nb = true;
-                size_t b = 2;
-                while (b < seq_sz-1) {
-                    if (!(seq[b] >= '0' && seq[b] <= '9')) {
-                        nb = false;
-                        break;
-                    }
-                    b++;
+    if (seq_sz == 1 && seq[0] == '[') return 1; // pending
+    else if (seq_sz == 2 && seq[0] == '[' && seq[1] >= '0' && seq[1] <= '9') return 1; // pending
+    else {
+        // [Pt; Pb r]
+        if (seq[0] == '[' && seq[1] >= '0' && seq[1] <= '9') {
+            bool nb = true;
+            size_t b = 2;
+            while (b < seq_sz) {
+                if (!(seq[b] >= '0' && seq[b] <= '9')) {
+                    nb = false;
+                    break;
                 }
-                if (nb) { // 1 ~ n-1 are all digits, if the last char is 'A' or 'B' or 'C' or 'D'
-                          // this seq is a cursor key codes
-                    if (seq[b] == 'A' || seq[b] == 'B' || seq[b] == 'C' || seq[b] == 'D') {
-                        return 2; // dynamic cursor position key codes
-                    } else if (seq[b] >= '0' && seq[b] <= '9') {
-                        return 1;
+                b++;
+            }
+            // contiguous numbers
+            if (nb) return 1; // pending
+            else if (b < seq_sz) {
+                if (seq[b] == 'A' || seq[b] == 'B' || seq[b] == 'C' || seq[b] == 'D') return 2;
+                if (seq[b] != ';') return 0; else {
+                    b++; // skip ;
+                    nb = true;
+                    while (b < seq_sz) {
+                        if (!(seq[b] >= '0' && seq[b] <= '9')) {
+                            nb = false;
+                            break;
+                        }
+                        b++;
                     }
-                } else {
-                    return 0;
                 }
+                if (nb) return 1;
+                else if (b < seq_sz && seq[b] == 'H' || seq[b] == 'f') return 2;
+                else return 0;
             }
         }
-    } else if (seq_sz == 2 && seq[0] == '[' && seq[1] >= '0' && seq[1] <= '9') {
-        return 1;
-    } else if (seq_sz == 1 && seq[0] == '[') return 1;
-    //
+    }
     return 0;
 }
 // match the control seq
