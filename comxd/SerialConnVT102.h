@@ -79,7 +79,7 @@ protected:
     int mCursorX, mCursorY;
     /// \brief Render text on virtual screen
     /// \param seq complete VT characters
-    void RenderText(const std::string& seq);
+    void RenderText(const std::string& seq, int seq_type);
     // push to lines buffer and check, fix if needed
     inline void PushToLinesBufferAndCheck(const VTLine& vline);
     inline void ProcessOverflowLines();
@@ -131,9 +131,10 @@ protected:
     virtual int IsControlSeq(const std::string& seq);
     // This is VT102 cursor key codes
     virtual void ProcessVT102CursorKeyCodes(const std::string& seq);
+    virtual void ProcessVT102EditingFunctions(const std::string& seq);
     virtual void ProcessAsciiControlChar(unsigned char cc);
     virtual void InstallVT102ControlSeqHandlers();
-    virtual void ProcessControlSeq(const std::string& seq);
+    virtual void ProcessControlSeq(const std::string& seq, int seq_type);
     // with K_DELTA
     virtual bool ProcessKeyDown(Upp::dword key, Upp::dword flags);
     virtual bool ProcessKeyUp(Upp::dword key, Upp::dword flags);

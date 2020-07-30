@@ -6,6 +6,7 @@ uses
 
 file
 	comxd.rc,
+	ControlSeq.h,
 	comxd.tpp,
 	ConnFactory.cpp,
 	ConnFactory.h,

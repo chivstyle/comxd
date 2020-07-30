@@ -103,21 +103,21 @@ void SerialConnVT102::RxProc()
 #endif
                     pattern.push_back((char)buff[k]);
                     int ret = IsControlSeq(pattern);
-                    if (ret == 2) { // bingo
+                    if (ret >= 2) { // bingo
                         // found it.
-                        Upp::PostCallback([=]() { RenderText("\x1b" + pattern); });
+                        Upp::PostCallback([=]() { RenderText("\x1b" + pattern, ret); });
                         //
                         pending = false;
                         pattern = "";
                     } else if (ret == 0) { // no, it's not
-                        Upp::PostCallback([=]() { RenderText("\\x1b" + pattern); });
+                        Upp::PostCallback([=]() { RenderText("\\x1b" + pattern, -1); });
                         pending = false;
                         pattern = "";
                     }
                 } else if (buff[k] == 0x1b) {
                     // come across a 0x1b, render the pretty_buff
                     if (!pretty_buff.empty()) {
-                        Upp::PostCallback([=]() { RenderText(pretty_buff); });
+                        Upp::PostCallback([=]() { RenderText(pretty_buff, -1); });
                     }
                     pretty_buff = "";
                     pending = true; // continue
@@ -127,7 +127,7 @@ void SerialConnVT102::RxProc()
             }
             // render the pretty_buff
             if (!pretty_buff.empty()) {
-                Upp::PostCallback([=]() { RenderText(pretty_buff); });
+                Upp::PostCallback([=]() { RenderText(pretty_buff, -1); });
             }
             // callback is not safe
             Upp::PostCallback([=]() { this->Refresh(); });
@@ -307,16 +307,33 @@ void SerialConnVT102::ProcessVT102CursorKeyCodes(const std::string& seq)
     }
 }
 //
-void SerialConnVT102::ProcessControlSeq(const std::string& seq)
+void SerialConnVT102::ProcessVT102EditingFunctions(const std::string& seq)
 {
-    auto it = mCtrlHandlers.find(seq);
-    if (it != mCtrlHandlers.end()) {
-        it->second();
+    switch (*seq.rbegin()) {
+    case 'P':if (1) { // delete character
+    } break;
+    case 'L':if (1) { // insert line
+    } break;
+    case 'M':if (1) { // delete line
+    } break;
+    }
+}
+//
+void SerialConnVT102::ProcessControlSeq(const std::string& seq, int seq_type)
+{
+    if (seq_type == 2) {
+        auto it = mCtrlHandlers.find(seq);
+        if (it != mCtrlHandlers.end()) {
+            it->second();
+        }
     } else {
-        if (IsVT102ScrollingRegion(seq)) {
-            // NOTE: does not support this feature.
-        } else if (IsVT102CursorKeyCodes(seq)) {
-            ProcessVT102CursorKeyCodes(seq);
+        switch (seq_type) {
+        case VT52_Cursor: // DOES NOT SUPPORT VT52
+            break;
+        case VT102_Cursor: ProcessVT102CursorKeyCodes(seq); break;
+        case VT102_EditingFunctions: ProcessVT102EditingFunctions(seq); break;
+        case VT102_ScrollingRegion: // DOES NOT SUPPORT THIS FEATURE
+            break;
         }
     }
 }
@@ -355,7 +372,7 @@ void SerialConnVT102::ProcessOverflowLines()
         mCursorY = csz.cy - 1; // move to last line
     }
 }
-void SerialConnVT102::RenderText(const std::string& seq)
+void SerialConnVT102::RenderText(const std::string& seq, int seq_type)
 {
     std::lock_guard<std::mutex> _(mLinesLock);
     Size csz = GetConsoleSize();
@@ -382,7 +399,7 @@ void SerialConnVT102::RenderText(const std::string& seq)
             ProcessOverflowLines();
         }
     } else {
-        ProcessControlSeq(seq.substr(1));
+        ProcessControlSeq(seq.substr(1), seq_type);
     }
 }
 
@@ -442,9 +459,14 @@ void SerialConnVT102::RightUp(Point, dword)
 {
 	MenuBar::Execute(
 		[=](Bar& bar) {
-			bar.Add(t_("Copy"), [=] {
+		    String text1 = GetSelectedText();
+			bar.Add(text1.GetCount() > 0, t_("Copy"), [=] {
 			    // copy to clipboard
-			    Upp::AppendClipboardText(GetSelectedText());
+			    Upp::AppendClipboardText(text1);
+			});
+			String text2 = Upp::ReadClipboardText();
+			bar.Add(text2.GetCount() > 0, t_("Paste"), [=] {
+			    GetSerial()->write(text2.ToStd());
 			});
 		}
 	);

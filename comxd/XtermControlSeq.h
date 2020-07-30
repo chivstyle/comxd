@@ -4,7 +4,7 @@
 #ifndef _comxd_XtermControlSeq_h_
 #define _comxd_XtermControlSeq_h_
 
-
+#include "ControlSeq.h"
 #include <string>
 // ECMA-48, .etc
 static const char* kXtermCtrlSeqs[] = {
