@@ -120,6 +120,7 @@ protected:
     //
     volatile bool mBlinkSignal; // 0,1,0,1,0,1, 2 Hz
     volatile bool mBlink;
+    volatile bool mVisible;
     const int kBlinkTimerId = 0;
     // before render character, use this attribute function
     std::vector<std::function<void()> > mCurrAttrFuncs;
@@ -132,9 +133,11 @@ protected:
     // This is VT102 cursor key codes
     virtual void ProcessVT102CursorKeyCodes(const std::string& seq);
     virtual void ProcessVT102EditingFunctions(const std::string& seq);
+    virtual void ProcessVT102Attrs(const std::string& seq);
+    virtual void ProcessAttr(const std::string& attr_code);
+    virtual void ProcessControlSeq(const std::string& seq, int seq_type);
     virtual void ProcessAsciiControlChar(unsigned char cc);
     virtual void InstallVT102ControlSeqHandlers();
-    virtual void ProcessControlSeq(const std::string& seq, int seq_type);
     // with K_DELTA
     virtual bool ProcessKeyDown(Upp::dword key, Upp::dword flags);
     virtual bool ProcessKeyUp(Upp::dword key, Upp::dword flags);

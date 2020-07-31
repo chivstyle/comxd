@@ -4,24 +4,29 @@ uses
 	CtrlLib,
 	serial;
 
+include
+	.;
+
 file
+	ConnImpls/VT102ControlSeq.h,
+	ConnImpls/SerialConnVT102.h,
+	ConnImpls/SerialConnVT102.cpp,
+	ConnImpls/ECMA48ControlSeq.h,
+	ConnImpls/SerialConnECMA48.h,
+	ConnImpls/SerialConnECMA48.cpp,
+	ConnImpls/XtermControlSeq.h,
+	ConnImpls/SerialConnXterm.h,
+	ConnImpls/SerialConnXterm.cpp,
+	ConnImpls/SerialConnRaw.cpp,
+	ConnImpls/SerialConnRaw.h,
 	comxd.rc,
-	ControlSeq.h,
 	comxd.tpp,
 	ConnFactory.cpp,
 	ConnFactory.h,
-	VT102ControlSeq.h,
-	SerialConnVT102.h,
-	SerialConnVT102.cpp,
 	Action.h,
-	XtermControlSeq.h,
-	SerialConnXterm.h,
-	SerialConnXterm.cpp,
 	Conn.h,
 	comxd.t,
 	comxd.iml,
-	SerialConnRaw.cpp,
-	SerialConnRaw.h,
 	comxd.lay,
 	resource.cpp,
 	resource.h,

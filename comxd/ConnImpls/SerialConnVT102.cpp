@@ -22,6 +22,7 @@ SerialConnVT102::SerialConnVT102(std::shared_ptr<serial::Serial> serial)
     , mDefaultFgColor(Color(255, 255, 255))
     , mBlinkSignal(true)
     , mBlink(false)
+    , mVisible(true)
     , mScrollToEnd(true)
     , mPressed(false)
     , mMaxLinesBufferSize(5000)
@@ -173,7 +174,26 @@ void SerialConnVT102::PushToLinesBufferAndCheck(const VTLine& vline)
 //
 void SerialConnVT102::InstallVT102ControlSeqHandlers()
 {
-    // erasing
+    // 1. ANSI Compatible Seq
+    // 1.1 set mode
+    // 1.2 reset mode
+    // 1.3 Cursor Key Codes Generated, see IsVT102CursorKeyCodes
+    // 1.4 Keypad character selection
+    // 1.5 Keypad codes generated
+    // 1.6 select character sets
+    // 1.7 character attributes, see IsVT102Attrs
+    // 1.8 scrolling region, see IsVT102ScrollingRegion
+    // 1.9 Cursor movement commands
+    mCtrlHandlers["[H"] = [=]() { // cursor position (home)
+        // home
+        mScrollToEnd = true;
+        mCursorX = 0;
+        mCursorY = 0;
+    };
+    mCtrlHandlers["[f"] = mCtrlHandlers["[H"];
+    // 1.10 Tab stops
+    // 1.11 Line attributes
+    // 1.12 Erasing
     mCtrlHandlers["[K"] = [=]() { // erase in line, cursor to end of line
         Size csz = GetConsoleSize();
         for (int i = mCursorX; i < csz.cx; ++i) {
@@ -223,49 +243,20 @@ void SerialConnVT102::InstallVT102ControlSeqHandlers()
             mLines[k] = VTLine(csz.cx, mBlankChr);
         }
     };
-    // cursor
-    mCtrlHandlers["[H"] = [=]() { // cursor position (home)
-        // home
-        mScrollToEnd = true;
-        mCursorX = 0;
-        mCursorY = 0;
-    };
-    mCtrlHandlers["[f"] = mCtrlHandlers["[H"];
-    mCtrlHandlers["[A"] = [=]() {
-        if (mCursorY > 0) mCursorY--;
-    };
-    mCtrlHandlers["[B"] = [=]() {
-        mCursorY++;
-    };
-    mCtrlHandlers["[C"] = [=]() {
-        mCursorX++;
-    };
-    mCtrlHandlers["[D"] = [=]() {
-        if (mCursorX > 0) mCursorX--;
-    };
-    // attributes, the real renderer will use them
-    mCtrlHandlers["[m"] = [&]() {
-        // restore default attrs
-        mCurrAttrFuncs.clear();
-        mCurrAttrFuncs.push_back([=]() { SetDefaultStyle(); });
-    };
-    mCtrlHandlers["[0m"] = mCtrlHandlers["[m"]; // no attributes
-    mCtrlHandlers["[1m"] = [&]() { // bold
-        mCurrAttrFuncs.push_back([=]() { mFont.Bold(); });
-    };
-    mCtrlHandlers["[4m"] = [=]() { // underline
-        mCurrAttrFuncs.push_back([=]() { mFont.Underline(); });
-    };
-    mCtrlHandlers["[5m"] = [=]() { // blink
-        mCurrAttrFuncs.push_back([=]() { mBlink = true; });
-    };
-    mCtrlHandlers["[7m"] = [=]() {
-        mCurrAttrFuncs.push_back([=]() { mFgColor = Color::FromRaw(~mFgColor.GetRaw()); });
-    };
-    // reset mode
-    mCtrlHandlers["[20l"] = [=]() {
-        mCursorY++;
-    };
+    // 1.13 Editing functions, see IsVT102EditingFunctions
+    // 1.14 Print commands
+    // 1.15 Reports
+    // 1.16 Reset
+    // 1.17 Test and adjustments
+    // 1.18 keyboard led
+    // 2. VT52 Compatible Mode
+    // 2.1 keypad character selection
+    // 2.2 character sets
+    // 2.3 cursor position
+    // others, see IsVT52CursorKeyCodes
+    //-----------------------------------------------------
+    // 2.4 Erasing
+    // 2.5 Print Commands
 }
 //
 void SerialConnVT102::ProcessVT102CursorKeyCodes(const std::string& seq)
@@ -274,21 +265,25 @@ void SerialConnVT102::ProcessVT102CursorKeyCodes(const std::string& seq)
     switch (*seq.rbegin()) {
     case 'A':if (1) {
         int n = atoi(seq.substr(1, seq.length() - 2).c_str());
+        if (n <= 0) n = 1;
         mCursorY += n;
         mCursorY = std::min(mCursorY, csz.cy - 1);
     } break;
     case 'B':if (1) {
         int n = atoi(seq.substr(1, seq.length() - 2).c_str());
+        if (n <= 0) n = 1;
         mCursorY -= n;
         mCursorY = std::max(mCursorY, 0);
     } break;
     case 'C':if (1) {
         int n = atoi(seq.substr(1, seq.length() - 2).c_str());
+        if (n <= 0) n = 1;
         mCursorX += n;
         mCursorX = std::min(mCursorX, csz.cx-1);
     } break;
     case 'D':if (1) {
         int n = atoi(seq.substr(1, seq.length() - 2).c_str());
+        if (n <= 0) n = 1;
         mCursorX -= n;
         mCursorX = std::max(mCursorX, 0);
     } break;
@@ -303,7 +298,6 @@ void SerialConnVT102::ProcessVT102CursorKeyCodes(const std::string& seq)
         mCursorX = x;
         mCursorY = y;
     } break;
-    default:break;
     }
 }
 //
@@ -319,6 +313,50 @@ void SerialConnVT102::ProcessVT102EditingFunctions(const std::string& seq)
     }
 }
 //
+void SerialConnVT102::ProcessAttr(const std::string& attr_code)
+{
+    int m = atoi(attr_code.c_str());
+    switch (m) {
+    case 0: // Default
+        mCurrAttrFuncs.clear();
+        mCurrAttrFuncs.push_back([=](){ SetDefaultStyle(); });
+        break;
+    case 1: // bold
+        mCurrAttrFuncs.push_back([=]() { mFont.Bold(); });
+        break;
+    case 4: // underline
+        mCurrAttrFuncs.push_back([=]() { mFont.Underline(); });
+        break;
+    case 5: // blink
+        mCurrAttrFuncs.push_back([=]() { mBlink = true; });
+        break;
+    case 7: // reverse
+        mCurrAttrFuncs.push_back([=]() { std::swap(mFgColor, mBgColor); });
+        break;
+    }
+}
+//
+void SerialConnVT102::ProcessVT102Attrs(const std::string& seq)
+{
+    if (seq == "[m") ProcessAttr("0"); else {
+        // [ Pn;Pn;Pn;Pn;Pn...m
+        size_t p = 1; // skip '['
+        auto q = seq.find(';', p);
+        while (q != seq.npos) {
+            std::string m = seq.substr(p, q-p);
+            ProcessAttr(m);
+            p = q+1;
+            // next q
+            if (q >= seq.size()-1) break; else {
+                q = seq.find(';', p);
+            }
+        }
+        if (p < seq.size()-1) {
+            ProcessAttr(seq.substr(p, seq.size()-p-1));
+        }
+    }
+}
+//
 void SerialConnVT102::ProcessControlSeq(const std::string& seq, int seq_type)
 {
     if (seq_type == 2) {
@@ -330,6 +368,7 @@ void SerialConnVT102::ProcessControlSeq(const std::string& seq, int seq_type)
         switch (seq_type) {
         case VT52_Cursor: // DOES NOT SUPPORT VT52
             break;
+        case VT102_Attrs: ProcessVT102Attrs(seq); break;
         case VT102_Cursor: ProcessVT102CursorKeyCodes(seq); break;
         case VT102_EditingFunctions: ProcessVT102EditingFunctions(seq); break;
         case VT102_ScrollingRegion: // DOES NOT SUPPORT THIS FEATURE
@@ -532,6 +571,9 @@ bool SerialConnVT102::ProcessKeyDown(dword key, dword flags)
             d.push_back('[');
             d.push_back('B');
             break;
+        case K_ESCAPE:
+            d.push_back(0x1b);
+            break;
         case K_DELETE:
             //
             break;
@@ -539,7 +581,7 @@ bool SerialConnVT102::ProcessKeyDown(dword key, dword flags)
             d = std::vector<uint8_t>({0x1b, '[', 'H'});
             break;
         case K_END:
-            d = std::vector<uint8_t>({0x1b, '[', 'H'});
+            // ?
             break;
         default:break;
         }
@@ -880,7 +922,7 @@ void SerialConnVT102::Render(Upp::Draw& draw, const std::vector<VTLine>& vlines)
                         draw.DrawRect(mX, mY, mFontW, mFontH, mBgColor);
                     }
                     if (mFgColor != mBgColor) {
-                        if (buff[0] != ' ') {
+                        if (buff[0] != ' ' && mVisible) {
                             draw.DrawText(mX, mY, buff, mFont, mFgColor);
                         }
                     }
@@ -890,7 +932,7 @@ void SerialConnVT102::Render(Upp::Draw& draw, const std::vector<VTLine>& vlines)
                     draw.DrawRect(mX, mY, mFontW, mFontH, mBgColor);
                 }
                 if (mFgColor != mBgColor) {
-                    if (buff[0] != ' ') {
+                    if (buff[0] != ' ' && mVisible) {
                         draw.DrawText(mX, mY, buff, mFont, mFgColor);
                     }
                 }

@@ -4,8 +4,8 @@
 #ifndef _comxd_VT102ControlSeq_h_
 #define _comxd_VT102ControlSeq_h_
 
-#include "ControlSeq.h"
 #include <string>
+#include <functional>
 /// WE DO NOT SUPPORT VT52 compatible mode
 /// VT102 Control Codes
 /// please read [VT102 Manual](https://vt100.net/docs/vt102-ug/appendixc.html)
@@ -41,11 +41,9 @@ static const char* kVT102CtrlSeqs[] = {
     "[?8l",
     "[?18l",
     "[?19l",
-    // 1.3 Cursor Key Codes Generated
-    "[A","0A",
-    "[B","0B",
-    "[C","0C",
-    "[D","0D",
+    //-----------------------------------------------------
+    // 1.3 Cursor Key Codes Generated, see IsVT102CursorKeyCodes
+    //-----------------------------------------------------
     // 1.4 Keypad character selection
     "=", // alternate
     ">", // numeric
@@ -62,19 +60,14 @@ static const char* kVT102CtrlSeqs[] = {
     "(2",")2",
     "N",
     "O",
-    // 1.7 character attributes
-    "[m",
-    "[0m",
-    "[1m",
-    "[4m",
-    "[5m",
-    "[7m",
     //-----------------------------------------------------
-    // 1.9 scrolling region, see IsVT102ScrollingRegion
+    // 1.7 character attributes, see IsVT102Attrs
     //-----------------------------------------------------
-    // 1.10 Cursor movement commands
+    // 1.8 scrolling region, see IsVT102ScrollingRegion
+    //-----------------------------------------------------
+    // 1.9 Cursor movement commands
     "[H", // home
-    "[f", // horizontal and vertical position HOME
+    "[f", // home
     "D", // index
     "M", // reverse index
     "E", // next line
@@ -82,17 +75,17 @@ static const char* kVT102CtrlSeqs[] = {
     "8", // restore cursor (and attributes)
     // others, see IsVT102CursorKeyCodes
     //-----------------------------------------------------
-    // 1.11 Tab stops
+    // 1.10 Tab stops
     "H", // horizontal tab set (at current column)
     "[g", // tabulation clear (at current column)
     "[0g", // see above
     "[3g", // tabulation clear (all tabs)
-    // 1.12 Line attributes
+    // 1.11 Line attributes
     "#3", // double-height top half
     "#4", // double-height bottom half
     "#5", // single-width single-height
     "#6", // double-width single-height
-    // 1.13 Erasing
+    // 1.12 Erasing
     "[K",
     "[0K",
     "[1K",
@@ -102,17 +95,17 @@ static const char* kVT102CtrlSeqs[] = {
     "[1J",
     "[2J",
     //-----------------------------------------------------
-    // 1.14 Editing functions, see IsVT102EditingFunctions
+    // 1.13 Editing functions, see IsVT102EditingFunctions
     // [Pn P], [Pn L], [Pn M]
     //-----------------------------------------------------
-    // 1.15 Print commands
+    // 1.14 Print commands
     "[?5i",
     "[?4i",
     "[5i",
     "[4i",
     "[i", "[0i",
     "[?1i",
-    // 1.16 Reports
+    // 1.15 Reports
     "[5n", // device status report
     "[0n",
     "[3n",
@@ -124,10 +117,10 @@ static const char* kVT102CtrlSeqs[] = {
     "[c", // what are you?
     "[0c", // same as [c
     "Z", // Identify terminal (what are you), not recommended
-    "?6c", // device attributes response:VT102
-    // 1.17 Reset
+    "[?6c", // device attributes response:VT102
+    // 1.16 Reset
     "c", // reset to initial state
-    // 1.18 Test and adjustments
+    // 1.17 Test and adjustments
     "#8", // fill screen with "Es"
     "[2;1y",
     "[2;2y",
@@ -137,7 +130,7 @@ static const char* kVT102CtrlSeqs[] = {
     "[2;12y",
     "[2;16y",
     "[2;24y",
-    // 1.19 keyboard led
+    // 1.18 keyboard led
     "[q",
     "[0q",
     "[1q",
@@ -172,25 +165,50 @@ static const char* kVT102CtrlSeqs[] = {
     "/Z"
 };
 //
+enum VT102SeqType {
+    // 0,1,2, are reserved
+    VT52_Cursor = 3,
+    VT102_Cursor,
+    VT102_EditingFunctions,
+    VT102_ScrollingRegion,
+    VT102_Attrs
+};
+//
+static inline int IsVT102Attrs(const std::string& seq)
+{
+    size_t seq_sz = seq.length();
+    if (seq_sz == 1 && seq[0] == '[') return 1; // pending
+    else {
+        if (seq[0] == '[') {
+            size_t b = 1;
+            while (b < seq_sz) {
+                if ((seq[b] >= '0' && seq[b] <= '9') || seq[b] == ';')
+                    b++;
+                else break;
+            }
+            if (b == seq_sz) return 1;
+            else if (seq[b] == 'm') return VT102_Attrs;
+            else return 0;
+        }
+    }
+    return 0;
+}
+//
 static inline int IsVT102EditingFunctions(const std::string& seq)
 {
     size_t seq_sz = seq.length();
     if (seq_sz == 1 && seq[0] == '[') return 1; // pending
-    else if (seq_sz == 2 && seq[0] == '[' && seq[1] >= '0' && seq[1] <= '9') return 1; // pending
     else {
-        if (seq[0] == '[' && seq[1] >= '0' && seq[1] <= '9') {
-            bool nb = true;
-            size_t b = 2;
+        // [ nb P/L/M
+        if (seq[0] == '[') {
+            size_t b = 1;
             while (b < seq_sz) {
-                if (!(seq[b] >= '0' && seq[b] <= '9')) {
-                    nb = false;
-                    break;
-                }
-                b++;
+                if (seq[b] >= '0' && seq[b] <= '9') {
+                    b++;
+                } else break;
             }
-            // contiguous numbers
-            if (nb) return 1; // pending
-            else if (b < seq_sz) {
+            if (b == seq_sz) return 1;
+            else {
                 if (seq[b] == 'P' || seq[b] == 'L' || seq[b] == 'M') return VT102_EditingFunctions;
                 else return 0;
             }
@@ -203,119 +221,126 @@ static inline int IsVT52CursorKeyCodes(const std::string& seq)
 {
     size_t seq_sz = seq.length();
     if (seq_sz == 1 && seq[0] == 'Y') return 1; // pending
-    else if (seq_sz == 2 && seq[0] == 'Y' && seq[1] >= '0' && seq[1] <= '9') return 1; // pending
     else {
-        if (seq[0] == 'Y' && seq[1] >= '0' && seq[1] <= '9') {
-            bool nb = true;
-            size_t b = 2;
+        // Y nb nb \037
+        if (seq[0] == 'Y') {
+            size_t b = 1;
             while (b < seq_sz) {
-                if (!(seq[b] >= '0' && seq[b] <= '9')) {
-                    nb = false;
-                    break;
-                }
-                b++;
+                if (seq[b] >= '0' && seq[b] <= '9') {
+                    b++;
+                } else break;
             }
-            // contiguous numbers
-            if (nb) return 1; // pending
+            if (b == seq_sz) return 1;
             else if (b < seq_sz) {
-                nb = true;
                 if (seq[b] != ' ') return 0; else {
-                    b++; // skip ;
+                    b++; // skip
                     while (b < seq_sz) {
-                        if (!(seq[b] >= '0' && seq[b] <= '9')) {
-                            nb = false;
-                            break;
-                        }
-                        b++;
+                        if (seq[b] >= '0' && seq[b] <= '9') {
+                            b++;
+                        } else break;
                     }
                 }
-                if (nb) return 1;
-                // r - request
-                // R - response
-                else if (b < seq_sz && (seq[b] == '\037')) return VT52_Cursor;
-                else return 0;
+                if (b == seq_sz) return 1;
+                else {
+                    if (seq[b] == '\037') return VT52_Cursor;
+                    else return 0;
+                }
             }
         }
     }
     return 0;
 }
 //
+#if 0
 static inline int IsVT102ScrollingRegion(const std::string& seq)
 {
     size_t seq_sz = seq.length();
     if (seq_sz == 1 && seq[0] == '[') return 1; // pending
-    else if (seq_sz == 2 && seq[0] == '[' && seq[1] >= '0' && seq[1] <= '9') return 1; // pending
     else {
-        if (seq[0] == '[' && seq[1] >= '0' && seq[1] <= '9') {
-            bool nb = true;
-            size_t b = 2;
+        // [ nb;nb R/r
+        if (seq[0] == '[') {
+            size_t b = 1;
             while (b < seq_sz) {
-                if (!(seq[b] >= '0' && seq[b] <= '9')) {
-                    nb = false;
-                    break;
-                }
-                b++;
+                if (seq[b] >= '0' && seq[b] <= '9') {
+                    b++;
+                } else break;
             }
             // contiguous numbers
-            if (nb) return 1; // pending
+            if (b == seq_sz) return 1; // pending
             else if (b < seq_sz) {
-                nb = true;
                 if (seq[b] != ';') return 0; else {
                     b++; // skip ;
+                    size_t b = 1;
                     while (b < seq_sz) {
-                        if (!(seq[b] >= '0' && seq[b] <= '9')) {
-                            nb = false;
-                            break;
-                        }
-                        b++;
+                        if (seq[b] >= '0' && seq[b] <= '9') {
+                            b++;
+                        } else break;
                     }
                 }
-                if (nb) return 1;
+                if (b == seq_sz) return 1;
                 // r - request
                 // R - response
-                else if (b < seq_sz && (seq[b] == 'r' || seq[b] == 'R')) return VT102_ScrollingRegion;
-                else return 0;
+                else {
+                    if (seq[b] == 'r' || seq[b] == 'R') return VT102_ScrollingRegion;
+                    else return 0;
+                }
             }
         }
     }
     return 0;
 }
-
+#endif
+// find VT102_Cursor, VT102_ScrollingRegion, because their's pattern are the same as each other.
 static inline int IsVT102CursorKeyCodes(const std::string& seq)
 {
     size_t seq_sz = seq.length();
-    if (seq_sz == 1 && seq[0] == '[') return 1; // pending
-    else if (seq_sz == 2 && seq[0] == '[' && seq[1] >= '0' && seq[1] <= '9') return 1; // pending
-    else {
-        if (seq[0] == '[' && seq[1] >= '0' && seq[1] <= '9') {
-            bool nb = true;
-            size_t b = 2;
+    if (seq_sz == 1) {
+        if (seq[0] == '[') return 1; // pending
+    } else {
+        // [ nb;nb R/r
+        if (seq[0] == '[') {
+            size_t b = 1;
             while (b < seq_sz) {
-                if (!(seq[b] >= '0' && seq[b] <= '9')) {
-                    nb = false;
-                    break;
-                }
-                b++;
+                if (seq[b] >= '0' && seq[b] <= '9') {
+                    b++;
+                } else break;
             }
             // contiguous numbers
-            if (nb) return 1; // pending
+            if (b == seq_sz) return 1; // pending
             else if (b < seq_sz) {
                 if (seq[b] == 'A' || seq[b] == 'B' || seq[b] == 'C' || seq[b] == 'D') return VT102_Cursor;
-                if (seq[b] != ';') return 0; else {
+                else if (seq[b] != ';') return 0; else {
                     b++; // skip ;
-                    nb = true;
+                    size_t b = 1;
                     while (b < seq_sz) {
-                        if (!(seq[b] >= '0' && seq[b] <= '9')) {
-                            nb = false;
-                            break;
-                        }
-                        b++;
+                        if (seq[b] >= '0' && seq[b] <= '9') {
+                            b++;
+                        } else break;
                     }
                 }
-                if (nb) return 1;
-                else if (b < seq_sz && (seq[b] == 'H' || seq[b] == 'f')) return VT102_Cursor;
-                else return 0;
+                if (b == seq_sz) return 1;
+                // r - request
+                // R - response
+                else {
+                    if (seq[b] == 'H' || seq[b] == 'f') return VT102_Cursor;
+                    if (seq[b] == 'r' || seq[b] == 'R') return VT102_ScrollingRegion;
+                    else return 0;
+                }
             }
+        }
+    }
+    return 0;
+}
+static inline int IsVT102TrivialSeq(const std::string& seq)
+{
+    const size_t vsz = sizeof(kVT102CtrlSeqs) / sizeof(kVT102CtrlSeqs[0]);
+    size_t seq_sz = seq.length();
+    for (size_t k = 0; k < vsz; ++k) {
+        size_t pat_sz = strlen(kVT102CtrlSeqs[k]);
+        if (seq_sz > pat_sz) continue; // try next
+        if (strncmp(kVT102CtrlSeqs[k], seq.c_str(), seq_sz) == 0) {
+            if (seq_sz < pat_sz) return 1; // maybe, you should give more chars
+            else if (seq_sz == pat_sz) return 2; // Trivial VT102 seq
         }
     }
     return 0;
@@ -326,24 +351,17 @@ static inline int IsVT102CursorKeyCodes(const std::string& seq)
 //        2 - It's a trivial VT102 control seq
 static inline int IsVT102ControlSeq(const std::string& seq)
 {
-    int ret = IsVT102CursorKeyCodes(seq);
-    if (ret == 0) {
-        ret = IsVT102EditingFunctions(seq);
-        if (ret == 0) {
-            ret = IsVT52CursorKeyCodes(seq);
-            if (ret == 0) {
-                size_t vsz = sizeof(kVT102CtrlSeqs) / sizeof(kVT102CtrlSeqs[0]);
-                size_t seq_sz = seq.length();
-                for (size_t k = 0; k < vsz; ++k) {
-                    size_t pat_sz = strlen(kVT102CtrlSeqs[k]);
-                    if (seq_sz > pat_sz) continue; // try next
-                    if (strncmp(kVT102CtrlSeqs[k], seq.c_str(), seq_sz) == 0) {
-                        if (seq_sz < pat_sz) return 1; // maybe, you should give more chars
-                        else if (seq_sz == pat_sz) return 2; // It's a VT102 control seq
-                    }
-                }
-            }
-        }
+    std::function<int(const std::string&)> funcs[] = {
+        IsVT102CursorKeyCodes,
+        IsVT102EditingFunctions,
+        IsVT102Attrs,
+        IsVT52CursorKeyCodes,
+        IsVT102TrivialSeq
+    };
+    int ret = 0;
+    for (int i = 0; i < sizeof(funcs) / sizeof(funcs[0]); ++i) {
+        ret = funcs[i](seq);
+        if (ret == 0) continue;else break;
     }
     return ret;
 }

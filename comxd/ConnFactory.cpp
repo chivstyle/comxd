@@ -2,9 +2,6 @@
 // (c) 2020 chiv
 //
 #include "ConnFactory.h"
-// kinds of implements
-#include "SerialConnRaw.h"
-#include "SerialConnVT102.h"
 
 ConnFactory::ConnFactory()
 {
