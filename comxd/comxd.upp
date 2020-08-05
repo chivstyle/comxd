@@ -8,6 +8,8 @@ include
 	.;
 
 file
+	ConnImpls\SerialConnVT.cpp,
+	ConnImpls\SerialConnVT.h,
 	ConnImpls/VT102ControlSeq.h,
 	ConnImpls/SerialConnVT102.h,
 	ConnImpls/SerialConnVT102.cpp,

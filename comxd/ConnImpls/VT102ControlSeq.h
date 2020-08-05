@@ -323,6 +323,8 @@ static inline int IsVT102CursorKeyCodes(const std::string& seq)
                 // R - response
                 else {
                     if (seq[b] == 'H' || seq[b] == 'f') return VT102_Cursor;
+                    // r ScrollingRegion
+                    // R Report
                     if (seq[b] == 'r' || seq[b] == 'R') return VT102_ScrollingRegion;
                     else return 0;
                 }

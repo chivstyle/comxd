@@ -13,7 +13,7 @@ public:
     virtual ~SerialConnXterm();
 protected:
     virtual int IsControlSeq(const std::string& seq);
-    void InstallXtermControlSeqHandlers();
+    void InstallControlSeqHandlers();
 };
 
 #endif

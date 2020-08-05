@@ -13,7 +13,7 @@ using namespace Upp;
 SerialConnECMA48::SerialConnECMA48(std::shared_ptr<serial::Serial> serial)
     : SerialConnVT102(serial)
 {
-    InstallECMA48ControlSeqHandlers();
+    InstallControlSeqHandlers();
 }
 //
 SerialConnECMA48::~SerialConnECMA48()
@@ -213,13 +213,14 @@ void SerialConnECMA48::ProcessAttr(const std::string& attr_code)
 
 int SerialConnECMA48::IsControlSeq(const std::string& seq)
 {
-    int ret = IsECMA48ControlSeq(seq);
+    std::string seq_ = seq;
+    int ret = IsECMA48ControlSeq(seq_);
     if (ret == 0) { // It's not a xterm control seq absolutely
-        return SerialConnVT102::IsControlSeq(seq);
+        return SerialConnVT102::IsControlSeq(seq_);
     }
     return ret;
 }
 
-void SerialConnECMA48::InstallECMA48ControlSeqHandlers()
+void SerialConnECMA48::InstallControlSeqHandlers()
 {
 }

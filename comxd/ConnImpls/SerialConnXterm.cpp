@@ -13,7 +13,7 @@ using namespace Upp;
 SerialConnXterm::SerialConnXterm(std::shared_ptr<serial::Serial> serial)
     : SerialConnECMA48(serial)
 {
-    InstallXtermControlSeqHandlers();
+    InstallControlSeqHandlers();
 }
 //
 SerialConnXterm::~SerialConnXterm()
@@ -29,6 +29,6 @@ int SerialConnXterm::IsControlSeq(const std::string& seq)
     return ret;
 }
 
-void SerialConnXterm::InstallXtermControlSeqHandlers()
+void SerialConnXterm::InstallControlSeqHandlers()
 {
 }
