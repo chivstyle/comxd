@@ -270,7 +270,6 @@ static inline int IsVT102ScrollingRegion(const std::string& seq)
             else if (b < seq_sz) {
                 if (seq[b] != ';') return 0; else {
                     b++; // skip ;
-                    size_t b = 1;
                     while (b < seq_sz) {
                         if (seq[b] >= '0' && seq[b] <= '9') {
                             b++;
@@ -311,7 +310,6 @@ static inline int IsVT102CursorKeyCodes(const std::string& seq)
                 if (seq[b] == 'A' || seq[b] == 'B' || seq[b] == 'C' || seq[b] == 'D') return VT102_Cursor;
                 else if (seq[b] != ';') return 0; else {
                     b++; // skip ;
-                    size_t b = 1;
                     while (b < seq_sz) {
                         if (seq[b] >= '0' && seq[b] <= '9') {
                             b++;

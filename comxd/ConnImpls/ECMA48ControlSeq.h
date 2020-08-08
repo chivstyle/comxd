@@ -5,48 +5,9 @@
 #define _comxd_ECMA48ControlSeq_h_
 // 7-bit VT, so the control seq begins with 0x1b
 static const char* kECMA48CtrlSeqs[] = {
-    // 8.3.1 ack
+    // 8.3.1, C0, ACK
     "\x06",
-    // 8.3.2 APC
-    "\x1b\x5f",
-    // 8.3.3 BELL, compatible with VT102
-    "\x1b\x42", // BPH, C1
-    // 8.3.6 CAN
-    // 8.3.7 CBT, cursor backward tabulation, see IsECMA48_1Pn
-    // 8.3.8 CCH, cancel character, C1
-    "\x1b\x54",
-    // 8.3.9 CHA, cursor character absolute
-    // 8.3.10 CHT, see IsECMA48_1Pn
-    // 8.3.11 CMD
-    "\x1b\x64",
-    // 8.3.12 CNL, cursor next line,
-    // 8.3.13 CPL, cursor preceding line
-    // 8.3.14 CPR, active position report
-    // 8.3.15 CR
-    // 8.3.16 CSI
-    // 8.3.17 CTC, cursor tabulation control
-    // 8.3.18 CUB, compatible with VT102
-    // 8.3.19 CUD, compatible with VT102
-    // 8.3.20 CUF, compatible with VT102
-    // 8.3.21 CUP, compatible with VT102
-    // 8.3.22 CUU, compatible with VT102
-    // 8.3.23 CVT, cursor line tabulation
-    // 8.3.24 DA, device attributes, compatible with VT102
-    // 8.3.25 DAQ, define area qualification
-    // 8.3.26 DCH, delete character
-    // 8.3.27 DCS, device control string
-    "\x1b\x50",
-    // 8.3.28 DC1
-    // 8.3.29 DC2
-    // 8.3.30 DC3
-    // 8.3.31 DC4
-    // 8.3.32 DL, delete line
-    // 8.3.33 DLE, data link escape
-    // 8.3.34 DMI, disable manual input
-    "\x1b\x60",
-    // 8.3.35 DSR, device status report
-    // 8.3.36 DTA, dimension text area
-
+    // 8.3.2, C0
 };
 
 enum ECMA48SeqType {
