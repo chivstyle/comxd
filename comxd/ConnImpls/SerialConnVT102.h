@@ -11,6 +11,27 @@ public:
     using Superclass = SerialConnVT;
     SerialConnVT102(std::shared_ptr<serial::Serial> serial);
     virtual ~SerialConnVT102();
+    // public methods
+    //-------------------------------------------------------------------------------------
+    struct CursorData {
+        // position
+        int X, Y;
+        // attributes
+        bool Bold, Italic, Strikeout, Underline;
+        // color
+        Upp::Color FgColor, BgColor;
+        CursorData()
+            : X(0)
+            , Y(0)
+            , Bold(false)
+            , Italic(false)
+            , Strikeout(false)
+            , Underline(false)
+        {
+        }
+    };
+    void SaveCursor(CursorData& cd); // ESC 7
+    void LoadCursor(const CursorData& cd); // ESC 8
 protected:
     /// workflow
     ///
@@ -28,7 +49,7 @@ protected:
     //-------------------------------------------------------------------------------------
     // you can override these two routines to modify all functions.
     virtual void ProcessControlSeq(const std::string& seq, int seq_type);
-    virtual void ProcessAsciiControlChar(unsigned char cc);
+    virtual void ProcessAsciiControlChar(char cc);
     //-------------------------------------------------------------------------------------
     // with K_DELTA
     virtual bool ProcessKeyDown(Upp::dword key, Upp::dword flags);
@@ -37,7 +58,6 @@ protected:
     virtual bool ProcessKeyDown_Ascii(Upp::dword key, Upp::dword flags);
     //-------------------------------------------------------------------------------------
     // allow the subclass to extend the functions of VT102.
-    std::map<std::string, std::function<void()> > mVT102TrivialHandlers;
     virtual void ProcessVT102Trivial(const std::string& seq);
     virtual void ProcessVT102CursorKeyCodes(const std::string& seq);
     virtual void ProcessVT102EditingFunctions(const std::string& seq);
@@ -46,7 +66,11 @@ protected:
     virtual void ProcessVT102CharAttribute(int attr_code);
     //-------------------------------------------------------------------------------------
 private:
+    std::map<std::string, std::function<void()> > mVT102TrivialHandlers;
     void InstallVT102Functions();
+    //
+    CursorData mCursorData;
+    //-------------------------------------------------------------------------------------
 };
 
 #endif

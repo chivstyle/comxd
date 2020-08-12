@@ -14,6 +14,8 @@ SerialConnVT102::SerialConnVT102(std::shared_ptr<serial::Serial> serial)
     : Superclass(serial)
 {
     InstallVT102Functions();
+    // save cursor firstly.
+    SaveCursor(mCursorData);
 }
 
 SerialConnVT102::~SerialConnVT102()
@@ -24,7 +26,33 @@ int SerialConnVT102::IsControlSeq(const std::string& seq)
 {
     return IsVT102ControlSeq(seq);
 }
-//
+//----------------------------------------------------------------------------------------------
+void SerialConnVT102::SaveCursor(CursorData& cd)
+{
+    cd.X = mCursorX;
+    cd.Y = mCursorY;
+    cd.FgColor = mFgColor;
+    cd.BgColor = mBgColor;
+    cd.Bold = mFont.IsBold();
+    cd.Italic = mFont.IsItalic();
+    cd.Strikeout = mFont.IsStrikeout();
+    cd.Underline = mFont.IsUnderline();
+}
+
+void SerialConnVT102::LoadCursor(const CursorData& cd)
+{
+    mCursorX = cd.X;
+    mCursorY = cd.Y;
+    mFont.Bold(cd.Bold);
+    mFont.Italic(cd.Italic);
+    mFont.Strikeout(cd.Strikeout);
+    mFont.Underline(cd.Underline);
+    mFgColor = cd.FgColor;
+    mBgColor = cd.BgColor;
+    //
+    DoLayout();
+}
+//----------------------------------------------------------------------------------------------
 void SerialConnVT102::InstallVT102Functions()
 {
     // 1. ANSI Compatible Seq
@@ -44,6 +72,19 @@ void SerialConnVT102::InstallVT102Functions()
         mCursorY = 0;
     };
     mVT102TrivialHandlers["[f"] = mVT102TrivialHandlers["[H"];
+    mVT102TrivialHandlers["E"] = [=]() { // next line
+        mCursorY++;
+        mCursorX = 0;
+    };
+    mVT102TrivialHandlers["D"] = [=]() { // index
+        mCursorY++;
+    };
+    mVT102TrivialHandlers["M"] = [=]() { // reverse index
+        mCursorY--;
+        if (mCursorY < 0) mCursorY = 0;
+    };
+    mVT102TrivialHandlers["7"] = [=]() { SaveCursor(mCursorData); };
+    mVT102TrivialHandlers["8"] = [=]() { LoadCursor(mCursorData); };
     // 1.10 Tab stops
     // 1.11 Line attributes
     // 1.12 Erasing
@@ -99,9 +140,18 @@ void SerialConnVT102::InstallVT102Functions()
     // 1.13 Editing functions, see IsVT102EditingFunctions
     // 1.14 Print commands
     // 1.15 Reports
-    // "\033Z" is not recommended
-    mVT102TrivialHandlers["[?6c"] = [=]() {
-        GetSerial()->write("VT102");
+    mVT102TrivialHandlers["[5n"] = [=]() {
+        GetSerial()->write("\033[0n");
+    };
+    mVT102TrivialHandlers["[?15n"] = [=]() { // status of printer
+        // report that: No printer
+        GetSerial()->write("\033[?13n");
+    };
+    mVT102TrivialHandlers["[6n"] = [=]() {
+        std::string rsp = "\033["
+                          + std::to_string(mCursorY+1) + ";"
+                          + std::to_string(mCursorX+1) + "R";
+        GetSerial()->write(rsp);
     };
     // 1.16 Reset
     // 1.17 Test and adjustments
@@ -118,7 +168,7 @@ void SerialConnVT102::InstallVT102Functions()
 //
 void SerialConnVT102::ProcessVT102CursorKeyCodes(const std::string& seq)
 {
-    Size csz = GetConsoleSize();
+    if (seq.length() < 2) return; // do nothing
     switch (*seq.rbegin()) {
     case 'A':if (1) {
         int n = atoi(seq.substr(1, seq.length() - 2).c_str());
@@ -145,13 +195,13 @@ void SerialConnVT102::ProcessVT102CursorKeyCodes(const std::string& seq)
     case 'H':
     case 'f':if (1) {
         auto p = seq.find(';');
-        ASSERT(p != seq.npos);
-        int x = atoi(seq.substr(1, p-1).c_str());
-        int y = atoi(seq.substr(p+1, seq.size() - p - 1).c_str());
-        if (x < 0) x = 0; if (x >= csz.cx) x = csz.cx - 1;
-        if (y < 0) y = 0; if (y >= csz.cy) y = csz.cy - 1;
-        mCursorX = x;
-        mCursorY = y;
+            if (p != seq.npos) {
+            int y = atoi(seq.substr(1, p-1).c_str()) - 1;
+            int x = atoi(seq.substr(p+1, seq.size() - p - 1).c_str()) - 1;
+            Size csz = GetConsoleSize();
+            if (x < 0) x = 0; mCursorX = x; if (mCursorX >= csz.cx) mCursorX = csz.cx-1;
+            if (y < 0) y = 0; mCursorY = y; if (mCursorY >= csz.cy) mCursorY = csz.cy-1;
+        }
     } break;
     }
 }
@@ -225,7 +275,7 @@ void SerialConnVT102::ProcessControlSeq(const std::string& seq, int seq_type)
     }
 }
 //
-void SerialConnVT102::ProcessAsciiControlChar(unsigned char cc)
+void SerialConnVT102::ProcessAsciiControlChar(char cc)
 {
     switch (cc) {
     case '\r':

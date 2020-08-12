@@ -83,6 +83,7 @@ static inline std::vector<uint32_t> Utf8ToUtf32(const std::string& seq, size_t& 
 // we do not like that way.
 // Warning: s should be valid
 // Warning: this routine will modify the string s, like strtok
+// NOTE: Use Upp::Split, if you want to split string to words.
 static inline void SplitString(char* s, size_t s_len, char delim, std::function<void(const char*)> func)
 {
     size_t p = 0, q = 0; // [p, q) defines a result
@@ -176,8 +177,6 @@ public:
     using Superclass = SerialConn;
     SerialConnVT(std::shared_ptr<serial::Serial> serial);
     virtual ~SerialConnVT();
-    //
-    std::list<const UsrAction*> GetActions() const;
     // clear screen and buffer
     void Clear();
     //
@@ -192,8 +191,6 @@ protected:
     virtual void MouseMove(Upp::Point p, Upp::dword keyflags);
     virtual void RightUp(Upp::Point p, Upp::dword keyflags);
     virtual Upp::Image CursorImage(Upp::Point p, Upp::dword keyflags);
-    //
-    void ShowOptionsDialog();
     //
     typedef std::vector<VTChar> VTLine;
     VTChar mBlankChr;
@@ -247,8 +244,6 @@ protected:
     //  2. Size of client region
     // after this function, the ScrollBar and display region were changed.
     void DoLayout();
-    //
-    UsrAction mActOptions; // Action to show options dialog
     // font of console
     Upp::Font mFont;
     int mFontW, mFontH;
@@ -274,7 +269,7 @@ protected:
     virtual int IsControlSeq(const std::string& seq) = 0;
     virtual void ProcessControlSeq(const std::string& seq, int seq_type) = 0;
     // 00~0x1f
-    virtual void ProcessAsciiControlChar(unsigned char cc);
+    virtual void ProcessAsciiControlChar(char cc);
     // with K_DELTA
     virtual bool ProcessKeyDown(Upp::dword key, Upp::dword flags);
     virtual bool ProcessKeyUp(Upp::dword key, Upp::dword flags);

@@ -26,9 +26,6 @@ SerialConnVT::SerialConnVT(std::shared_ptr<serial::Serial> serial)
     , mPressed(false)
     , mMaxLinesBufferSize(5000)
 {
-    mActOptions = UsrAction(comxd::about(), "Options", "Change console options", [=](){
-        ShowOptionsDialog();
-    });
     // support Unicode
     this->Unicode();
     // double buffer
@@ -82,6 +79,16 @@ void SerialConnVT::SetDefaultStyle()
     mFgColor = mDefaultFgColor;
     mBlink = false;
 }
+//
+void SerialConnVT::Clear()
+{
+    SetDefaultStyle();
+    mLinesBuffer.clear();
+    mLines.clear();
+    DoLayout();
+    //
+    Refresh();
+}
 // receiver
 void SerialConnVT::RxProc()
 {
@@ -92,8 +99,8 @@ void SerialConnVT::RxProc()
     while (!mRxShouldStop) {
         size_t sz = mSerial->available();
         if (sz) {
-            std::vector<unsigned char> buff; GetSerial()->read(buff, sz);
-            for (size_t k = 0; k < buff.size(); ++k) {
+            std::string buff = GetSerial()->read(sz);
+            for (size_t k = 0; k < sz; ++k) {
                 if (pending) {
                     pattern.push_back((char)buff[k]);
                     int ret = IsControlSeq(pattern);
@@ -129,20 +136,6 @@ void SerialConnVT::RxProc()
             Upp::PostCallback([=]() { this->Refresh(); });
         } else std::this_thread::sleep_for(std::chrono::duration<double>(0.01));
     }
-}
-
-std::list<const UsrAction*> SerialConnVT::GetActions() const
-{
-    std::list<const UsrAction*> actions({&mActOptions});
-    return actions;
-}
-
-void SerialConnVT::ShowOptionsDialog()
-{
-    // TODO: show options dialog
-    auto sz = GetConsoleSize();
-    std::string text = std::to_string(sz.cx) + ":" + std::to_string(sz.cy);
-    PromptOK(text.c_str());
 }
 
 int SerialConnVT::GetCharWidth(const VTChar& c) const
@@ -201,7 +194,7 @@ void SerialConnVT::PushToLinesBufferAndCheck(const VTLine& vline)
     }
 }
 //
-void SerialConnVT::ProcessAsciiControlChar(unsigned char cc)
+void SerialConnVT::ProcessAsciiControlChar(char cc)
 {
     switch (cc) {
     case '\r':
@@ -251,6 +244,10 @@ void SerialConnVT::RenderText(const std::vector<uint32_t>& s)
             if (mCursorX < vline.size()) {
                 vline[mCursorX] = chr;
             } else {
+                // padding blanks if needed.
+                for (int n = (int)vline.size()-1; n < mCursorX-1; ++n) {
+                    vline.push_back(mBlankChr);
+                }
                 // extend the vline
                 vline.push_back(chr);
             }
@@ -801,7 +798,6 @@ void SerialConnVT::Render(Upp::Draw& draw, const std::vector<VTLine>& vlines)
         y += mFontH;
     }
 }
-
 
 void SerialConnVT::Paint(Upp::Draw& draw)
 {

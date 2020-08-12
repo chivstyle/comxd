@@ -74,6 +74,7 @@ static const char* kVT102CtrlSeqs[] = {
     "E", // next line
     "7", // save cursor (and attributes)
     "8", // restore cursor (and attributes)
+    //-----------------------------------------------------
     // others, see IsVT102CursorKeyCodes
     //-----------------------------------------------------
     // 1.10 Tab stops
@@ -304,7 +305,7 @@ static inline int IsVT102TrivialSeq(const std::string& seq)
             else if (seq_sz == pat_sz) return VT102_Trivial; // Trivial VT102 seq
         }
     }
-    return 0;
+    return SEQ_NONE;
 }
 // match the control seq
 // return 0 - It's not a VT102 control seq absolutely
@@ -319,10 +320,10 @@ static inline int IsVT102ControlSeq(const std::string& seq)
         IsVT52CursorKeyCodes,
         IsVT102TrivialSeq
     };
-    int ret = 0;
+    int ret = SEQ_NONE;
     for (int i = 0; i < sizeof(funcs) / sizeof(funcs[0]); ++i) {
         ret = funcs[i](seq);
-        if (ret == 0) continue;else break;
+        if (ret == SEQ_NONE) continue;else break;
     }
     return ret;
 }

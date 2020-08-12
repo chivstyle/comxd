@@ -5,8 +5,8 @@
 #include "ECMA48ControlSeq.h"
 #include "ConnFactory.h"
 
-
-REGISTER_CONN_INSTANCE("ECMA-48", SerialConnECMA48);
+// We implement this as the base-class of Xterm, we'll provide ecma48 in future.
+// REGISTER_CONN_INSTANCE("ECMA-48", SerialConnECMA48);
 
 using namespace Upp;
 
@@ -235,6 +235,9 @@ void SerialConnECMA48::ProcessVT102CharAttribute(int attr_code)
 
 void SerialConnECMA48::ProcessSGR(const std::string& seq)
 {
+    // we override the ProcessVT102CharAttribute, the ProcessVT102CharAttributes will invoke it
+    // when it splits a attr_code.
+    // ECMA48 SGR, [Ps...]<m>, the pattern is compatible with VT102.
     Superclass::ProcessVT102CharAttributes(seq);
 }
 
@@ -243,10 +246,14 @@ void SerialConnECMA48::InstallEcma48Functions()
     mEcma48Funcs[ECMA48_SGR] = [=](const std::string& seq) { SerialConnECMA48::ProcessSGR(seq); };
     // cursor movement, VT102 compatible
     mEcma48Funcs[ECMA48_CUB] = [=](const std::string& seq) { Superclass::ProcessVT102CursorKeyCodes(seq); };
-    mEcma48Funcs[ECMA48_CUD] = mEcma48Funcs[ECMA48_CUF] = mEcma48Funcs[ECMA48_CUP] = mEcma48Funcs[ECMA48_CUU];
-    // Erase in page, [PnJ], is compatible with VT102, VT102_Trivial could process it.
+    mEcma48Funcs[ECMA48_CUD] = mEcma48Funcs[ECMA48_CUF]
+                             = mEcma48Funcs[ECMA48_CUP]
+                             = mEcma48Funcs[ECMA48_CUU]
+                             = mEcma48Funcs[ECMA48_CUB];
+    // Erase in page, is compatible with VT102, VT102_Trivial could process it.
     mEcma48Funcs[ECMA48_ED] = [=](const std::string& seq) { Superclass::ProcessVT102Trivial(seq); };
     // TODO: support more ecma48 functions
+    mEcma48Funcs[ECMA48_C1] = [=](const std::string& seq) { ProcessC1(seq[0]); };
 }
 
 void SerialConnECMA48::ProcessEcma48Trivial(const std::string& seq)
@@ -259,10 +266,14 @@ void SerialConnECMA48::ProcessEcma48Trivial(const std::string& seq)
 
 int SerialConnECMA48::IsControlSeq(const std::string& seq)
 {
+#if 0 // So far, we just need the ecma48 char attributes, SGR.
     int ret = IsECMA48ControlSeq(seq);
     if (ret == 0) {
         ret = Superclass::IsControlSeq(seq);
     }
+#else
+    int ret = Superclass::IsControlSeq(seq);
+#endif
     return ret;
 }
 
@@ -272,14 +283,29 @@ void SerialConnECMA48::ProcessControlSeq(const std::string& seq, int seq_type)
     if (seq_type == ECMA48_Trivial) ProcessEcma48Trivial(seq); else {
         if (seq_type > ECMA48_Trivial && seq_type < ECMA48_SeqType_Endup) {
             auto it = mEcma48Funcs.find(seq_type);
-            if (it != mEcma48Funcs.end()) it->second(seq);
+            if (it != mEcma48Funcs.end()) {
+                it->second(seq);
+            }
         } else {
             Superclass::ProcessControlSeq(seq, seq_type);
         }
     }
 }
 
-void SerialConnECMA48::ProcessAsciiControlChar(unsigned char cc)
+void SerialConnECMA48::ProcessC0(char cc)
 {
-    return Superclass::ProcessAsciiControlChar(cc);
+    (void)cc;
+}
+
+void SerialConnECMA48::ProcessC1(char cc)
+{
+    // We do not support All C1 codes
+    std::string seq; seq.push_back(cc);
+    Superclass::ProcessVT102Trivial(seq);
+}
+
+void SerialConnECMA48::ProcessAsciiControlChar(char cc)
+{
+    // We do not support All C0 codes
+    Superclass::ProcessAsciiControlChar(cc);
 }

@@ -279,7 +279,7 @@ static const char* kECMA48CtrlSeqs[] = {
 };
 
 enum ECMA48FuncionType {
-    ECMA48_Trivial,
+    ECMA48_Trivial = ECMA48_SEQ_BEGIN,
     //-----------------------------------------------------------------------------
     ECMA48_CBT, // 1Pn5a
     ECMA48_CHA, // 1Pn47
@@ -289,7 +289,6 @@ enum ECMA48FuncionType {
     ECMA48_CUB, // 1Pn44
     ECMA48_CUD, // 1Pn42
     ECMA48_CUF, // 1Pn43
-    ECMA48_CUP, // 1Pn48
     ECMA48_CUU, // 1Pn41
     ECMA48_CVT, // 1Pn59
     ECMA48_DCH, // 1Pn50
@@ -333,6 +332,7 @@ enum ECMA48FuncionType {
     //-----------------------------------------------------------------------------
     ECMA48_CPR,  // 2Pn52
     ECMA48_HVP,  // 2Pn66
+    ECMA48_CUP,  // 1Pn48
     //-----------------------------------------------------------------------------
     ECMA48_DTA, // 2PnB54
     ECMA48_GSM, // 2PnB42
@@ -380,6 +380,8 @@ enum ECMA48FuncionType {
     ECMA48_QUAD, // vPsB48
     ECMA48_SAPV, // vPsB5d
     //-----------------------------------------------------------------------------
+    ECMA48_C1,
+    //
     ECMA48_SeqType_Endup
 };
 static_assert(ECMA48_SeqType_Endup < ECMA48_SEQ_END, "ECMA48_SeqType_Endup should be less than ECMA48_SEQ_END");
@@ -388,7 +390,7 @@ static inline int IsECMA48_C1(const std::string& seq)
 {
     if (seq.size() == 1) {
         if (std::binary_search(&kECMA48_C1[0], &kECMA48_C1[sizeof(kECMA48_C1)]/* invalid for end*/, seq[0]))
-            return ECMA48_Trivial;
+            return ECMA48_C1;
     }
     return SEQ_NONE;
 }
@@ -572,8 +574,9 @@ static inline int IsECMA48_2Pn(const std::string& seq)
                         return SEQ_PENDING;
                     else {
                         switch (seq[b]) {
-                        case 0x52:return ECMA48_CPR;  // 2Pn52
-                        case 0x66:return ECMA48_HVP;  // 2Pn66
+                        case 0x52: return ECMA48_CPR;  // 2Pn52
+                        case 0x66: return ECMA48_HVP;  // 2Pn66
+                        case 0x48: return ECMA48_CUP; //  2Pn48
                         }
                     }
                 } else
@@ -739,22 +742,21 @@ static inline int IsECMA48_1Pn(const std::string& seq)
                     case 0x44: return ECMA48_CUB; // 1Pn44
                     case 0x42: return ECMA48_CUD; // 1Pn42
                     case 0x43: return ECMA48_CUF; // 1Pn43
-                    case 0x48: return ECMA48_CUP; // 1Pn48
                     case 0x41: return ECMA48_CUU; // 1Pn41
                     case 0x59: return ECMA48_CVT; // 1Pn59
                     case 0x50: return ECMA48_DCH; // 1Pn50
                     case 0x4d: return ECMA48_DL;  // 1Pn4d
                     case 0x58: return ECMA48_ECH; // 1Pn58
                     case 0x40: return ECMA48_ICH; // 1Pn40
-                    case 0x55: return ECMA48_NP;   // 1Pn55
-                    case 0x4c: return ECMA48_IL;   // 1Pn4c
-                    case 0x56: return ECMA48_PP;   // 1Pn56
-                    case 0x62: return ECMA48_REP;  // 1Pn62
-                    case 0x64: return ECMA48_VPA;  // 1Pn64
-                    case 0x6b: return ECMA48_VPB;  // 1Pn6b
-                    case 0x65: return ECMA48_VPR;  // 1Pn65
-                    case 0x54: return ECMA48_SD;   // 1Pn54
-                    case 0x53: return ECMA48_SU;   // 1Pn53
+                    case 0x55: return ECMA48_NP;  // 1Pn55
+                    case 0x4c: return ECMA48_IL;  // 1Pn4c
+                    case 0x56: return ECMA48_PP;  // 1Pn56
+                    case 0x62: return ECMA48_REP; // 1Pn62
+                    case 0x64: return ECMA48_VPA; // 1Pn64
+                    case 0x6b: return ECMA48_VPB; // 1Pn6b
+                    case 0x65: return ECMA48_VPR; // 1Pn65
+                    case 0x54: return ECMA48_SD;  // 1Pn54
+                    case 0x53: return ECMA48_SU;  // 1Pn53
                     case 0x60: return ECMA48_HPA; // 1Pn60
                     case 0x6a: return ECMA48_HPB; // 1PB6a
                     case 0x61: return ECMA48_HPR; // 1PB61
@@ -802,10 +804,10 @@ static inline int IsECMA48ControlSeq(const std::string& seq)
         IsECMA48_vPs,
         IsECMA48_vPsB
     };
-    int ret = 0;
+    int ret = SEQ_NONE;
     for (int i = 0; i < sizeof(funcs) / sizeof(funcs[0]); ++i) {
         ret = funcs[i](seq);
-        if (ret == 0)
+        if (ret == SEQ_NONE)
             continue;
         else
             break;

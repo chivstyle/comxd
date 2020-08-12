@@ -128,7 +128,7 @@ protected:
 	        if (conn) {
 	            auto actions = conn->GetActions();
 	            for (auto it = actions.begin(); it != actions.end(); ++it) {
-	                bar.Add((*it)->Text, (*it)->Icon, (*it)->Func).Help((*it)->Help);
+	                bar.Add(it->Text, it->Icon, it->Func).Help(it->Help);
 	            }
 	        }
 	    }

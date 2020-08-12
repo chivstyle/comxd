@@ -25,15 +25,16 @@ public:
         return mSerial->getPort().c_str();
     }
     //
-    virtual std::list<const UsrAction*> GetActions() const
+    const std::list<UsrAction>& GetActions() const
     {
-        return std::list<const UsrAction*>(); // default: No actions supported
+        return mUsrActions;
     }
     //
     serial::Serial* GetSerial() const { return mSerial.get(); }
     
 protected:
     std::shared_ptr<serial::Serial> mSerial;
+    std::list<UsrAction> mUsrActions;
 };
 
 #endif
