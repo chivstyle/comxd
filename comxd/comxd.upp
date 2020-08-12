@@ -11,6 +11,7 @@ file
 	ConnImpls\SerialConnVT.cpp,
 	ConnImpls\SerialConnVT.h,
 	ConnImpls/VT102ControlSeq.h,
+	ControlSeq.h,
 	ConnImpls/SerialConnVT102.h,
 	ConnImpls/SerialConnVT102.cpp,
 	ConnImpls/ECMA48ControlSeq.h,
@@ -37,5 +38,5 @@ file
 	main.cpp;
 
 mainconfig
-	"" = "GUI MT";
+	"" = "GUI MT SSE2";
 

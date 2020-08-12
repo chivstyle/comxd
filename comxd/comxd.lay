@@ -3,7 +3,7 @@ LAYOUT(MainWindow, 648, 420)
 END_LAYOUT
 
 LAYOUT(ConnRaw, 580, 520)
-	ITEM(LineEdit, mRx, HSizePosZ(172, 8).VSizePosZ(9, 192))
+	ITEM(LineEdit, mRx, SetEditable(false).HSizePosZ(172, 8).VSizePosZ(9, 192))
 	ITEM(LabelBox, dv___1, SetLabel(t_("Tx Settings")).LeftPosZ(8, 156).BottomPosZ(8, 180))
 	ITEM(Label, dv___2, SetLabel(t_("Line break")).LeftPosZ(20, 56).BottomPosZ(97, 19))
 	ITEM(DropList, mLineBreaks, LeftPosZ(80, 64).BottomPosZ(97, 19))

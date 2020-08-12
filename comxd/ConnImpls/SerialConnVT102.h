@@ -25,16 +25,6 @@ protected:
     ///    ProcessControlSeq(seq), seq matches control seq pattern
     ///
     virtual int IsControlSeq(const std::string& seq);
-    // This is VT102 cursor key codes
-    void ProcessVT102CursorKeyCodes(const std::string& seq);
-    void ProcessVT102EditingFunctions(const std::string& seq);
-    /// seq matches pattern \033[[number];[number];[number]<m>, this routine parse
-    /// the attr_code, i.e the number between ';' was passed to next routine -- ProcessAttr
-    void ProcessVT102Attrs(const std::string& seq);
-    /// see ProcessVT102Attrs
-    /// VT102 supports 1,2,4,5,7, so the subclass could override this routine to support
-    /// more attributes.
-    virtual void ProcessAttr(const std::string& attr_code);
     //-------------------------------------------------------------------------------------
     // you can override these two routines to modify all functions.
     virtual void ProcessControlSeq(const std::string& seq, int seq_type);
@@ -45,8 +35,18 @@ protected:
     virtual bool ProcessKeyUp(Upp::dword key, Upp::dword flags);
     // pure ascii, 32 ~ 126
     virtual bool ProcessKeyDown_Ascii(Upp::dword key, Upp::dword flags);
+    //-------------------------------------------------------------------------------------
+    // allow the subclass to extend the functions of VT102.
+    std::map<std::string, std::function<void()> > mVT102TrivialHandlers;
+    virtual void ProcessVT102Trivial(const std::string& seq);
+    virtual void ProcessVT102CursorKeyCodes(const std::string& seq);
+    virtual void ProcessVT102EditingFunctions(const std::string& seq);
+    virtual void ProcessVT102CharAttributes(const std::string& seq);
+    // VT102 subroutines
+    virtual void ProcessVT102CharAttribute(int attr_code);
+    //-------------------------------------------------------------------------------------
 private:
-    void InstallControlSeqHandlers();
+    void InstallVT102Functions();
 };
 
 #endif

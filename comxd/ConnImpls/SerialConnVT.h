@@ -11,7 +11,9 @@
 #include <functional>
 #include <map>
 #include <thread>
-
+//----------------------------------------------------------------------------------------------
+// UTF8, UTF32
+// Helper routines
 static inline std::string Utf32ToUtf8(const uint32_t& cp)
 {
     std::string out;
@@ -74,7 +76,63 @@ static inline std::vector<uint32_t> Utf8ToUtf32(const std::string& seq, size_t& 
     //
     return out;
 }
-
+//----------------------------------------------------------------------------------------------
+// UPP provides Split to split string, but we do not want to get the splitted string actually,
+// so we could do it faster. This routine was designed for VT only.
+// Why we do not use strtok, it's not safe. Windows provides strtok_s, Linux provides strtok_r,
+// we do not like that way.
+// Warning: s should be valid
+// Warning: this routine will modify the string s, like strtok
+static inline void SplitString(char* s, size_t s_len, char delim, std::function<void(const char*)> func)
+{
+    size_t p = 0, q = 0; // [p, q) defines a result
+    for (; q < s_len && s[q] != delim; ++q);
+    while (q < s_len) {
+        s[q] = '\0';
+        func(s+p);
+        p = q+1;
+        for (; q < s_len && s[q] != delim; ++q);
+    }
+    // process the left chars
+    if (p < s_len) {
+        func(s+p);
+    }
+}
+static inline bool SplitString(const char* cs, char delim, std::function<void(const char*)> func)
+{
+    static const size_t kCacheSize = 64; char _cache[kCacheSize];
+    size_t cs_len = strlen(cs);
+    if (cs_len < kCacheSize) {
+        strcpy(_cache, cs);
+        SplitString(_cache, cs_len, delim, func);
+        return true;
+    } else {
+        char* s = strdup(cs);
+        if (s) {
+            SplitString(s, cs_len, delim, func);
+            free(s);
+            return true;
+        }
+        return false;
+    }
+}
+static inline void SplitString(std::string&& s, char delim, std::function<void(const char*)> func)
+{
+    size_t s_len = s.length();
+    size_t p = 0, q = 0; // [p, q) defines a result
+    for (; q < s_len && s[q] != delim; ++q);
+    while (q < s_len) {
+        s[q] = '\0';
+        func(s.data() + p);
+        p = q+1;
+        for (; q < s_len && s[q] != delim; ++q);
+    }
+    // process the left chars
+    if (p < s_len) {
+        func(s.data() + p);
+    }
+}
+//----------------------------------------------------------------------------------------------
 class VTChar {
 public:
     VTChar()
@@ -133,7 +191,6 @@ protected:
     virtual void LeftDown(Upp::Point p, Upp::dword keyflags);
     virtual void MouseMove(Upp::Point p, Upp::dword keyflags);
     virtual void RightUp(Upp::Point p, Upp::dword keyflags);
-    virtual void MouseLeave();
     virtual Upp::Image CursorImage(Upp::Point p, Upp::dword keyflags);
     //
     void ShowOptionsDialog();
@@ -159,13 +216,15 @@ protected:
     bool mScrollToEnd;
     // selection
     struct SelectionSpan {
-        int X0, Y0;
-        int X1, Y1;
+        int X0, Y0; // virtual screen, unit: char [fixed width]
+        int X1, Y1; // virtual screen, unit: char [fixed height]
+        int x0, x1; // logical unit
+        int y0, y1; // logical unit
         SelectionSpan()
-            : X0(0)
-            , Y0(0)
-            , X1(0)
-            , Y1(0)
+            : x0(0)
+            , y0(0)
+            , x1(0)
+            , y1(0)
         {
         }
     };
@@ -183,6 +242,11 @@ protected:
     int GetLogicWidth(const VTLine& vline) const;
     // return longest line size, unit: logic or char
     int GetLongestLineSize(const std::vector<VTLine>& vlines, bool in_logic = true) const;
+    // adjust virtual screen, what can affect this routine were listed below
+    //  1. Font
+    //  2. Size of client region
+    // after this function, the ScrollBar and display region were changed.
+    void DoLayout();
     //
     UsrAction mActOptions; // Action to show options dialog
     // font of console
@@ -209,6 +273,7 @@ protected:
     //
     virtual int IsControlSeq(const std::string& seq) = 0;
     virtual void ProcessControlSeq(const std::string& seq, int seq_type) = 0;
+    // 00~0x1f
     virtual void ProcessAsciiControlChar(unsigned char cc);
     // with K_DELTA
     virtual bool ProcessKeyDown(Upp::dword key, Upp::dword flags);
@@ -220,9 +285,6 @@ protected:
     // render text
     virtual void Render(Upp::Draw& draw);
     virtual void Render(Upp::Draw& draw, const std::vector<VTLine>& vlines);
-    // handlers to process trivial seqs
-    typedef std::function<void()> ControlHandler;
-    std::map<std::string, ControlHandler> mCtrlHandlers;
 private:
     // receiver
     volatile bool mRxShouldStop;
@@ -230,7 +292,7 @@ private:
     //
     std::thread mRxThr;
     size_t mMaxLinesBufferSize;
-    /// the x,y is absolute position, unit: char
+    /// the x,y is absolute position, unit: char, virtual screen.
     inline bool IsCharInSelectionSpan(int x, int y) const;
 };
 

@@ -96,9 +96,11 @@ public:
 	//
 	bool Accept()
 	{
-	    int ret = Upp::PromptYesNo(t_("Do you want to exit really?"));
-	    // ret , 1 - yes, 0 - None, -1 - cancel
-	    return ret == 1;
+	    if (mDevsTab.GetCount()) {
+            int ret = Upp::PromptYesNo(t_("Do you want to exit really?"));
+            // ret , 1 - yes, 0 - None, -1 - cancel
+            return ret == 1;
+	    } else return true;
 	}
 	
 protected:

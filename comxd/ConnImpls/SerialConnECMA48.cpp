@@ -11,29 +11,51 @@ REGISTER_CONN_INSTANCE("ECMA-48", SerialConnECMA48);
 using namespace Upp;
 
 SerialConnECMA48::SerialConnECMA48(std::shared_ptr<serial::Serial> serial)
-    : SerialConnVT102(serial)
+    : Superclass(serial)
 {
-    InstallControlSeqHandlers();
+    InstallEcma48Functions();
 }
 //
 SerialConnECMA48::~SerialConnECMA48()
 {
 }
 
-void SerialConnECMA48::ProcessAttr(const std::string& attr_code)
+void SerialConnECMA48::ProcessVT102CharAttribute(int attr_code)
 {
-    Superclass::ProcessAttr(attr_code);
-    // ECMA-48
-    int m = atoi(attr_code.c_str());
-    switch (m) {
+    switch (attr_code) {
+    case 0:
+        mCurrAttrFuncs.clear();
+        mCurrAttrFuncs.push_back([=]() { SetDefaultStyle(); });
+        break;
+    case 1:
+        mCurrAttrFuncs.push_back([=]() {
+            mFont.Bold();
+        });
+        break;
     case 2:
         mCurrAttrFuncs.push_back([=]() {
             mFont.NoBold();
         });
         break;
+    case 3:
+        mCurrAttrFuncs.push_back([=]() {
+            mFont.Italic();
+        });
+        break;
+    case 4:
+        mCurrAttrFuncs.push_back([=]() {
+            mFont.Underline();
+        });
+        break;
+    case 5:
     case 6: // rapidly blinking, No, we treat is as 5
         mCurrAttrFuncs.push_back([=]() {
             mBlink = true;
+        });
+        break;
+    case 7:
+        mCurrAttrFuncs.push_back([=]() {
+            std::swap(mFgColor, mBgColor);
         });
         break;
     case 8: // conceal
@@ -211,16 +233,53 @@ void SerialConnECMA48::ProcessAttr(const std::string& attr_code)
     }
 }
 
+void SerialConnECMA48::ProcessSGR(const std::string& seq)
+{
+    Superclass::ProcessVT102CharAttributes(seq);
+}
+
+void SerialConnECMA48::InstallEcma48Functions()
+{
+    mEcma48Funcs[ECMA48_SGR] = [=](const std::string& seq) { SerialConnECMA48::ProcessSGR(seq); };
+    // cursor movement, VT102 compatible
+    mEcma48Funcs[ECMA48_CUB] = [=](const std::string& seq) { Superclass::ProcessVT102CursorKeyCodes(seq); };
+    mEcma48Funcs[ECMA48_CUD] = mEcma48Funcs[ECMA48_CUF] = mEcma48Funcs[ECMA48_CUP] = mEcma48Funcs[ECMA48_CUU];
+    // Erase in page, [PnJ], is compatible with VT102, VT102_Trivial could process it.
+    mEcma48Funcs[ECMA48_ED] = [=](const std::string& seq) { Superclass::ProcessVT102Trivial(seq); };
+    // TODO: support more ecma48 functions
+}
+
+void SerialConnECMA48::ProcessEcma48Trivial(const std::string& seq)
+{
+    auto it = mEcma48TrivialHandlers.find(seq);
+    if (it != mEcma48TrivialHandlers.end()) {
+        it->second(seq);
+    }
+}
+
 int SerialConnECMA48::IsControlSeq(const std::string& seq)
 {
-    std::string seq_ = seq;
-    int ret = IsECMA48ControlSeq(seq_);
-    if (ret == 0) { // It's not a xterm control seq absolutely
-        return SerialConnVT102::IsControlSeq(seq_);
+    int ret = IsECMA48ControlSeq(seq);
+    if (ret == 0) {
+        ret = Superclass::IsControlSeq(seq);
     }
     return ret;
 }
 
-void SerialConnECMA48::InstallControlSeqHandlers()
+void SerialConnECMA48::ProcessControlSeq(const std::string& seq, int seq_type)
 {
+    // for faster, we forward the seq_type as accurately as we could
+    if (seq_type == ECMA48_Trivial) ProcessEcma48Trivial(seq); else {
+        if (seq_type > ECMA48_Trivial && seq_type < ECMA48_SeqType_Endup) {
+            auto it = mEcma48Funcs.find(seq_type);
+            if (it != mEcma48Funcs.end()) it->second(seq);
+        } else {
+            Superclass::ProcessControlSeq(seq, seq_type);
+        }
+    }
+}
+
+void SerialConnECMA48::ProcessAsciiControlChar(unsigned char cc)
+{
+    return Superclass::ProcessAsciiControlChar(cc);
 }

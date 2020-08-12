@@ -13,7 +13,7 @@ using namespace Upp;
 SerialConnVT102::SerialConnVT102(std::shared_ptr<serial::Serial> serial)
     : Superclass(serial)
 {
-    InstallControlSeqHandlers();
+    InstallVT102Functions();
 }
 
 SerialConnVT102::~SerialConnVT102()
@@ -25,7 +25,7 @@ int SerialConnVT102::IsControlSeq(const std::string& seq)
     return IsVT102ControlSeq(seq);
 }
 //
-void SerialConnVT102::InstallControlSeqHandlers()
+void SerialConnVT102::InstallVT102Functions()
 {
     // 1. ANSI Compatible Seq
     // 1.1 set mode
@@ -37,34 +37,34 @@ void SerialConnVT102::InstallControlSeqHandlers()
     // 1.7 character attributes, see IsVT102Attrs
     // 1.8 scrolling region, see IsVT102ScrollingRegion
     // 1.9 Cursor movement commands
-    mCtrlHandlers["[H"] = [=]() { // cursor position (home)
+    mVT102TrivialHandlers["[H"] = [=]() { // cursor position (home)
         // home
         mScrollToEnd = true;
         mCursorX = 0;
         mCursorY = 0;
     };
-    mCtrlHandlers["[f"] = mCtrlHandlers["[H"];
+    mVT102TrivialHandlers["[f"] = mVT102TrivialHandlers["[H"];
     // 1.10 Tab stops
     // 1.11 Line attributes
     // 1.12 Erasing
-    mCtrlHandlers["[K"] = [=]() { // erase in line, cursor to end of line
+    mVT102TrivialHandlers["[K"] = [=]() { // erase in line, cursor to end of line
         Size csz = GetConsoleSize();
         for (int i = mCursorX; i < csz.cx; ++i) {
             mLines[mCursorY][i] = mBlankChr;
         }
     };
-    mCtrlHandlers["[0K"] = mCtrlHandlers["[K"];
-    mCtrlHandlers["[1K"] = [=]() { // erase in line, beginning of line to cursor
+    mVT102TrivialHandlers["[0K"] = mVT102TrivialHandlers["[K"];
+    mVT102TrivialHandlers["[1K"] = [=]() { // erase in line, beginning of line to cursor
         Size csz = GetConsoleSize();
         for (int i = 0; i < mCursorX; ++i) {
             mLines[mCursorY][i] = mBlankChr;
         }
     };
-    mCtrlHandlers["[2K"] = [=]() { // erase in line, entire line containing cursor
+    mVT102TrivialHandlers["[2K"] = [=]() { // erase in line, entire line containing cursor
         Size csz = GetConsoleSize();
         mLines[mCursorY] = VTLine(csz.cx, mBlankChr);
     };
-    mCtrlHandlers["[J"] = [=]() { // erase in display, cursor to end of screen
+    mVT102TrivialHandlers["[J"] = [=]() { // erase in display, cursor to end of screen
         // clear entire screen, push lines to buffer.
         if (mCursorX == 0 && mCursorY == 0) {
             int nlines = (int)mLines.size() - this->CalculateNumberOfBlankLinesFromEnd(mLines);
@@ -80,8 +80,8 @@ void SerialConnVT102::InstallControlSeqHandlers()
             mLines[i] = VTLine(csz.cx, mBlankChr);
         }
     };
-    mCtrlHandlers["[0J"] = mCtrlHandlers["[J"];
-    mCtrlHandlers["[1J"] = [=]() { // erase in display, beginning of screen to cursor
+    mVT102TrivialHandlers["[0J"] = mVT102TrivialHandlers["[J"];
+    mVT102TrivialHandlers["[1J"] = [=]() { // erase in display, beginning of screen to cursor
         Size csz = GetConsoleSize();
         for (int i = 0; i < mCursorX; ++i) {
             mLines[mCursorY][i] = mBlankChr;
@@ -90,7 +90,7 @@ void SerialConnVT102::InstallControlSeqHandlers()
             mLines[i] = VTLine(csz.cx, mBlankChr);
         }
     };
-    mCtrlHandlers["[2J"] = [=]() { // erase in display, entire screen
+    mVT102TrivialHandlers["[2J"] = [=]() { // erase in display, entire screen
         Size csz = GetConsoleSize();
         for (size_t k = 0; k < mLines.size(); ++k) {
             mLines[k] = VTLine(csz.cx, mBlankChr);
@@ -100,7 +100,7 @@ void SerialConnVT102::InstallControlSeqHandlers()
     // 1.14 Print commands
     // 1.15 Reports
     // "\033Z" is not recommended
-    mCtrlHandlers["[?6c"] = [=]() {
+    mVT102TrivialHandlers["[?6c"] = [=]() {
         GetSerial()->write("VT102");
     };
     // 1.16 Reset
@@ -168,10 +168,9 @@ void SerialConnVT102::ProcessVT102EditingFunctions(const std::string& seq)
     }
 }
 //
-void SerialConnVT102::ProcessAttr(const std::string& attr_code)
+void SerialConnVT102::ProcessVT102CharAttribute(int attr_code)
 {
-    int m = atoi(attr_code.c_str());
-    switch (m) {
+    switch (attr_code) {
     case 0: // Default
         mCurrAttrFuncs.clear();
         mCurrAttrFuncs.push_back([=](){ SetDefaultStyle(); });
@@ -191,39 +190,33 @@ void SerialConnVT102::ProcessAttr(const std::string& attr_code)
     }
 }
 //
-void SerialConnVT102::ProcessVT102Attrs(const std::string& seq)
+void SerialConnVT102::ProcessVT102CharAttributes(const std::string& seq)
 {
-    if (seq == "[m") ProcessAttr("0"); else {
-        // [ Pn;Pn;Pn;Pn;Pn...m
-        size_t p = 1; // skip '['
-        auto q = seq.find(';', p);
-        while (q != seq.npos) {
-            std::string m = seq.substr(p, q-p);
-            ProcessAttr(m);
-            p = q+1;
-            // next q
-            if (q >= seq.size()-1) break; else {
-                q = seq.find(';', p);
-            }
-        }
-        if (p < seq.size()-1) {
-            ProcessAttr(seq.substr(p, seq.size()-p-1));
-        }
+    std::string s = seq.substr(1, seq.size()-1);
+    if (s.empty()) {
+        ProcessVT102CharAttribute(0);
+    } else {
+        SplitString(std::move(s), ';', [=](const char* s) { ProcessVT102CharAttribute(atoi(s)); });
+    }
+}
+//
+void SerialConnVT102::ProcessVT102Trivial(const std::string& seq)
+{
+    auto it = mVT102TrivialHandlers.find(seq);
+    if (it != mVT102TrivialHandlers.end()) {
+        it->second();
     }
 }
 //
 void SerialConnVT102::ProcessControlSeq(const std::string& seq, int seq_type)
 {
-    if (seq_type == 2) {
-        auto it = mCtrlHandlers.find(seq);
-        if (it != mCtrlHandlers.end()) {
-            it->second();
-        }
-    } else {
+    if (seq_type == VT102_Trivial) {
+        ProcessVT102Trivial(seq);
+    } else if (seq_type > VT102_Trivial && seq_type < VT102_SeqType_Endup) {
         switch (seq_type) {
         case VT52_Cursor: // DOES NOT SUPPORT VT52
             break;
-        case VT102_Attrs: ProcessVT102Attrs(seq); break;
+        case VT102_Attrs: ProcessVT102CharAttributes(seq); break;
         case VT102_Cursor: ProcessVT102CursorKeyCodes(seq); break;
         case VT102_EditingFunctions: ProcessVT102EditingFunctions(seq); break;
         case VT102_ScrollingRegion: // DOES NOT SUPPORT THIS FEATURE

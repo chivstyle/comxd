@@ -13,9 +13,20 @@ public:
     virtual ~SerialConnECMA48();
 protected:
     virtual int IsControlSeq(const std::string& seq);
-    virtual void ProcessAttr(const std::string& attr_code);
+    virtual void ProcessAsciiControlChar(unsigned char cc);
+    virtual void ProcessControlSeq(const std::string& seq, int seq_type);
+    //------------------------------------------------------------------------------------------
+    // allow subclass to extend ECMA48
+    virtual void ProcessSGR(const std::string& seq);
+    virtual void ProcessEcma48Trivial(const std::string& seq);
+    // extend VT102
+    virtual void ProcessVT102CharAttribute(int attr_code);
+    //------------------------------------------------------------------------------------------
+    std::map<std::string, std::function<void(const std::string& seq)> > mEcma48TrivialHandlers;
+    std::map<int, std::function<void(const std::string& seq)> > mEcma48Funcs;
+    //
 private:
-    void InstallControlSeqHandlers();
+    void InstallEcma48Functions();
 };
 
 #endif
