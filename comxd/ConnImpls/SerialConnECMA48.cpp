@@ -245,7 +245,7 @@ void SerialConnECMA48::InstallEcma48Functions()
 {
     mEcma48Funcs[ECMA48_SGR] = [=](const std::string& seq) { SerialConnECMA48::ProcessSGR(seq); };
     // cursor movement, VT102 compatible
-    mEcma48Funcs[ECMA48_CUB] = [=](const std::string& seq) { Superclass::ProcessVT102CursorKeyCodes(seq); };
+    mEcma48Funcs[ECMA48_CUB] = [=](const std::string& seq) { Superclass::ProcessVT102CursorMovementCmds(seq); };
     mEcma48Funcs[ECMA48_CUD] = mEcma48Funcs[ECMA48_CUF]
                              = mEcma48Funcs[ECMA48_CUP]
                              = mEcma48Funcs[ECMA48_CUU]

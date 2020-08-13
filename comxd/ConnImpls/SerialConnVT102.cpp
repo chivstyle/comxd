@@ -53,18 +53,260 @@ void SerialConnVT102::LoadCursor(const CursorData& cd)
     DoLayout();
 }
 //----------------------------------------------------------------------------------------------
+// These overrides, support ScrollingRegion
+Size SerialConnVT102::GetConsoleSize() const
+{
+    return Superclass::GetConsoleSize();
+}
+// If the scrolling region was set, we should ignore those lines out of region
+void SerialConnVT102::ProcessOverflowLines()
+{
+    auto& span = mScrollingRegion;
+    Size csz = GetConsoleSize();
+    int bottom = span.Bottom;
+    if (bottom < 0 || bottom >= csz.cy)
+        bottom = csz.cy-1;
+    ASSERT(span.Top < (int)mLines.size());
+    if (mCursorY == bottom+1) {
+        PushToLinesBufferAndCheck(mLines[span.Top]);
+        mLines.erase(mLines.begin() + span.Top);
+        mLines.insert(mLines.begin() + bottom, VTLine(csz.cx, mBlankChr));
+        mCursorY = bottom;
+    } else if (mCursorY >= csz.cy) {
+        mCursorY = csz.cy - 1;
+    }
+}
+//
+void SerialConnVT102::DrawCursor(Upp::Draw& draw, int vx, int vy)
+{
+    Size csz = GetConsoleSize();
+    int top = mScrollingRegion.Top;
+    int bot = mScrollingRegion.Bottom;
+    if (bot < 0) bot = csz.cy - 1;
+    if (vy >= 0 && vy <= bot) {
+        int x = -mSbH.Get() + mFontW*vx;
+        int y = mFontH*vy;
+        draw.DrawRect(x, y, mFontW, mFontH, Color(0, 255, 0));
+    }
+}
+//
+void SerialConnVT102::ExtendVirtualScreen(int cx, int cy)
+{
+    // extend virtual screen
+    int bot = mScrollingRegion.Bottom;
+    if (bot < 0) {
+        bot = cy;
+    }
+    // 0. pull lines from lines buffer
+    int ln = 0;
+    int extcn = cy - (int)mLines.size();
+    if (bot >= cy) {
+        for (int i = 0; i < extcn && !mLinesBuffer.empty(); ++i) {
+            VTLine vline = *mLinesBuffer.rbegin(); mLinesBuffer.pop_back();
+            for (int n = (int)vline.size(); n < cx; ++n) {
+                vline.push_back(mBlankChr);
+            }
+            mLines.insert(mLines.begin(), vline);
+            ln++;
+        }
+        mCursorY += ln;
+    }
+    // 1. push blanks
+    for (int i = ln; i < cy && i < extcn; ++i) {
+        mLines.push_back(VTLine(cx, mBlankChr));
+    }
+}
+
+void SerialConnVT102::ShrinkVirtualScreen(int cx, int cy)
+{
+    // shrink virtual screen
+    // Shrink will destroy the scrolling region
+    mScrollingRegion.Top = 0;
+    mScrollingRegion.Bottom = -1;
+    // 0. remove blanks firstly
+    int blankcnt = CalculateNumberOfBlankLinesFromEnd(mLines);
+    int shkcn = (int)mLines.size() - cy;
+    int ln = 0;
+    for (int i = 0; i < shkcn && i < blankcnt; ++i) {
+        mLines.pop_back();
+        ln++;
+    }
+    // 1. remove from head
+    for (int i = ln; i < shkcn; ++i) {
+        PushToLinesBufferAndCheck(*mLines.begin());
+        mLines.erase(mLines.begin());
+        if (mCursorY > 0) {
+            mCursorY--;
+        }
+    }
+}
+//
+void SerialConnVT102::DoLayout()
+{
+    Size csz = GetConsoleSize();
+	mSbV.SetPage(mFontH*csz.cy);
+	mSbH.SetPage(mFontW*csz.cx);
+	if (csz.cx <= 0 || csz.cy <= 0) return;
+	// check and fix
+	for (size_t k = 0; k < mLines.size(); ++k) {
+	    VTLine& vline = mLines[k];
+	    for (size_t i = vline.size(); (int)i < csz.cx; ++i) {
+	        vline.push_back(mBlankChr);
+	    }
+	}
+	// extend or shrink the virtual screen
+	if (mLines.size() < csz.cy) {
+	    ExtendVirtualScreen(csz.cx, csz.cy);
+	    //--------------------------------------------------------------------------------------
+	} else {
+	    ShrinkVirtualScreen(csz.cx, csz.cy);
+	}
+}
+//
+std::vector<SerialConnVT::VTLine> SerialConnVT102::GetMergedScreen(size_t p, int& nlines_from_buffer) const
+{
+    Size csz = GetConsoleSize();
+    std::vector<VTLine> out(csz.cy);
+    size_t ln = 0;
+    // -----------------------------------------------------------------------------------------
+    //  part 0,    0 ~ Top
+    //  part 1,    p ~ buffer lines, max count is (bot-top), denote as sn
+    //  part 3,    top ~ bot - sn, include bot-sn
+    //  part 4,    bot ~ end of lines
+    //  for example, top = 9, bot = 19, it defines a scrolling range, 11 lines total
+    //------------------------------------------------------------------------------------------
+    int top = mScrollingRegion.Top;
+    int bot = mScrollingRegion.Bottom;
+    if (bot < 0) bot = csz.cy - 1;
+    // part 0
+    for (int k = 0; k < (int)mLines.size() && k < top; ++k) {
+        out[ln++] = mLines[k];
+    }
+    // part 1
+    int sn = 0;
+    for (size_t k = p; k < mLinesBuffer.size() && ln < out.size() && sn <= bot-top; ++k) {
+        VTLine vline = mLinesBuffer[k];
+        for (int i = (int)vline.size(); i < csz.cx; ++i) {
+            vline.push_back(mBlankChr);
+        }
+        out[ln++] = vline;
+        sn++;
+    }
+    nlines_from_buffer = sn;
+    // part 3
+    for (int k = top; k <= bot - sn && ln < out.size(); ++k) {
+        out[ln++] = mLines[k];
+    }
+    for (size_t k = bot + 1; k < out.size() && ln < out.size(); ++k) {
+        out[ln++] = mLines[k];
+    }
+    
+    return out;
+}
+//----------------------------------------------------------------------------------------------
 void SerialConnVT102::InstallVT102Functions()
 {
     // 1. ANSI Compatible Seq
     // 1.1 set mode
+    mVT102TrivialHandlers["[2h"] = [=]() {
+        mModes.KeyboardAction = VT102Modes::Locked;
+    };
+    mVT102TrivialHandlers["[4h"] = [=]() {
+        mModes.InsertionReplacement = VT102Modes::Insert;
+    };
+    mVT102TrivialHandlers["[12h"] = [=]() {
+        mModes.SendReceive = VT102Modes::Off;
+    };
+    mVT102TrivialHandlers["[20h"] = [=]() {
+        mModes.LineFeedNewLine = VT102Modes::NewLine;
+    };
+    mVT102TrivialHandlers["[?1h"] = [=]() {
+        mModes.CursorKey = VT102Modes::Application;
+    };
+    mVT102TrivialHandlers["[?3h"] = [=]() {
+        mModes.Column = VT102Modes::C132;
+    };
+    mVT102TrivialHandlers["[?4h"] = [=]() {
+        mModes.Scrolling = VT102Modes::Smooth;
+    };
+    mVT102TrivialHandlers["[?5h"] = [=]() {
+        mModes.Screen = VT102Modes::Reverse;
+    };
+    mVT102TrivialHandlers["[?6h"] = [=]() {
+        mModes.Origin = VT102Modes::Relative;
+    };
+    mVT102TrivialHandlers["[?7h"] = [=]() {
+        mModes.AutoWrap = VT102Modes::On;
+    };
+    mVT102TrivialHandlers["[?8h"] = [=]() {
+        mModes.AutoRepeat = VT102Modes::On;
+    };
+    mVT102TrivialHandlers["[?18h"] = [=]() {
+        mModes.PrintFormFeed = VT102Modes::On;
+    };
+    mVT102TrivialHandlers["[?19h"] = [=]() {
+        mModes.PrintExtent = VT102Modes::FullScreen;
+    };
     // 1.2 reset mode
-    // 1.3 Cursor Key Codes Generated, see IsVT102CursorKeyCodes
+    mVT102TrivialHandlers["[2l"] = [=]() {
+        mModes.KeyboardAction = VT102Modes::Unlocked;
+    };
+    mVT102TrivialHandlers["[4l"] = [=]() {
+        mModes.InsertionReplacement = VT102Modes::Replace;
+    };
+    mVT102TrivialHandlers["[12l"] = [=]() {
+        mModes.SendReceive = VT102Modes::On;
+    };
+    mVT102TrivialHandlers["[20l"] = [=]() {
+        mModes.LineFeedNewLine = VT102Modes::LineFeed;
+    };
+    mVT102TrivialHandlers["[?1l"] = [=]() {
+        mModes.CursorKey = VT102Modes::Cursor;
+    };
+    mVT102TrivialHandlers["[?3l"] = [=]() {
+        mModes.Column = VT102Modes::C80;
+    };
+    mVT102TrivialHandlers["[?4l"] = [=]() {
+        mModes.Scrolling = VT102Modes::Jump;
+    };
+    mVT102TrivialHandlers["[?5l"] = [=]() {
+        mModes.Screen = VT102Modes::Normal;
+    };
+    mVT102TrivialHandlers["[?6l"] = [=]() {
+        mModes.Origin = VT102Modes::Absolute;
+    };
+    mVT102TrivialHandlers["[?7l"] = [=]() {
+        mModes.AutoWrap = VT102Modes::Off;
+    };
+    mVT102TrivialHandlers["[?8l"] = [=]() {
+        mModes.AutoRepeat = VT102Modes::Off;
+    };
+    mVT102TrivialHandlers["[?18l"] = [=]() {
+        mModes.PrintFormFeed = VT102Modes::Off;
+    };
+    mVT102TrivialHandlers["[?19l"] = [=]() {
+        mModes.PrintExtent = VT102Modes::ScrollingRegion;
+    };
+    // 1.3 Cursor Key Codes Generated [Application]
+    mVT102TrivialHandlers["[0A"] = [=]() {
+        ProcessVT102CursorMovementCmds("[A");
+    };
+    mVT102TrivialHandlers["[0B"] = [=]() {
+        ProcessVT102CursorMovementCmds("[B");
+    };
+    mVT102TrivialHandlers["[0C"] = [=]() {
+        ProcessVT102CursorMovementCmds("[C");
+    };
+    mVT102TrivialHandlers["[0D"] = [=]() {
+        ProcessVT102CursorMovementCmds("[D");
+    };
     // 1.4 Keypad character selection
     // 1.5 Keypad codes generated
     // 1.6 select character sets
     // 1.7 character attributes, see IsVT102Attrs
     // 1.8 scrolling region, see IsVT102ScrollingRegion
-    // 1.9 Cursor movement commands
+    // 1.9 Cursor movement commands, those seq with parameters were processed by
+    // ProcessVT102CursorMovementCmds.
     mVT102TrivialHandlers["[H"] = [=]() { // cursor position (home)
         // home
         mScrollToEnd = true;
@@ -153,8 +395,19 @@ void SerialConnVT102::InstallVT102Functions()
                           + std::to_string(mCursorX+1) + "R";
         GetSerial()->write(rsp);
     };
+    mVT102TrivialHandlers["[c"] = [=]() {
+        GetSerial()->write("\033[?6c"); // VT102
+    };
+    mVT102TrivialHandlers["[0c"] = mVT102TrivialHandlers["[c"]; // ESC Z is not recommended, we do not support it.
     // 1.16 Reset
+    mVT102TrivialHandlers["c"] = [=]() { Clear(); };
     // 1.17 Test and adjustments
+    mVT102TrivialHandlers["#8"] = [=]() {
+        Size csz = GetConsoleSize();
+        for (size_t k = 0; k < mLines.size(); ++k) {
+            mLines[k] = VTLine(mBlankChr, csz.cx);
+        }
+    };
     // 1.18 keyboard led
     // 2. VT52 Compatible Mode
     // 2.1 keypad character selection
@@ -166,7 +419,7 @@ void SerialConnVT102::InstallVT102Functions()
     // 2.5 Print Commands
 }
 //
-void SerialConnVT102::ProcessVT102CursorKeyCodes(const std::string& seq)
+void SerialConnVT102::ProcessVT102CursorMovementCmds(const std::string& seq)
 {
     if (seq.length() < 2) return; // do nothing
     switch (*seq.rbegin()) {
@@ -206,12 +459,46 @@ void SerialConnVT102::ProcessVT102CursorKeyCodes(const std::string& seq)
     }
 }
 //
+void SerialConnVT102::ProcessVT102ScrollingRegion(const std::string& seq)
+{
+    if (seq.length() < 3) return; else {
+        size_t p = seq.find(';');
+        if (p == seq.npos) return;
+        // ok, let's go, t,b count from 1, so we sub 1 here.
+        int t = atoi(seq.substr(1, p-1).c_str()) - 1;                     // top
+        int b = atoi(seq.substr(p+1, seq.size() - p - 1).c_str()) - 1;    // bottom
+        if (t >= 0 && b - t > 1 && t < (int)mLines.size()) {
+            mScrollingRegion.Top = t;
+            mScrollingRegion.Bottom = b;
+            // Home
+            mCursorX = 0; mCursorY = t;
+        }
+    }
+}
+//
 void SerialConnVT102::ProcessVT102EditingFunctions(const std::string& seq)
 {
+    if (seq.length() < 2) return;
     switch (*seq.rbegin()) {
     case 'P':if (1) { // delete character
+        if (mCursorY >= (int)mLines.size()) break;
+        const int n_chars = atoi(seq.substr(1, seq.length()-2).c_str());
+        int n_moved = 0;
+        const int& y = mCursorY;
+        int p = mCursorX + n_chars;
+        if (p < (int)mLines[y].size()) {
+            for (int i = mCursorX; n_moved < n_chars && i < (int)mLines[y].size(); ++i) {
+                mLines[y][i] = mLines[y][p+i];
+                n_moved++;
+            }
+        } else {
+            for (int i = mCursorX; n_moved < n_chars && i < (int)mLines[y].size(); ++i) {
+                mLines[y][i] = mBlankChr;
+            }
+        }
     } break;
     case 'L':if (1) { // insert line
+        
     } break;
     case 'M':if (1) { // delete line
     } break;
@@ -264,13 +551,12 @@ void SerialConnVT102::ProcessControlSeq(const std::string& seq, int seq_type)
         ProcessVT102Trivial(seq);
     } else if (seq_type > VT102_Trivial && seq_type < VT102_SeqType_Endup) {
         switch (seq_type) {
-        case VT52_Cursor: // DOES NOT SUPPORT VT52
+        case VT52_CursorKeyCodes: // DOES NOT SUPPORT VT52
             break;
-        case VT102_Attrs: ProcessVT102CharAttributes(seq); break;
-        case VT102_Cursor: ProcessVT102CursorKeyCodes(seq); break;
+        case VT102_CharAttributes: ProcessVT102CharAttributes(seq); break;
+        case VT102_CursorMovementCmds: ProcessVT102CursorMovementCmds(seq); break;
         case VT102_EditingFunctions: ProcessVT102EditingFunctions(seq); break;
-        case VT102_ScrollingRegion: // DOES NOT SUPPORT THIS FEATURE
-            break;
+        case VT102_ScrollingRegion: ProcessVT102ScrollingRegion(seq); break;
         }
     }
 }
@@ -299,43 +585,29 @@ void SerialConnVT102::ProcessAsciiControlChar(char cc)
 //----------------------------------------------
 bool SerialConnVT102::ProcessKeyDown(dword key, dword flags)
 {
-    std::vector<uint8_t> d;
+    std::string d;
     if ((flags & (K_CTRL | K_ALT | K_SHIFT)) == 0) {
         switch (key) {
         case K_BACKSPACE:
             d.push_back(8);
             break;
         case K_LEFT:
-            d.push_back(0x1b);
-            d.push_back('[');
-            d.push_back('D');
+            d = "\033[D";
             break;
         case K_RIGHT:
-            d.push_back(0x1b);
-            d.push_back('[');
-            d.push_back('C');
+            d = "\033[C";
             break;
         case K_UP:
-            d.push_back(0x1b);
-            d.push_back('[');
-            d.push_back('A');
+            d = "\033[A";
             break;
         case K_DOWN:
-            d.push_back(0x1b);
-            d.push_back('[');
-            d.push_back('B');
+            d = "\033[B";
             break;
         case K_ESCAPE:
-            d.push_back(0x1b);
-            break;
-        case K_DELETE:
-            //
+            d = "\033";
             break;
         case K_HOME:
-            d = std::vector<uint8_t>({0x1b, '[', 'H'});
-            break;
-        case K_END:
-            // ?
+            d = "\033[H"; // Home in line.
             break;
         default:break;
         }
@@ -343,7 +615,7 @@ bool SerialConnVT102::ProcessKeyDown(dword key, dword flags)
         // https://vt100.net/docs/vt102-ug/chapter4.html#T4-1
         key = key & ~K_CTRL;
         if (key >= K_A && key <= K_Z) {
-            d.push_back(1 + key - K_A);
+            d.push_back((char)(1 + key - K_A));
         }
     }
     if (!d.empty()) {

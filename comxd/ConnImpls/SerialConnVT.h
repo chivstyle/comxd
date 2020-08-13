@@ -202,10 +202,16 @@ protected:
     /// \brief Render text on virtual screen
     /// \param seq complete VT characters
     virtual void RenderText(const std::vector<uint32_t>& s);
-    // push to lines buffer and check, fix if needed
+    // push to lines buffer and check
+    // NOTE: If you want push one line to lines buffer, please use this routine.
+    //       DO NOT use push_back directly.
     void PushToLinesBufferAndCheck(const VTLine& vline);
-    void ProcessOverflowLines();
-    std::vector<VTLine> GetBufferLines(size_t p, int& y);
+    // check the new line, and push it to the lines buffer if needed.
+    virtual void ProcessOverflowLines();
+    // Get virtual screen from position p. This routine make a virtual screen from
+    // LinesBuffer+Lines.
+    // nlines_from_buffer, store the count of lines from lines buffer
+    virtual std::vector<VTLine> GetMergedScreen(size_t p, int& nlines_from_buffer) const;
     // calcualte blank lines from end of lines
     int CalculateNumberOfBlankLinesFromEnd(const std::vector<VTLine>& lines) const;
     int CalculateNumberOfBlankCharsFromEnd(const VTLine& vline) const;
@@ -243,7 +249,7 @@ protected:
     //  1. Font
     //  2. Size of client region
     // after this function, the ScrollBar and display region were changed.
-    void DoLayout();
+    virtual void DoLayout();
     // font of console
     Upp::Font mFont;
     int mFontW, mFontH;
@@ -264,7 +270,8 @@ protected:
     Upp::HScrollBar mSbH;
     //
     int GetCharWidth(const VTChar& c) const;
-    Upp::Size GetConsoleSize() const;
+    // calculate the size of console
+    virtual Upp::Size GetConsoleSize() const;
     //
     virtual int IsControlSeq(const std::string& seq) = 0;
     virtual void ProcessControlSeq(const std::string& seq, int seq_type) = 0;
@@ -279,7 +286,8 @@ protected:
     virtual void SetDefaultStyle();
     // render text
     virtual void Render(Upp::Draw& draw);
-    virtual void Render(Upp::Draw& draw, const std::vector<VTLine>& vlines);
+    virtual void DrawVLines(Upp::Draw& draw, const std::vector<VTLine>& vlines);
+    virtual void DrawCursor(Upp::Draw& draw, int vx, int vy);
 private:
     // receiver
     volatile bool mRxShouldStop;
@@ -289,6 +297,8 @@ private:
     size_t mMaxLinesBufferSize;
     /// the x,y is absolute position, unit: char, virtual screen.
     inline bool IsCharInSelectionSpan(int x, int y) const;
+    //
+    void InstallUserActions();
 };
 
 #endif

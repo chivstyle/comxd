@@ -52,8 +52,6 @@ SerialConnVT::SerialConnVT(std::shared_ptr<serial::Serial> serial)
         Refresh();
     };
     mSbH.SetLine(mFontW); mSbH.Set(0); mSbV.SetTotal(0); AddFrame(mSbH);
-    // TEST
-    GetCharWidth(0x2B7B7);
     //
     SetTimeCallback(-500, [&]() {
         mBlinkSignal = !mBlinkSignal;
@@ -61,6 +59,8 @@ SerialConnVT::SerialConnVT(std::shared_ptr<serial::Serial> serial)
         }, kBlinkTimerId);
     //
     mRxThr = std::thread([=]() { RxProc(); });
+    //
+    InstallUserActions();
 }
 
 SerialConnVT::~SerialConnVT()
@@ -70,6 +70,13 @@ SerialConnVT::~SerialConnVT()
         mRxThr.join();
     }
     KillTimeCallback(kBlinkTimerId);
+}
+//
+void SerialConnVT::InstallUserActions()
+{
+    mUsrActions.emplace_back(comxd::clear_buffer(), t_("Clear Buffer"),
+        t_("Clear the line buffers"), [=]() { Clear(); }
+    );
 }
 //
 void SerialConnVT::SetDefaultStyle()
@@ -86,6 +93,8 @@ void SerialConnVT::Clear()
     mLinesBuffer.clear();
     mLines.clear();
     DoLayout();
+    mCursorX = 0;
+    mCursorY = 0;
     //
     Refresh();
 }
@@ -286,17 +295,32 @@ void SerialConnVT::MouseMove(Upp::Point p, Upp::dword)
         } else {
             mSelectionSpan.Y1 = y;
         }
-        if (p.y <= 0) {
-            mSbV.PrevLine();
+        if (p.y < 0) {
+            int b0 = mSbV.Get();
+            mSbV.Set(b0 + mFontH*p.y);
+            Rect rc = this->GetCaret();
+            rc.Offset(0, -mSbV.Get() + b0);
+            SetCaret(rc);
         } else if (p.y > GetSize().cy) {
-            mSbV.NextLine();
+            int b0 = mSbV.Get();
+            mSbV.Set(b0 + mFontH*(p.y-GetSize().cy));
+            Rect rc = this->GetCaret();
+            rc.Offset(0, mSbV.Get() - b0);
+            SetCaret(rc);
         }
-        if (p.x <= 0) {
-            mSbH.PrevLine();
+        if (p.x < 0) {
+            int b0 = mSbV.Get();
+            mSbH.Set(b0 + mFontH*p.y);
+            Rect rc = this->GetCaret();
+            rc.Offset(0, -mSbH.Get() + b0);
+            SetCaret(rc);
         } else if (p.x > GetSize().cx) {
-            mSbH.NextLine();
+            int b0 = mSbV.Get();
+            mSbH.Set(b0 + mFontH*(p.y-GetSize().cy));
+            Rect rc = this->GetCaret();
+            rc.Offset(0, mSbH.Get() - b0);
+            SetCaret(rc);
         }
-        //
         mSelectionSpan.x1 = p.x;
         mSelectionSpan.y1 = p.y;
         // fix it
@@ -325,7 +349,7 @@ void SerialConnVT::LeftDown(Point p, dword)
             lx = VirtualToLogic(mLines[ln], LogicToVirtual(mLines[ln], mSbH.Get() + p.x));
         }
     } else {
-        lx = VirtualToLogic(mLines[mSelectionSpan.Y0], LogicToVirtual(mLines[mSelectionSpan.Y0], p.x));
+        lx = VirtualToLogic(mLinesBuffer[mSelectionSpan.Y0], LogicToVirtual(mLinesBuffer[mSelectionSpan.Y0], p.x));
     }
     mSelectionSpan.X0 = mSelectionSpan.X1 = lx / mFontW;
     this->SetCaret(lx, p.y/mFontH*mFontH, 1, mFontH);
@@ -348,7 +372,7 @@ void SerialConnVT::LeftUp(Point p, dword)
 {
     (void)p;
     if (mPressed) {
-        KillCaret();
+        this->KillCaret();
         mPressed = false;
         Refresh();
     }
@@ -556,9 +580,9 @@ void SerialConnVT::Layout()
 	DoLayout();
 }
 
-std::vector<SerialConnVT::VTLine> SerialConnVT::GetBufferLines(size_t p, int& y)
+std::vector<SerialConnVT::VTLine> SerialConnVT::GetMergedScreen(size_t p, int& nlines_from_buffer) const
 {
-    Size csz = GetConsoleSize(); y = mCursorY;
+    Size csz = GetConsoleSize();
     std::vector<VTLine> out(csz.cy);
     // fetch lines from lines buffer
     size_t ln = 0;
@@ -568,16 +592,13 @@ std::vector<SerialConnVT::VTLine> SerialConnVT::GetBufferLines(size_t p, int& y)
             out[ln].push_back(mBlankChr);
         }
         ln++;
-        y++;
     }
+    nlines_from_buffer = ln;
+    // padding, lines from Lines.
     int cn = 0;
     for (size_t k = ln; (int)k < csz.cy; ++k) {
         out[ln++] = mLines[cn++];
     }
-    if (y >= (int)mLines.size()) {
-        y = -1;
-    }
-
     return out;
 }
 //
@@ -710,6 +731,15 @@ int SerialConnVT::GetLongestLineSize(const std::vector<VTLine>& vlines, bool in_
     return max_sz;
 }
 
+void SerialConnVT::DrawCursor(Upp::Draw& draw, int vx, int vy)
+{
+    int x = -mSbH.Get() + mFontW*vx;
+    int y = mFontH*vy;
+    if (y < GetSize().cy && y >= 0) {
+        draw.DrawRect(x, y, mFontW, mFontH, Color(0, 255, 0));
+    }
+}
+
 void SerialConnVT::Render(Upp::Draw& draw)
 {
     // draw background
@@ -722,24 +752,24 @@ void SerialConnVT::Render(Upp::Draw& draw)
         // the longest size
         int hsz = this->GetLongestLineSize(mLines);
         mSbH.SetTotal(hsz);
-        draw.DrawRect(-mSbH.Get() + mCursorX*mFontW, mCursorY*mFontH, mFontW, mFontH, Color(0, 255, 0));
+        DrawCursor(draw, mCursorX, mCursorY);
         mSbV.End(); // scroll to end
         // draw text
-        Render(draw, mLines);
+        DrawVLines(draw, mLines);
     } else { // draw buffered screen
         int y = -1;
         int p = mSbV / mFontH;
-        auto vlines = GetBufferLines(p, y);
-        if (y > 0) {
-            draw.DrawRect(-mSbH.Get() + mCursorX*mFontW, y*mFontH, mFontW, mFontH, Color(0, 255, 0));
-        }
+        auto vlines = GetMergedScreen(p, y);
+        y += mCursorY;
+        DrawCursor(draw, mCursorX, y);
+        //
         int hsz = this->GetLongestLineSize(vlines);
         mSbH.SetTotal(hsz);
-        Render(draw, vlines);
+        DrawVLines(draw, vlines);
     }
 }
 
-void SerialConnVT::Render(Upp::Draw& draw, const std::vector<VTLine>& vlines)
+void SerialConnVT::DrawVLines(Upp::Draw& draw, const std::vector<VTLine>& vlines)
 {
     Size csz = GetConsoleSize();
     Size usz = GetSize();
