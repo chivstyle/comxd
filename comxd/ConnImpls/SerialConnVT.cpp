@@ -113,14 +113,9 @@ void SerialConnVT::RxProc()
                 if (pending) {
                     pattern.push_back((char)buff[k]);
                     int ret = IsControlSeq(pattern);
-                    if (ret > SEQ_PENDING) { // bingo
+                    if (ret != SEQ_PENDING) { // bingo
                         // found it.
-                        Upp::PostCallback([=]() { ProcessControlSeq(pattern, ret); });
-                        pending = false;
-                        pattern = "";
-                    } else if (ret == SEQ_NONE) { // can not recognize it
-                        size_t ep; auto s = Utf8ToUtf32("\\x1b" + pattern, ep);
-                        Upp::PostCallback([=]() { RenderText(s); });
+                        Upp::PostCallback([=]() { ProcessControlSeq(pattern, ret); ProcessOverflowLines(); });
                         pending = false;
                         pattern = "";
                     }
@@ -205,25 +200,27 @@ void SerialConnVT::PushToLinesBufferAndCheck(const VTLine& vline)
 //
 void SerialConnVT::ProcessAsciiControlChar(char cc)
 {
-    switch (cc) {
-    case '\r':
+    // only support CR,LF in VT.
+    if (cc == '\r') {
         mCursorX = 0;
-        break;
-    case '\n':
+    } else if (cc == '\n') {
         mCursorY += 1;
-        break;
-    case '\t':
-        mCursorX += 4;
-        break;
-    case 0x08: // backspace
-        if (mCursorX > 0) {
-            mCursorX -= 1;
-        }
-        break;
-    case 0x07: { // bell
-    } break;
+    } else {
+        size_t ep;
+        char buf[32]; sprintf(buf, "\\x%02x", cc);
+        RenderText(Utf8ToUtf32(buf, ep));
     }
 }
+//
+void SerialConnVT::ProcessControlSeq(const std::string& seq, int seq_type)
+{
+    if (seq_type == SEQ_NONE) { // can't recognize the seq, display it
+        size_t ep;RenderText(Utf8ToUtf32(seq, ep));
+    } else {
+        // Never reach here, if your terminal was designed well.
+    }
+}
+//
 void SerialConnVT::ProcessOverflowLines()
 {
     Size csz = GetConsoleSize();
@@ -239,11 +236,13 @@ void SerialConnVT::ProcessOverflowLines()
 }
 void SerialConnVT::RenderText(const std::vector<uint32_t>& s)
 {
+    if (mCursorY >= (int)mLines.size()) return;
     Size csz = GetConsoleSize();
     for (size_t k = 0; k < s.size(); ++k) {
         VTChar chr = s[k];
         if (chr < 0x20 || chr == 0x7f) {
             ProcessAsciiControlChar(chr);
+            ProcessOverflowLines();
         } else {
             chr.SetAttrFuns(mCurrAttrFuncs);
             // Unfortunately, UPP does not support complete UNICODE, support UCS-16 instead. So
@@ -262,7 +261,6 @@ void SerialConnVT::RenderText(const std::vector<uint32_t>& s)
             }
             mCursorX++;
         }
-        ProcessOverflowLines();
     }
 }
 
@@ -297,26 +295,26 @@ void SerialConnVT::MouseMove(Upp::Point p, Upp::dword)
         }
         if (p.y < 0) {
             int b0 = mSbV.Get();
-            mSbV.Set(b0 + mFontH*p.y);
+            mSbV.PrevLine();
             Rect rc = this->GetCaret();
             rc.Offset(0, -mSbV.Get() + b0);
             SetCaret(rc);
         } else if (p.y > GetSize().cy) {
             int b0 = mSbV.Get();
-            mSbV.Set(b0 + mFontH*(p.y-GetSize().cy));
+            mSbV.NextLine();
             Rect rc = this->GetCaret();
             rc.Offset(0, mSbV.Get() - b0);
             SetCaret(rc);
         }
         if (p.x < 0) {
             int b0 = mSbV.Get();
-            mSbH.Set(b0 + mFontH*p.y);
+            mSbH.PrevLine();
             Rect rc = this->GetCaret();
             rc.Offset(0, -mSbH.Get() + b0);
             SetCaret(rc);
         } else if (p.x > GetSize().cx) {
             int b0 = mSbV.Get();
-            mSbH.Set(b0 + mFontH*(p.y-GetSize().cy));
+            mSbH.NextLine();
             Rect rc = this->GetCaret();
             rc.Offset(0, mSbH.Get() - b0);
             SetCaret(rc);
@@ -409,47 +407,33 @@ bool SerialConnVT::ProcessKeyDown(dword key, dword flags)
             break;
         default:break;
         }
-    } else if ((flags & K_CTRL) == K_CTRL) {
-        key = key & ~K_CTRL;
-        if (key >= K_A && key <= K_Z) {
-            d.push_back(1 + key - K_A);
-        }
-    }
-    if (!d.empty()) {
-        GetSerial()->write(d);
-        return true;
-    }
-    return false;
-}
-bool SerialConnVT::ProcessKeyUp(dword key, dword flags)
-{
-    return false;
-}
-bool SerialConnVT::ProcessKeyDown_Ascii(Upp::dword key, Upp::dword flags)
-{
-    std::vector<uint8_t> d;
-    if (flags == 0) {
-        d.push_back((uint8_t)(key & 0xff));
-    } else if ((flags & K_CTRL) == K_CTRL) {
+    } else if ((flags & (K_CTRL | K_SHIFT)) == (K_CTRL | K_SHIFT)) { // CTRL+SHIFT+
         switch (key) {
-        case '[':
-            d.push_back(0x1b); // ESC
+        case K_2:
+            d.push_back(0x00); // NUL
             break;
-        case '/':
-            d.push_back(0x1c); // FS
-            break;
-        case ']':
-            d.push_back(0x1d); // GS
-            break;
-        case '~':
+        case K_6:
             d.push_back(0x1e); // RS
             break;
-        case '?':
+        case K_MINUS:
             d.push_back(0x1f); // US
             break;
-        case ' ':
-            d.push_back('\0'); // NUL
-            break;
+        }
+    } else if ((flags & K_CTRL) == K_CTRL) {
+        if (key >= K_A && key <= K_Z) {
+            d.push_back(1 + key - K_A);
+        } else {
+            switch (key) {
+            case K_LBRACKET: // '[':
+                d.push_back(0x1b); // ESC
+                break;
+            case K_SLASH: // '/':
+                d.push_back(0x1c); // FS
+                break;
+            case K_RBRACKET: // ']':
+                d.push_back(0x1d); // GS
+                break;
+            }
         }
     }
     if (!d.empty()) {
@@ -459,28 +443,39 @@ bool SerialConnVT::ProcessKeyDown_Ascii(Upp::dword key, Upp::dword flags)
     return false;
 }
 
+bool SerialConnVT::ProcessKeyUp(dword key, dword flags)
+{
+    return false;
+}
+
+bool SerialConnVT::ProcessChar(dword cc)
+{
+    GetSerial()->write(Utf32ToUtf8(cc));
+    //
+    return true;
+}
+
 bool SerialConnVT::Key(dword key, int)
 {
     bool processed = false;
-	// keydown
-	if (key & K_DELTA) {
-	    dword flags = K_CTRL | K_ALT | K_SHIFT;
-	    dword d_key = key & ~(flags | K_KEYUP); // key with delta
-	    flags = key & flags;
+    // split key and flags.
+	dword flags = K_CTRL | K_ALT | K_SHIFT;
+    dword d_key = key & ~(flags | K_KEYUP); // key with delta
+    flags = key & flags;
+    //
+	if (d_key & K_DELTA) { // can't capture RETURN
 	    if (key & K_KEYUP) {
 	        processed = ProcessKeyUp(d_key, flags);
 	    } else {
 	        processed = ProcessKeyDown(d_key, flags);
 	    }
 	} else {
-	    dword flags = K_CTRL | K_ALT | K_SHIFT | K_KEYUP;
-	    flags = key & flags;
-	    dword d_key = key & ~flags;
-	    if (d_key > 0 && d_key < 0x7f) {
-	        processed = ProcessKeyDown_Ascii(key, flags);
-	    } else {
-	        // Unicode
-	        GetSerial()->write(Utf32ToUtf8(d_key));
+	    if (key < 0xffff) {
+	        processed = ProcessChar(d_key);
+	        ProcessKeyDown(d_key, flags);
+	    } else if (key & K_KEYUP) {
+	        // RETURN will reach here
+	        ProcessKeyUp(d_key, flags);
 	    }
 	}
 	if (processed) {
@@ -769,6 +764,17 @@ void SerialConnVT::Render(Upp::Draw& draw)
     }
 }
 
+void SerialConnVT::DrawText(Upp::Draw& draw, int x, int y, const std::string& text,
+    const Upp::Font& font, const Upp::Color& cr)
+{
+    draw.DrawText(x, y, text, font, cr);
+}
+
+std::string SerialConnVT::TranscodeToUTF8(const VTChar& cc) const
+{
+    return Utf32ToUtf8(cc);
+}
+
 void SerialConnVT::DrawVLines(Upp::Draw& draw, const std::vector<VTLine>& vlines)
 {
     Size csz = GetConsoleSize();
@@ -788,7 +794,7 @@ void SerialConnVT::DrawVLines(Upp::Draw& draw, const std::vector<VTLine>& vlines
             }
             int vchar_cx = GetCharWidth((int)vline[i]); lx += vchar_cx;
             // To UTF8
-            String buff = Utf32ToUtf8(vline[i]);
+            std::string buff = TranscodeToUTF8(vline[i]);
             if (mBlink) {
                 if (mBlinkSignal) {
                     draw.DrawRect(x, y, vchar_cx, mFontH, mPaperColor);
@@ -798,7 +804,7 @@ void SerialConnVT::DrawVLines(Upp::Draw& draw, const std::vector<VTLine>& vlines
                     }
                     if (mFgColor != mBgColor) {
                         if (buff[0] != ' ' && mVisible) {
-                            draw.DrawText(x, y, buff, mFont, mFgColor);
+                            DrawText(draw, x, y, buff, mFont, mFgColor);
                         }
                     }
                 }
@@ -808,7 +814,7 @@ void SerialConnVT::DrawVLines(Upp::Draw& draw, const std::vector<VTLine>& vlines
                 }
                 if (mFgColor != mBgColor) {
                     if (buff[0] != ' ' && mVisible) {
-                        draw.DrawText(x, y, buff, mFont, mFgColor);
+                        DrawText(draw, x, y, buff, mFont, mFgColor);
                     }
                 }
             }

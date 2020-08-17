@@ -176,6 +176,7 @@ enum VT102SeqType {
     VT102_EditingFunctions,
     VT102_ScrollingRegion,
     VT102_CharAttributes,
+    VT102_CanceledSeq,
     VT102_SeqType_Endup
 };
 static_assert(VT102_SeqType_Endup < VT102_SEQ_END, "VT102_SeqType_Endup should be less than VT102_SEQ_END");
@@ -322,6 +323,12 @@ static inline int IsVT102TrivialSeq(const std::string& seq)
     }
     return SEQ_NONE;
 }
+static inline int IsVT102CanceledSeq(const std::string& seq)
+{
+    char suffix = seq[seq.length()-1];
+    if (suffix == 0x18 || suffix == 0x1a) return VT102_CanceledSeq;
+    else return SEQ_NONE;
+}
 // match the control seq
 // return 0 - It's not a VT102 control seq absolutely
 //        1 - maybe, your should give more characters
@@ -329,6 +336,7 @@ static inline int IsVT102TrivialSeq(const std::string& seq)
 static inline int IsVT102ControlSeq(const std::string& seq)
 {
     std::function<int(const std::string&)> funcs[] = {
+        IsVT102CanceledSeq,
         IsVT102_1Pn,
         IsVT102_2Pn,
         IsVT102_vPn,
@@ -342,5 +350,70 @@ static inline int IsVT102ControlSeq(const std::string& seq)
     }
     return ret;
 }
+
+//----------------------------------------------------------------------------------------------
+// Character set
+//
+enum VT102CharSet {
+    VT102_UK,
+    VT102_US,
+    VT102_SpecialChars_LineDrawing,
+    VT102_ROM,
+    VT102_ROM_SpecialChars
+};
+static const int kSpecialChars[] = { // From 5F to 7E
+    0x2d, // -
+    0x2666, // ♦
+    0x2592, // ▒
+    0x2192, // →
+    0x192, // ƒ
+    0x27c, // ɼ
+    0x19e, // ƞ
+    0xb0, // °
+    0xb1, // ±
+    0x19e,
+    0x2193, // ↓
+    0x2518, // ┘
+    0x2510, // ┐
+    0x250c, // ┌
+    0x2514, // └
+    0x253c, // ┼
+    0x23ba, // ⎺
+    0x23bb, // ⎻
+    0x2500, // ─
+    0x23bc, // ⎼
+    0x23bd, // ⎽
+    0x251c, // ├
+    0x2524, // ┤
+    0x2534, // ┴
+    0x252c, // ┬
+    0x2502, // │
+    0x2264, // ≤
+    0x2265, // ≥
+    0x3c0, // π
+    0x2260, // ≠
+    0xa3, // £
+    0xb7 // ·
+};
+enum VT102ShiftStat {
+    VT102_SI,       // Shift in
+    VT102_SO,       // Shift out
+    VT102_SS2,      // Single shift 2
+    VT102_SS3       // Single shift 3
+};
+// ASCII to specified char
+static inline int VT102_Transcode(int cc, int charset, int shift)
+{
+    switch (charset) {
+    case VT102_US: break;
+    case VT102_UK: if (cc == '#') return 0xA3; else break;
+    case VT102_SpecialChars_LineDrawing:
+        if (cc >= 0x5f && cc <= 0x7e) return kSpecialChars[cc-0x5f]; else break;
+    case VT102_ROM:
+    case VT102_ROM_SpecialChars: break;
+    }
+    return cc;
+}
+
 
 #endif

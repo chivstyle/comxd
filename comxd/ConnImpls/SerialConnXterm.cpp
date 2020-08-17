@@ -59,9 +59,9 @@ void SerialConnXterm::ProcessControlSeq(const std::string& seq, int seq_type)
 
 int SerialConnXterm::IsControlSeq(const std::string& seq)
 {
-    int ret = IsXtermControlSeq(seq);
-    if (ret == 0) { // It's not a xterm control seq absolutely
-        return Superclass::IsControlSeq(seq);
+    int ret = Superclass::IsControlSeq(seq);
+    if (ret == 0) {
+        return IsXtermControlSeq(seq);
     }
     return ret;
 }

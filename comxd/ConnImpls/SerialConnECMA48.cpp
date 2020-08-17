@@ -266,14 +266,10 @@ void SerialConnECMA48::ProcessEcma48Trivial(const std::string& seq)
 
 int SerialConnECMA48::IsControlSeq(const std::string& seq)
 {
-#if 0 // So far, we just need the ecma48 char attributes, SGR.
-    int ret = IsECMA48ControlSeq(seq);
+    int ret = Superclass::IsControlSeq(seq);
     if (ret == 0) {
         ret = Superclass::IsControlSeq(seq);
     }
-#else
-    int ret = Superclass::IsControlSeq(seq);
-#endif
     return ret;
 }
 

@@ -49,13 +49,16 @@ protected:
     //-------------------------------------------------------------------------------------
     // you can override these two routines to modify all functions.
     virtual void ProcessControlSeq(const std::string& seq, int seq_type);
+    // C0 set.
     virtual void ProcessAsciiControlChar(char cc);
     //-------------------------------------------------------------------------------------
-    // with K_DELTA
+    // key, must be
+    // 1. key with K_DELTA
+    // 2. RETURN
     virtual bool ProcessKeyDown(Upp::dword key, Upp::dword flags);
     virtual bool ProcessKeyUp(Upp::dword key, Upp::dword flags);
-    // pure ascii, 32 ~ 126
-    virtual bool ProcessKeyDown_Ascii(Upp::dword key, Upp::dword flags);
+    //
+    virtual bool ProcessChar(Upp::dword cc);
     //-------------------------------------------------------------------------------------
     // allow the subclass to extend the functions of VT102.
     virtual void ProcessVT102Trivial(const std::string& seq);
@@ -75,10 +78,12 @@ protected:
     void ExtendVirtualScreen(int cx, int cy);
     void ShrinkVirtualScreen(int cx, int cy);
     //-------------------------------------------------------------------------------------
+    std::string TranscodeToUTF8(const VTChar& cc) const;
+    //
 private:
     std::map<std::string, std::function<void()> > mVT102TrivialHandlers;
     void InstallVT102Functions();
-    //
+    // ESC#7,#8 need this data.
     CursorData mCursorData;
     //-------------------------------------------------------------------------------------
     // We do not use all of them. for example, the VT has unlimited column size, so
@@ -90,55 +95,55 @@ private:
         enum KAM {
             Locked, Unlocked
         };
-        int KeyboardAction: 1;
+        unsigned int KeyboardAction: 1;
         enum IRM {
             Insert, Replace
         };
-        int InsertionReplacement: 1;
-        int SendReceive: 1;
+        unsigned int InsertionReplacement: 1;
+        unsigned int SendReceive: 1;
         enum LMN {
             NewLine, LineFeed
         };
-        int LineFeedNewLine: 1;
+        unsigned int LineFeedNewLine: 1;
         enum DECCKM {
             Application, Cursor
         };
-        int CursorKey: 1;
+        unsigned int CursorKey: 1;
         enum DECANM {
             ANSI, VT52
         };
-        int AnsiVT52: 1;
+        unsigned int AnsiVT52: 1;
         enum DECCOLM {
             C132, C80
         };
-        int Column: 1;
+        unsigned int Column: 1;
         enum DECSCLM {
             Smooth, Jump
         };
-        int Scrolling: 1;
+        unsigned int Scrolling: 1;
         enum DECSCNM {
             Reverse, Normal
         };
-        int Screen: 1;
+        unsigned int Screen: 1;
         enum DECOM {
             Relative, Absolute
         };
-        int Origin: 1;
-        int AutoWrap: 1;
-        int AutoRepeat: 1;
-        int PrintFormFeed: 1;
+        unsigned int Origin: 1;
+        unsigned int AutoWrap: 1;
+        unsigned int AutoRepeat: 1;
+        unsigned int PrintFormFeed: 1;
         enum DECPES {
             // FullScreen is LinesBuffer+Lines
             // ScrollingRegion is Lines
             FullScreen, ScrollingRegion
         };
-        int PrintExtent: 1;
+        unsigned int PrintExtent: 1;
         //
         VT102Modes()
             : KeyboardAction(Unlocked)
             , InsertionReplacement(Replace)
-            , SendReceive(On)
-            , LineFeedNewLine(NewLine)
+            , SendReceive(Off)
+            , LineFeedNewLine(LineFeed)
             , CursorKey(Cursor)
             , AnsiVT52(ANSI)
             , Column(C132)
@@ -146,7 +151,7 @@ private:
             , Screen(Normal)
             , Origin(Absolute)
             , AutoWrap(Off)
-            , AutoRepeat(Off)
+            , AutoRepeat(On)
             , PrintFormFeed(Off)
             , PrintExtent(FullScreen)
         {
@@ -162,6 +167,12 @@ private:
         }
     };
     ScrollingRegion mScrollingRegion;
+    // To support feature: disable 'auto repeat'.
+    std::map<Upp::dword, bool> mKeyStats;
+    bool ShouldIgnoreKey(Upp::dword key);
+    // charset support
+    int mCharset;
+    int mSS; // Shift in/out
 };
 
 #endif

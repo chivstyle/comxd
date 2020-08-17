@@ -272,22 +272,26 @@ protected:
     int GetCharWidth(const VTChar& c) const;
     // calculate the size of console
     virtual Upp::Size GetConsoleSize() const;
+    // VTChar contains the codepoint
+    virtual std::string TranscodeToUTF8(const VTChar& cc) const;
     //
     virtual int IsControlSeq(const std::string& seq) = 0;
-    virtual void ProcessControlSeq(const std::string& seq, int seq_type) = 0;
+    virtual void ProcessControlSeq(const std::string& seq, int seq_type);
     // 00~0x1f
     virtual void ProcessAsciiControlChar(char cc);
     // with K_DELTA
     virtual bool ProcessKeyDown(Upp::dword key, Upp::dword flags);
     virtual bool ProcessKeyUp(Upp::dword key, Upp::dword flags);
-    // pure ascii, 32 ~ 126
-    virtual bool ProcessKeyDown_Ascii(Upp::dword key, Upp::dword flags);
+    // character
+    virtual bool ProcessChar(Upp::dword cc);
     //
     virtual void SetDefaultStyle();
     // render text
     virtual void Render(Upp::Draw& draw);
     virtual void DrawVLines(Upp::Draw& draw, const std::vector<VTLine>& vlines);
     virtual void DrawCursor(Upp::Draw& draw, int vx, int vy);
+    virtual void DrawText(Upp::Draw& draw, int x, int y, const std::string& text,
+                          const Upp::Font& font, const Upp::Color& cr);
 private:
     // receiver
     volatile bool mRxShouldStop;
