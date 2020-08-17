@@ -75,12 +75,14 @@ protected:
     virtual std::vector<VTLine> GetMergedScreen(size_t p, int& nlines_from_buffer) const;
     virtual void DrawCursor(Upp::Draw& draw, int vx, int vy);
     virtual void DoLayout();
-    void ExtendVirtualScreen(int cx, int cy);
-    void ShrinkVirtualScreen(int cx, int cy);
+    //-------------------------------------------------------------------------------------
     //-------------------------------------------------------------------------------------
     std::string TranscodeToUTF8(const VTChar& cc) const;
     //
 private:
+    void ExtendVirtualScreen(int cx, int cy);
+    void ShrinkVirtualScreen(int cx, int cy);
+    //
     std::map<std::string, std::function<void()> > mVT102TrivialHandlers;
     void InstallVT102Functions();
     // ESC#7,#8 need this data.
@@ -173,6 +175,15 @@ private:
     // charset support
     int mCharset;
     int mSS; // Shift in/out
+    // line attributes
+    // pair[line_number, attr]
+    enum VT102LineAttribute {
+        VT102_DoubleHeightTopHalf,
+        VT102_DoubleHeightBottomHalf,
+        VT102_SingleWidthSingleHeight,
+        VT102_DoubleWidthSingleHeight
+    };
+    std::map<int, int> mLineAttrs;
 };
 
 #endif

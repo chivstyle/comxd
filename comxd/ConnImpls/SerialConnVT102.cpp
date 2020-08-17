@@ -405,7 +405,26 @@ void SerialConnVT102::InstallVT102Functions()
     mVT102TrivialHandlers["7"] = [=]() { SaveCursor(mCursorData); };
     mVT102TrivialHandlers["8"] = [=]() { LoadCursor(mCursorData); };
     // 1.10 Tab stops
+    mVT102TrivialHandlers["H"] = [=]() { // HTS
+    };
+    mVT102TrivialHandlers["[g"] = [=]() { // TBC
+    };
+    mVT102TrivialHandlers["[0g"] = mVT102TrivialHandlers["[g"];
+    mVT102TrivialHandlers["[3g"] = [=]() { // clear all tabs
+    };
     // 1.11 Line attributes
+    mVT102TrivialHandlers["#3"] = [=]() {
+        mLineAttrs[(int)mLinesBuffer.size() + mCursorY] = VT102_DoubleHeightTopHalf;
+    };
+    mVT102TrivialHandlers["#4"] = [=]() {
+        mLineAttrs[(int)mLinesBuffer.size() + mCursorY] = VT102_DoubleHeightBottomHalf;
+    };
+    mVT102TrivialHandlers["#5"] = [=]() {
+        mLineAttrs[(int)mLinesBuffer.size() + mCursorY] = VT102_SingleWidthSingleHeight;
+    };
+    mVT102TrivialHandlers["#6"] = [=]() {
+        mLineAttrs[(int)mLinesBuffer.size() + mCursorY] = VT102_DoubleWidthSingleHeight;
+    };
     // 1.12 Erasing
     mVT102TrivialHandlers["[K"] = [=]() { // erase in line, cursor to end of line
         if (mCursorY < (int)mLines.size()) {
@@ -671,13 +690,8 @@ void SerialConnVT102::ProcessAsciiControlChar(char cc)
             mCursorX -= 1;
         }
         break;
-    case 0x09: // HT
-        mCursorX += 4; // Tab size is 4, if you want to change it, please store it
-                       // into a variable.
-        if (mCursorY < (int)mLines.size() && mCursorX >= (int)mLines[mCursorY].size()) {
-            mCursorX = (int)mLines[mCursorY].size()-1;
-        }
-        break;
+    case 0x09: if (1) { // HT, TODO: HTS
+    } break;
     case 0x0a: // LF, Also causes printing if auto print operation selected.
                // We do not support printer, just process the linefeed/newline.
     case 0x0b: // VT, vertical tab

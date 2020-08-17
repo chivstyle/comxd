@@ -177,8 +177,8 @@ public:
     using Superclass = SerialConn;
     SerialConnVT(std::shared_ptr<serial::Serial> serial);
     virtual ~SerialConnVT();
-    // clear screen and buffer
-    void Clear();
+    // clear screen and buffer, restore default, .etc, you can override it
+    virtual void Clear();
     //
 protected:
     // Font
@@ -288,6 +288,9 @@ protected:
     virtual void SetDefaultStyle();
     // render text
     virtual void Render(Upp::Draw& draw);
+    // vline - vline to draw
+    // linep - absolute positon of vline. [linesbuffer.size() + y]
+    virtual void DrawVLine(Upp::Draw& draw, int vx, int vy, const VTLine& vline);
     virtual void DrawVLines(Upp::Draw& draw, const std::vector<VTLine>& vlines);
     virtual void DrawCursor(Upp::Draw& draw, int vx, int vy);
     virtual void DrawText(Upp::Draw& draw, int x, int y, const std::string& text,

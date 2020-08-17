@@ -26,8 +26,6 @@ SerialConnVT::SerialConnVT(std::shared_ptr<serial::Serial> serial)
     , mPressed(false)
     , mMaxLinesBufferSize(5000)
 {
-    // support Unicode
-    this->Unicode();
     // double buffer
     BackPaint();
     // default font
@@ -347,10 +345,10 @@ void SerialConnVT::LeftDown(Point p, dword)
             lx = VirtualToLogic(mLines[ln], LogicToVirtual(mLines[ln], mSbH.Get() + p.x));
         }
     } else {
-        lx = VirtualToLogic(mLinesBuffer[mSelectionSpan.Y0], LogicToVirtual(mLinesBuffer[mSelectionSpan.Y0], p.x));
+        lx = VirtualToLogic(mLinesBuffer[mSelectionSpan.Y0], LogicToVirtual(mLinesBuffer[mSelectionSpan.Y0], mSbH.Get() + p.x));
     }
     mSelectionSpan.X0 = mSelectionSpan.X1 = lx / mFontW;
-    this->SetCaret(lx, p.y/mFontH*mFontH, 1, mFontH);
+    this->SetCaret(lx - mSbH.Get(), p.y/mFontH*mFontH, 1, mFontH);
     //
     int maxy = std::max(mSelectionSpan.Y0, mSelectionSpan.Y1);
     if (maxy >= nlines) {
@@ -463,7 +461,7 @@ bool SerialConnVT::Key(dword key, int)
     dword d_key = key & ~(flags | K_KEYUP); // key with delta
     flags = key & flags;
     //
-	if (d_key & K_DELTA) { // can't capture RETURN
+	if (d_key & K_DELTA) { // can't capture RETURN on Windows/Linux
 	    if (key & K_KEYUP) {
 	        processed = ProcessKeyUp(d_key, flags);
 	    } else {
@@ -472,9 +470,12 @@ bool SerialConnVT::Key(dword key, int)
 	} else {
 	    if (key < 0xffff) {
 	        processed = ProcessChar(d_key);
-	        ProcessKeyDown(d_key, flags);
+	        // Windows/Linux
+	        if (d_key == 0x0d) {
+	            ProcessKeyDown(d_key, flags);
+	        }
 	    } else if (key & K_KEYUP) {
-	        // RETURN will reach here
+	        // RETURN will reach here on Windows/Linux
 	        ProcessKeyUp(d_key, flags);
 	    }
 	}
@@ -775,39 +776,24 @@ std::string SerialConnVT::TranscodeToUTF8(const VTChar& cc) const
     return Utf32ToUtf8(cc);
 }
 
-void SerialConnVT::DrawVLines(Upp::Draw& draw, const std::vector<VTLine>& vlines)
+void SerialConnVT::DrawVLine(Draw& draw, int vx, int vy, const VTLine& vline)
 {
-    Size csz = GetConsoleSize();
     Size usz = GetSize();
-    int x = 0, y = 0, nlines = (int)vlines.size();
-    // render all chars.
-    for (size_t k = 0; k < nlines; ++k) {
-        const VTLine& vline = vlines[k];
-        int bx = mSbH.Get(); int vx = LogicToVirtual(vline, bx);
-        int lx = VirtualToLogic(vline, vx); x = lx - bx;
-        for (size_t i = vx; i < vline.size() && x < usz.cx; ++i) {
-            vline[i].ApplyAttrs();
-            // IsCharInSelectionSpan need absolute position of vchar
-            bool is_selected = IsCharInSelectionSpan((mSbH.Get() + lx)/mFontW, mSbV.Get()/mFontH + (int)k);
-            if (is_selected) {
-                std::swap(mBgColor, mFgColor);
-            }
-            int vchar_cx = GetCharWidth((int)vline[i]); lx += vchar_cx;
-            // To UTF8
-            std::string buff = TranscodeToUTF8(vline[i]);
-            if (mBlink) {
-                if (mBlinkSignal) {
-                    draw.DrawRect(x, y, vchar_cx, mFontH, mPaperColor);
-                } else {
-                    if (mBgColor != mDefaultBgColor) {
-                        draw.DrawRect(x, y, vchar_cx, mFontH, mBgColor);
-                    }
-                    if (mFgColor != mBgColor) {
-                        if (buff[0] != ' ' && mVisible) {
-                            DrawText(draw, x, y, buff, mFont, mFgColor);
-                        }
-                    }
-                }
+    int lx = VirtualToLogic(vline, vx);
+    int x = lx - mSbH.Get(), y = vy * mFontH;
+    for (size_t i = vx; i < vline.size() && x < usz.cx; ++i) {
+        vline[i].ApplyAttrs();
+        // IsCharInSelectionSpan need absolute position of vchar
+        bool is_selected = IsCharInSelectionSpan(lx/mFontW, mSbV.Get()/mFontH + vy);
+        if (is_selected) {
+            std::swap(mBgColor, mFgColor);
+        }
+        int vchar_cx = GetCharWidth((int)vline[i]); lx += vchar_cx;
+        // To UTF8
+        std::string buff = TranscodeToUTF8(vline[i]);
+        if (mBlink) {
+            if (mBlinkSignal) {
+                draw.DrawRect(x, y, vchar_cx, mFontH, mPaperColor);
             } else {
                 if (mBgColor != mDefaultBgColor) {
                     draw.DrawRect(x, y, vchar_cx, mFontH, mBgColor);
@@ -818,20 +804,39 @@ void SerialConnVT::DrawVLines(Upp::Draw& draw, const std::vector<VTLine>& vlines
                     }
                 }
             }
-            x += vchar_cx;
-            if (is_selected) {
-                if (usz.cx - x < mFontW) { // padding
-                    draw.DrawRect(x, y, usz.cx-x, mFontH, mBgColor);
+        } else {
+            if (mBgColor != mDefaultBgColor) {
+                draw.DrawRect(x, y, vchar_cx, mFontH, mBgColor);
+            }
+            if (mFgColor != mBgColor) {
+                if (buff[0] != ' ' && mVisible) {
+                    DrawText(draw, x, y, buff, mFont, mFgColor);
                 }
-                std::swap(mBgColor, mFgColor);
             }
         }
+        x += vchar_cx;
+        if (is_selected) {
+            if (usz.cx - x < mFontW) { // padding
+                draw.DrawRect(x, y, usz.cx-x, mFontH, mBgColor);
+            }
+            std::swap(mBgColor, mFgColor);
+        }
+    }
+}
+
+void SerialConnVT::DrawVLines(Upp::Draw& draw, const std::vector<VTLine>& vlines)
+{
+    Size csz = GetConsoleSize();
+    int x = 0, y = 0, nlines = (int)vlines.size();
+    // render all chars.
+    for (size_t k = 0; k < nlines; ++k) {
+        const VTLine& vline = vlines[k];
+        int vx = LogicToVirtual(vline, mSbH.Get());
+        DrawVLine(draw, vx, (int)k, vline);
         // apply attrs for those lines longer than screen width
         for (size_t i = csz.cx; i < vline.size(); ++i) {
             vline[i].ApplyAttrs();
         }
-        // move to next line
-        y += mFontH;
     }
 }
 
