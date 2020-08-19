@@ -9,7 +9,7 @@
 class SerialConnECMA48 : public SerialConnVT102 {
 public:
     using Superclass = SerialConnVT102;
-    SerialConnECMA48(std::shared_ptr<serial::Serial> serial);
+    SerialConnECMA48(std::shared_ptr<SerialIo> serial);
     virtual ~SerialConnECMA48();
 protected:
     virtual int IsControlSeq(const std::string& seq);

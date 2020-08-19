@@ -9,7 +9,7 @@
 // register
 using namespace Upp;
 //
-SerialConnVT::SerialConnVT(std::shared_ptr<serial::Serial> serial)
+SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> serial)
     : SerialConn(serial)
     , mCursorX(0)
     , mCursorY(0)
@@ -104,9 +104,9 @@ void SerialConnVT::RxProc()
                           // VT seq.
     std::string pattern, raw;
     while (!mRxShouldStop) {
-        size_t sz = mSerial->available();
+        size_t sz = mSerial->Available();
         if (sz) {
-            std::string buff = GetSerial()->read(sz);
+            std::string buff = GetSerial()->Read(sz);
             for (size_t k = 0; k < sz; ++k) {
                 if (pending) {
                     pattern.push_back((char)buff[k]);
@@ -386,7 +386,7 @@ void SerialConnVT::RightUp(Point, dword)
 			});
 			String text2 = Upp::ReadClipboardUnicodeText().ToString();
 			bar.Add(text2.GetCount() > 0, t_("Paste"), [=] {
-			    GetSerial()->write(text2.ToStd());
+			    GetSerial()->Write(text2.ToStd());
 			});
 		}
 	);
@@ -435,7 +435,7 @@ bool SerialConnVT::ProcessKeyDown(dword key, dword flags)
         }
     }
     if (!d.empty()) {
-        GetSerial()->write(d);
+        GetSerial()->Write(d);
         return true;
     }
     return false;
@@ -448,7 +448,7 @@ bool SerialConnVT::ProcessKeyUp(dword key, dword flags)
 
 bool SerialConnVT::ProcessChar(dword cc)
 {
-    GetSerial()->write(Utf32ToUtf8(cc));
+    GetSerial()->Write(Utf32ToUtf8(cc));
     //
     return true;
 }

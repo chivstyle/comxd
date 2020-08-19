@@ -1,6 +1,7 @@
 #ifndef _comxd_Action_h_
 #define _comxd_Action_h_
 
+#include <CtrlLib/CtrlLib.h>
 #include <functional>
 
 class UsrAction {

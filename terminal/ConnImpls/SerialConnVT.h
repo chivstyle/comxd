@@ -175,7 +175,7 @@ private:
 class SerialConnVT : public SerialConn {
 public:
     using Superclass = SerialConn;
-    SerialConnVT(std::shared_ptr<serial::Serial> serial);
+    SerialConnVT(std::shared_ptr<SerialIo> serial);
     virtual ~SerialConnVT();
     // clear screen and buffer, restore default, .etc, you can override it
     virtual void Clear();
@@ -288,13 +288,23 @@ protected:
     virtual void SetDefaultStyle();
     // render text
     virtual void Render(Upp::Draw& draw);
+    // vx    - the position of vchar in vline, we render vchars from this position
+    // vy    - the position of vline in virtual screen
+    //
+    //       |````````````````````````````|
+    //       |       lines buffer         |        lines buffer , var: mLinesBuffer
+    //       |                            |
+    //       |                            |
+    //       `````````````````````````````
+    //       |       virtual screen       |        virtual screen, var: mLines
+    //       |                            |
+    //       `````````````````````````````
     // vline - vline to draw
-    // linep - absolute positon of vline. [linesbuffer.size() + y]
     virtual void DrawVLine(Upp::Draw& draw, int vx, int vy, const VTLine& vline);
     virtual void DrawVLines(Upp::Draw& draw, const std::vector<VTLine>& vlines);
     virtual void DrawCursor(Upp::Draw& draw, int vx, int vy);
     virtual void DrawText(Upp::Draw& draw, int x, int y, const std::string& text,
-                          const Upp::Font& font, const Upp::Color& cr);
+        const Upp::Font& font, const Upp::Color& cr);
 private:
     // receiver
     volatile bool mRxShouldStop;

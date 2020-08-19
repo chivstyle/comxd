@@ -5,12 +5,13 @@
 #include "Conn.h"
 // c++11 thread
 #include <thread>
+#include <vector>
 
 class SerialConnRaw : public WithConnRaw<SerialConn> {
 public:
     typedef SerialConnRaw CLASSNAME;
     // SerialConnRaw will manage the life of serial.
-    SerialConnRaw(std::shared_ptr<serial::Serial> serial);
+    SerialConnRaw(std::shared_ptr<SerialIo> serial);
     virtual ~SerialConnRaw();
     //
 protected:

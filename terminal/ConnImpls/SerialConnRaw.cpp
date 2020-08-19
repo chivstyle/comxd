@@ -16,7 +16,7 @@ enum LineBreak_ {
 };
 }
 //
-SerialConnRaw::SerialConnRaw(std::shared_ptr<serial::Serial> serial)
+SerialConnRaw::SerialConnRaw(std::shared_ptr<SerialIo> serial)
     : mRxShouldStop(false)
 {
     this->mSerial = serial;
@@ -159,9 +159,9 @@ void SerialConnRaw::OnSend()
     std::string tx = mTx.GetData().ToString().ToStd(); // UTF-8
     if (mTxHex.Get()) {
         // write as hex.
-        mSerial->write(ToHex_(tx));
+        mSerial->Write(ToHex_(tx));
     } else {
-        mSerial->write(ReplaceLineBreak_(tx, mLineBreaks.GetKey(mLineBreaks.GetIndex()).To<int>()));
+        mSerial->Write(ReplaceLineBreak_(tx, mLineBreaks.GetKey(mLineBreaks.GetIndex()).To<int>()));
     }
 }
 
@@ -199,11 +199,10 @@ void SerialConnRaw::UpdateAsHex()
 void SerialConnRaw::RxProc()
 {
     while (!mRxShouldStop) {
-        size_t sz = mSerial->available();
+        size_t sz = mSerial->Available();
         if (sz) {
             size_t max_buffer_sz = mRxBufferSz;
-            std::vector<unsigned char> buf;
-            mSerial->read(buf, sz);
+            std::vector<unsigned char> buf = mSerial->ReadRaw(sz);
             mRxBufferLock.lock();
             {
                 mRxBuffer.insert(mRxBuffer.end(), buf.begin(), buf.end());

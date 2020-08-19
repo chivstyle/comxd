@@ -10,7 +10,7 @@ REGISTER_CONN_INSTANCE("VT102", SerialConnVT102);
 //
 using namespace Upp;
 
-SerialConnVT102::SerialConnVT102(std::shared_ptr<serial::Serial> serial)
+SerialConnVT102::SerialConnVT102(std::shared_ptr<SerialIo> serial)
     : Superclass(serial)
     , mSS(VT102_SI)
     , mCharset(VT102_US)
@@ -19,12 +19,6 @@ SerialConnVT102::SerialConnVT102(std::shared_ptr<serial::Serial> serial)
     SaveCursor(mCursorData);
     // Install VT102 functions
     InstallVT102Functions();
-    // enable XON/XOFF
-    // VT102 supports XON/XOFF, check the flowcontrol of the serial
-    if (GetSerial()->getFlowcontrol() != serial::flowcontrol_none) {
-        // enable software flowcontrol.
-        GetSerial()->setFlowcontrol(serial::flowcontrol_software);
-    }
 }
 
 SerialConnVT102::~SerialConnVT102()
@@ -412,19 +406,7 @@ void SerialConnVT102::InstallVT102Functions()
     mVT102TrivialHandlers["[0g"] = mVT102TrivialHandlers["[g"];
     mVT102TrivialHandlers["[3g"] = [=]() { // clear all tabs
     };
-    // 1.11 Line attributes
-    mVT102TrivialHandlers["#3"] = [=]() {
-        mLineAttrs[(int)mLinesBuffer.size() + mCursorY] = VT102_DoubleHeightTopHalf;
-    };
-    mVT102TrivialHandlers["#4"] = [=]() {
-        mLineAttrs[(int)mLinesBuffer.size() + mCursorY] = VT102_DoubleHeightBottomHalf;
-    };
-    mVT102TrivialHandlers["#5"] = [=]() {
-        mLineAttrs[(int)mLinesBuffer.size() + mCursorY] = VT102_SingleWidthSingleHeight;
-    };
-    mVT102TrivialHandlers["#6"] = [=]() {
-        mLineAttrs[(int)mLinesBuffer.size() + mCursorY] = VT102_DoubleWidthSingleHeight;
-    };
+    // 1.11 Line attributes, we do not implement line attributes
     // 1.12 Erasing
     mVT102TrivialHandlers["[K"] = [=]() { // erase in line, cursor to end of line
         if (mCursorY < (int)mLines.size()) {
@@ -451,7 +433,7 @@ void SerialConnVT102::InstallVT102Functions()
     };
     mVT102TrivialHandlers["[J"] = [=]() { // erase in display, cursor to end of screen
         // If VT will clear entire screen, push lines to buffer.
-#if 0   // We do not buffer the lines deleted again.
+#if 0   // We do not buffer the lines deleted.
         if (mCursorX == 0 && mCursorY == 0) {
             int nlines = (int)mLines.size() - this->CalculateNumberOfBlankLinesFromEnd(mLines);
             for (int i = 0; i < nlines; ++i) {
@@ -489,23 +471,23 @@ void SerialConnVT102::InstallVT102Functions()
         }
     };
     // 1.13 Editing functions, see IsVT102EditingFunctions
-    // 1.14 Print commands
+    // 1.14 Print commands, we do not support printer.
     // 1.15 Reports
     mVT102TrivialHandlers["[5n"] = [=]() {
-        GetSerial()->write("\033[0n");
+        GetSerial()->Write("\033[0n");
     };
     mVT102TrivialHandlers["[?15n"] = [=]() { // status of printer
         // report that: No printer
-        GetSerial()->write("\033[?13n");
+        GetSerial()->Write("\033[?13n");
     };
     mVT102TrivialHandlers["[6n"] = [=]() {
         std::string rsp = "\033["
                           + std::to_string(mCursorY+1) + ";"
                           + std::to_string(mCursorX+1) + "R";
-        GetSerial()->write(rsp);
+        GetSerial()->Write(rsp);
     };
     mVT102TrivialHandlers["[c"] = [=]() {
-        GetSerial()->write("\033[?6c"); // VT102
+        GetSerial()->Write("\033[?6c"); // VT102
     };
     mVT102TrivialHandlers["[0c"] = mVT102TrivialHandlers["[c"]; // ESC Z is not recommended, we do not support it.
     // 1.16 Reset
@@ -513,8 +495,8 @@ void SerialConnVT102::InstallVT102Functions()
     // 1.17 Test and adjustments
     mVT102TrivialHandlers["#8"] = [=]() {
         Size csz = GetConsoleSize();
-        for (size_t k = 0; k < mLines.size(); ++k) {
-            mLines[k] = VTLine(mBlankChr, csz.cx);
+        for (size_t i = 0; i < mLines.size(); ++i) {
+            mLines[i] = VTLine(csz.cx, 'E');
         }
     };
     // 1.18 keyboard led
@@ -763,7 +745,7 @@ bool SerialConnVT102::ProcessKeyDown(dword key, dword flags)
         }
     }
     if (!d.empty()) {
-        GetSerial()->write(d);
+        GetSerial()->Write(d);
         return true;
     } else return Superclass::ProcessKeyDown(key, flags);
 }
@@ -797,7 +779,7 @@ bool SerialConnVT102::ProcessChar(Upp::dword cc)
     if (mModes.LineFeedNewLine == VT102Modes::NewLine) {
         // If in NewLine mode, send CRLF when RETURN was pressed.
         if (cc == 0x0d) {
-            GetSerial()->write("\r\n");
+            GetSerial()->Write("\r\n");
             return true;
         }
     }

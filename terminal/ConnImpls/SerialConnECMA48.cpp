@@ -10,7 +10,7 @@
 
 using namespace Upp;
 
-SerialConnECMA48::SerialConnECMA48(std::shared_ptr<serial::Serial> serial)
+SerialConnECMA48::SerialConnECMA48(std::shared_ptr<SerialIo> serial)
     : Superclass(serial)
 {
     InstallEcma48Functions();

@@ -70,17 +70,6 @@ public:
 		    mDevsTab.Set(*conn);
 		}
 	}
-	// change current settings
-	void ChangeSettings()
-	{
-	    if (mDevsTab.GetCount()) {
-            auto conn = dynamic_cast<SerialConn*>(mDevsTab.GetItem(mDevsTab.Get()).GetSlave());
-            if (conn) {
-                SerialDevsDialog d;
-                d.ChangeSettings(conn->GetSerial());
-            }
-	    }
-	}
 	//
 	void OnDevsTabSet()
 	{
@@ -111,7 +100,6 @@ protected:
 	void MainToolbar(Bar& bar)
 	{
 		bar.Add(t_("New Connection"), comxd::new_conn(), THISBACK(NewConn));
-		bar.Add(t_("Settings"), comxd::settings(), THISBACK(ChangeSettings));
 		bar.ToolSeparator();
 		//
 		OndemandToolbar(bar);
@@ -126,6 +114,15 @@ protected:
 	    if (mDevsTab.GetCount()) {
 	        auto conn = dynamic_cast<SerialConn*>(mDevsTab.GetItem(mDevsTab.Get()).GetSlave());
 	        if (conn) {
+	            // Actions of serial device
+	            auto actions_io = conn->GetSerial()->GetActions();
+	            for (auto it = actions_io.begin(); it != actions_io.end(); ++it) {
+	                bar.Add(it->Text, it->Icon, it->Func).Help(it->Help);
+	            }
+	            if (!actions_io.empty()) {
+	                bar.ToolSeparator();
+	            }
+	            // Actions of conn
 	            auto actions = conn->GetActions();
 	            for (auto it = actions.begin(); it != actions.end(); ++it) {
 	                bar.Add(it->Text, it->Icon, it->Func).Help(it->Help);

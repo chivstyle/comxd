@@ -4,7 +4,7 @@ library
 	setupapi;
 
 options
-	"-DUNICODE -D_UNICODE";
+	;
 
 include
 	include;

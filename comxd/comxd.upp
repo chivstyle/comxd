@@ -2,37 +2,25 @@ description "Another serialbus tool\377";
 
 uses
 	CtrlLib,
-	serial;
+	serial,
+	terminal;
+
+options
+	;
 
 include
 	.;
 
 file
-	ControlSeq.h,
-	ConnImpls\SerialConnVT.cpp,
-	ConnImpls\SerialConnVT.h,
-	ConnImpls/VT102ControlSeq.h,
-	ConnImpls/SerialConnVT102.h,
-	ConnImpls/SerialConnVT102.cpp,
-	ConnImpls/ECMA48ControlSeq.h,
-	ConnImpls/SerialConnECMA48.h,
-	ConnImpls/SerialConnECMA48.cpp,
-	ConnImpls/XtermControlSeq.h,
-	ConnImpls/SerialConnXterm.h,
-	ConnImpls/SerialConnXterm.cpp,
-	ConnImpls/SerialConnRaw.cpp,
-	ConnImpls/SerialConnRaw.h,
 	comxd.rc,
 	comxd.tpp,
-	ConnFactory.cpp,
-	ConnFactory.h,
-	Action.h,
-	Conn.h,
 	comxd.t,
 	comxd.iml,
 	comxd.lay,
 	resource.cpp,
 	resource.h,
+	SerialPort.cpp,
+	SerialPort.h,
 	SerialDevsDialog.h,
 	SerialDevsDialog.cpp,
 	main.cpp;

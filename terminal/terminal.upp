@@ -1,0 +1,33 @@
+description "virtual terminal\377";
+
+library
+	setupapi;
+
+options
+	;
+
+include
+	.;
+
+file
+	Action.h,
+	SerialIo.h,
+	SerialIo.cpp,
+	Conn.h,
+	ConnFactory.h,
+	ConnFactory.cpp,
+	ControlSeq.h,
+	ConnImpls/SerialConnRaw.h,
+	ConnImpls/SerialConnRaw.cpp,
+	ConnImpls/SerialConnVT.h,
+	ConnImpls/SerialConnVT.cpp,
+	ConnImpls/VT102ConsoleSeq.h,
+	ConnImpls/SerialConnVT102.h,
+	ConnImpls/SerialConnVT102.cpp,
+	ConnImpls/ECMA48ControlSeq.h,
+	ConnImpls/SerialConnECMA48.h,
+	ConnImpls/SerialConnECMA48.cpp,
+	ConnImpls/XtermControlSeq.h,
+	ConnImpls/SerialConnXterm.h,
+	ConnImpls/SerialConnXterm.cpp;
+

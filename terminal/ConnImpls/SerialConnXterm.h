@@ -9,7 +9,7 @@
 class SerialConnXterm : public SerialConnECMA48 {
 public:
     using Superclass = SerialConnECMA48;
-    SerialConnXterm(std::shared_ptr<serial::Serial> serial);
+    SerialConnXterm(std::shared_ptr<SerialIo> serial);
     virtual ~SerialConnXterm();
     // public methods
     struct ScreenData {

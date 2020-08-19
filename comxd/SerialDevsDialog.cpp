@@ -58,9 +58,10 @@ SerialDevsDialog::SerialDevsDialog()
     Acceptor(mBtnOk, IDOK).Acceptor(mBtnCancel, IDCANCEL);
 }
 
-void SerialDevsDialog::ChangeSettings(serial::Serial* serial)
+void SerialDevsDialog::ChangeSettings(SerialPort* serial_port)
 {
     // load settings of serial
+    auto serial = serial_port->nativeDevice();
     // name
     mDevsList.SetData(serial->getPort().c_str());
     mDevsList.SetEditable(false);
@@ -118,7 +119,7 @@ SerialConn* SerialDevsDialog::RequestConn()
         String type_name = mTypes.Get().ToString();
         auto serial = NewSerial();
         if (serial) {
-            auto conn = ConnFactory::Inst()->CreateInst(type_name, serial);
+            auto conn = ConnFactory::Inst()->CreateInst(type_name, std::make_shared<SerialPort>(serial));
             if (!conn) {
                 String type_name = mTypes.GetValue(mTypes.GetIndex()).ToString();
                 Upp::PromptOK(t_("Dose not support:") + type_name);

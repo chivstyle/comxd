@@ -9,7 +9,7 @@
 class SerialConnVT102 : public SerialConnVT {
 public:
     using Superclass = SerialConnVT;
-    SerialConnVT102(std::shared_ptr<serial::Serial> serial);
+    SerialConnVT102(std::shared_ptr<SerialIo> serial);
     virtual ~SerialConnVT102();
     // public methods
     //-------------------------------------------------------------------------------------
@@ -75,7 +75,6 @@ protected:
     virtual std::vector<VTLine> GetMergedScreen(size_t p, int& nlines_from_buffer) const;
     virtual void DrawCursor(Upp::Draw& draw, int vx, int vy);
     virtual void DoLayout();
-    //-------------------------------------------------------------------------------------
     //-------------------------------------------------------------------------------------
     std::string TranscodeToUTF8(const VTChar& cc) const;
     //
@@ -175,15 +174,6 @@ private:
     // charset support
     int mCharset;
     int mSS; // Shift in/out
-    // line attributes
-    // pair[line_number, attr]
-    enum VT102LineAttribute {
-        VT102_DoubleHeightTopHalf,
-        VT102_DoubleHeightBottomHalf,
-        VT102_SingleWidthSingleHeight,
-        VT102_DoubleWidthSingleHeight
-    };
-    std::map<int, int> mLineAttrs;
 };
 
 #endif

@@ -10,7 +10,7 @@ REGISTER_CONN_INSTANCE("Xterm", SerialConnXterm);
 
 using namespace Upp;
 
-SerialConnXterm::SerialConnXterm(std::shared_ptr<serial::Serial> serial)
+SerialConnXterm::SerialConnXterm(std::shared_ptr<SerialIo> serial)
     : Superclass(serial)
     , mIsAltScr(false)
 {
@@ -75,7 +75,7 @@ bool SerialConnXterm::ProcessKeyDown(Upp::dword key, Upp::dword flags)
         break;
     }
     if (!d.empty()) {
-        GetSerial()->write(d);
+        GetSerial()->Write(d);
         return true;
     }
     return Superclass::ProcessKeyDown(key, flags);
