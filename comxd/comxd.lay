@@ -2,27 +2,6 @@ LAYOUT(MainWindow, 648, 420)
 	ITEM(TabCtrl, mDevsTab, HSizePosZ(8, 8).VSizePosZ(8, 8))
 END_LAYOUT
 
-LAYOUT(ConnRaw, 580, 520)
-	ITEM(LineEdit, mRx, SetEditable(false).HSizePosZ(172, 8).VSizePosZ(9, 192))
-	ITEM(LabelBox, dv___1, SetLabel(t_("Tx Settings")).LeftPosZ(8, 156).BottomPosZ(8, 180))
-	ITEM(Label, dv___2, SetLabel(t_("Line break")).LeftPosZ(20, 56).BottomPosZ(97, 19))
-	ITEM(DropList, mLineBreaks, LeftPosZ(80, 64).BottomPosZ(97, 19))
-	ITEM(Label, dv___4, SetLabel(t_("ms")).LeftPosZ(128, 28).BottomPosZ(125, 19))
-	ITEM(EditInt, mTxInterval, Min(1).LeftPosZ(80, 44).BottomPosZ(125, 19))
-	ITEM(LabelBox, mRxSettings, SetLabel(t_("Rx Settings")).LeftPosZ(8, 156).VSizePosZ(4, 192))
-	ITEM(EditInt, mRxBufferSz, Min(5000).LeftPosZ(84, 56).TopPosZ(76, 19))
-	ITEM(Button, mBtnPauseRx, SetLabel(t_("\vPause/Resume")).LeftPosZ(84, 68).BottomPosZ(204, 24))
-	ITEM(Label, dv___9, SetLabel(t_("Line size")).LeftPosZ(20, 56).TopPosZ(48, 19))
-	ITEM(EditInt, mLineSz, Min(1).LeftPosZ(84, 56).TopPosZ(48, 19))
-	ITEM(Option, mRxHex, SetLabel(t_("Hex")).LeftPosZ(20, 56).TopPosZ(24, 16))
-	ITEM(LineEdit, mTx, HSizePosZ(172, 8).BottomPosZ(8, 175))
-	ITEM(Option, mTxHex, SetLabel(t_("Hex")).LeftPosZ(20, 56).BottomPosZ(152, 16))
-	ITEM(Button, mBtnRun, SetLabel(t_("Send")).LeftPosZ(20, 56).BottomPosZ(16, 24))
-	ITEM(Button, mBtnClearRx, SetLabel(t_("\vClear")).LeftPosZ(20, 56).BottomPosZ(204, 24))
-	ITEM(Option, mTxPeriod, SetLabel(t_("Period")).LeftPosZ(20, 56).BottomPosZ(124, 20))
-	ITEM(Label, dv___17, SetLabel(t_("Buffer size")).LeftPosZ(20, 56).TopPosZ(76, 19))
-END_LAYOUT
-
 LAYOUT(SerialDevs, 276, 212)
 	ITEM(Label, dv___0, SetLabel(t_("Devices")).LeftPosZ(8, 52).VSizePosZ(16, 177))
 	ITEM(WithDropChoice<EditString>, mDevsList, LeftPosZ(68, 116).TopPosZ(16, 19))
@@ -39,9 +18,5 @@ LAYOUT(SerialDevs, 276, 212)
 	ITEM(Label, dv___12, SetLabel(t_("Baudrate")).LeftPosZ(8, 52).TopPosZ(80, 20))
 	ITEM(DropList, mBaudrate, LeftPosZ(68, 116).TopPosZ(80, 19))
 	ITEM(DropList, mTypes, LeftPosZ(196, 72).TopPosZ(16, 19))
-END_LAYOUT
-
-LAYOUT(ConnVT102, 576, 516)
-	ITEM(RichTextView, mConsole, HSizePosZ(4, 4).VSizePosZ(4, 4))
 END_LAYOUT
 

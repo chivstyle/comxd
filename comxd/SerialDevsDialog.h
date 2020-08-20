@@ -1,7 +1,6 @@
 #ifndef _comxd_SerialDevsDialog_h_
 #define _comxd_SerialDevsDialog_h_
 
-#include "resource.h"
 #include "Conn.h"
 // device
 #include "SerialPort.h"

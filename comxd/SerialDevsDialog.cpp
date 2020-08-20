@@ -1,6 +1,7 @@
 //
 // (c) 2020 chiv
 //
+#include "resource.h"
 #include "SerialDevsDialog.h"
 #include "ConnFactory.h"
 

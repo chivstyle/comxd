@@ -1,7 +1,6 @@
 #ifndef _comxd_SerialConnForm_h_
 #define _comxd_SerialConnForm_h_
 
-#include "resource.h"
 #include "Conn.h"
 // c++11 thread
 #include <thread>

@@ -1,6 +1,7 @@
 //
 // (c) 2020 chiv, all rights reserved
 //
+#include "terminal_rc.h"
 #include "SerialConnRaw.h"
 #include "ConnFactory.h"
 #include <functional>
@@ -127,6 +128,80 @@ static inline std::vector<byte> ToHex_(const std::string& hex_text)
     return out;
 }
 
+static inline bool IsCharInHex(const char cc)
+{
+    return (cc >= '0' && cc <= '9' || cc >= 'a' && cc <= 'f' || cc >= 'A' && cc <= 'F');
+}
+
+static std::string TranslateEscapeChars(const std::string& text)
+{
+    std::string out;
+    for (size_t k = 0; k < text.size(); ++k) {
+        if (text[k] == '\\') { // escape begin
+            k++;
+            if (k >= text.size()) {
+                out.push_back('\\');
+                break;
+            } else {
+                switch (text[k]) {
+                case 'a': out.push_back(0x07); break;
+                case 'b': out.push_back(0x08); break;
+                case 'f': out.push_back(0x0c); break;
+                case 'n': out.push_back(0x0a); break;
+                case 'r': out.push_back(0x0d); break;
+                case 't': out.push_back(0x09); break;
+                case 'v': out.push_back(0x0b); break;
+                case '0':
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                case '5':
+                case '6':
+                case '7':
+                case '8':
+                case '9': // this could be oct, try
+                    if (text.size() - k >= 3) {
+                        if (text[k+1] >= '0' && text[k+1] <= '9' &&
+                            text[k+2] >= '0' && text[k+2] <= '9')
+                        {
+                            // valid oct
+                            unsigned char oct = ((text[k] - '0') << 6) |
+                                                ((text[k+1] - '0') << 3) |
+                                                (text[k+2] - '0');
+                            out.push_back((char)oct);
+                            k += 2;
+                            break;
+                        }
+                    }
+                    // bad, strip slash
+                    out.push_back(text[k]);
+                    break;
+                case 'x': // this could be hex, try
+                    if (text.size() - k >= 3) {
+                        if (IsCharInHex(text[k+1]) && IsCharInHex(text[k+2])) {
+                            // valid hex
+                            auto hex = ToHex_(text.substr(k+1, 2));
+                            out.push_back((char)hex[0]);
+                            k += 2;
+                            break;
+                        }
+                    }
+                    // bad, strip slash
+                    out.push_back(text[k]);
+                    break;
+                default:
+                    out.push_back(text[k]);
+                    break;
+                }
+            }
+        } else {
+            out.push_back(text[k]);
+        }
+    }
+    return out;
+}
+
 static std::string ReplaceLineBreak_(const std::string& text, int lb)
 {
     std::string lb_ = "\r\n";
@@ -161,7 +236,12 @@ void SerialConnRaw::OnSend()
         // write as hex.
         mSerial->Write(ToHex_(tx));
     } else {
-        mSerial->Write(ReplaceLineBreak_(tx, mLineBreaks.GetKey(mLineBreaks.GetIndex()).To<int>()));
+        std::string text = ReplaceLineBreak_(tx, mLineBreaks.GetKey(mLineBreaks.GetIndex()).To<int>());
+        if (mEnableEscape.Get()) {
+            mSerial->Write(TranslateEscapeChars(text));
+        } else {
+            mSerial->Write(text);
+        }
     }
 }
 
