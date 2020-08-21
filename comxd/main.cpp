@@ -106,7 +106,7 @@ protected:
 		//
 		bar.ToolGapRight();
 	    bar.Add(t_("About"), comxd::about(), [=](){
-	        PromptOK(Upp::GetTopicLNG("comxd/comxd/about"));
+	        PromptOK(Upp::GetTopicLNG("comxd/comxd/welcome"));
 	    });
 	}
 	void OndemandToolbar(Bar& bar)
