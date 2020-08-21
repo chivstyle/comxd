@@ -91,19 +91,19 @@ ss_command_t ss_parse_command(const std::string& ss)
             if (p == ss.npos) {
                 cmd.part = ss.substr(q, p_etx-1);
             } else {
-                cmd.part = ss.substr(q, p-1);
+                cmd.part = ss.substr(q, p-q);
                 q = p+1;
-                p = ss.find(q, US);
+                p = ss.find(US, q);
                 if (p == ss.npos) {
                     cmd.action = ss.substr(q, p_etx-q);
                 } else {
                     cmd.action = ss.substr(q, p-q);
                     q = p+1;
-                    p = ss.find(q, US);
+                    p = ss.find(US, q);
                     while (p != ss.npos) {
                         cmd.params.push_back(ss.substr(q, p-q));
                         q = p+1;
-                        p = ss.find(q, US);
+                        p = ss.find(US, q);
                     }
                     if (q < p_etx) {
                         cmd.params.push_back(ss.substr(q, p_etx-q));
@@ -131,11 +131,11 @@ std::vector<ss_command_t> ss_parse(const std::string& ss_message)
     if (ss_message[0] == ENQ && ss_message[ss_message.length()-1] == EOT) {
         out.push_back(ss_parse_command(ss_message));
     } else if (ss_message[0] == SOH && ss_message[ss_message.length()-1] == ETB) {
-        size_t q = 1, p = ss_message.find(q, EOT);
+        size_t q = 1, p = ss_message.find(EOT, q);
         while (p != ss_message.npos) {
             out.push_back(ss_parse_command(ss_message.substr(q, p-q)));
             q = p+1;
-            p = ss_message.find(q, EOT);
+            p = ss_message.find(EOT, q);
         }
         if (q < ss_message.length()-1) {
             out.push_back(ss_parse_command(ss_message.substr(q, ss_message.length()-1-q)));
@@ -225,7 +225,9 @@ int ss_parse_response(const char* response, int sz, std::string& json)
                 json.push_back(response[i]);
             }
         }
-        if (p_eot - p_ack != 1) return -1; // Has no json, and not <ACK><EOT>, report error.
+        else {
+            if (p_eot - p_ack != 1) return -1; // Has no json, and not <ACK><EOT>, report error.
+        }
     }
     return 1;
 }
