@@ -24,7 +24,7 @@ public:
     size_t Write(const std::string& d);
     size_t Write(const std::vector<unsigned char>& d);
     //
-    std::list<UsrAction> GetActions() { return mUsrActions; }
+    const std::list<UsrAction>& GetActions() const { return mUsrActions; }
     //
 protected:
     std::list<UsrAction> mUsrActions;

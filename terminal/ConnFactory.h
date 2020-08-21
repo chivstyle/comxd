@@ -8,10 +8,12 @@
 #include "Conn.h"
 #include <map>
 
+#ifndef DELETE_CA_FUNCTIONS
 #define DELETE_CA_FUNCTIONS(class_name) class_name(const class_name&) = delete; \
     class_name(class_name&&) = delete; \
     class_name& operator=(const class_name&) = delete; \
     class_name& operator=(class_name&&) = delete
+#endif
 
 class ConnFactory {
 public:

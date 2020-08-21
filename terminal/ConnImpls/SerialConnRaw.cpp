@@ -4,6 +4,7 @@
 #include "terminal_rc.h"
 #include "SerialConnRaw.h"
 #include "ConnFactory.h"
+#include "ProtoFactory.h"
 #include <functional>
 #include <stdio.h>
 //
@@ -19,6 +20,7 @@ enum LineBreak_ {
 //
 SerialConnRaw::SerialConnRaw(std::shared_ptr<SerialIo> serial)
     : mRxShouldStop(false)
+    , mTxProto(nullptr)
 {
     this->mSerial = serial;
     // default settings
@@ -30,6 +32,25 @@ SerialConnRaw::SerialConnRaw(std::shared_ptr<SerialIo> serial)
     this->mLineBreaks.Add(LineBreak_::LF, "LF");
     this->mLineBreaks.Add(LineBreak_::CRLF, "CRLF");
     this->mLineBreaks.SetIndex(1); //<! default: LF
+    this->mTxHex.WhenAction = [=]() {
+        mEnableEscape.SetEditable(mTxHex.Get() == 0);
+    };
+    this->mEnableEscape.Tip(t_("Hex mode does not support this feature"));
+    //------------------------------------------------------------------------
+    mProtos.Add(t_("None"));mProtos.SetIndex(0);
+    std::vector<std::string> protos = ProtoFactory::Inst()->GetSupportedProtos();
+    for (size_t k = 0; k < protos.size(); ++k) {
+        this->mProtos.Add(protos[k].c_str());
+    }
+    mProtos.WhenAction = [=]() {
+        delete mTxProto;
+        mTxProto = ProtoFactory::Inst()->CreateInst(mProtos.GetValue().ToString());
+        if (mTxProto) {
+            mProtos.Tip(mTxProto->GetDescription().c_str());
+        } else {
+            mProtos.Tip("");
+        }
+    };
     //------------------------------------------------------------------------
     InstallActions();
     //------------------------------------------------------------------------
@@ -47,6 +68,7 @@ SerialConnRaw::~SerialConnRaw()
         mRxThr.join();
     }
     Ctrl::KillTimeCallback(kPeriodicTimerId);
+    delete mTxProto;
 }
 
 void SerialConnRaw::InstallActions()
@@ -238,7 +260,10 @@ void SerialConnRaw::OnSend()
     } else {
         std::string text = ReplaceLineBreak_(tx, mLineBreaks.GetKey(mLineBreaks.GetIndex()).To<int>());
         if (mEnableEscape.Get()) {
-            mSerial->Write(TranslateEscapeChars(text));
+            text = TranslateEscapeChars(text);
+        }
+        if (mTxProto) {
+            mSerial->Write(mTxProto->Pack((unsigned char*)text.c_str(), text.length()));
         } else {
             mSerial->Write(text);
         }

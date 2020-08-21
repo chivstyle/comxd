@@ -1,7 +1,7 @@
 //
 // (c) 2020 chiv
 //
-#include "resource.h"
+#include "terminal_rc.h"
 #include "SerialConnVT102.h"
 #include "VT102ControlSeq.h"
 #include "ConnFactory.h"

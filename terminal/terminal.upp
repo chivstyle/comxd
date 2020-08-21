@@ -12,15 +12,16 @@ include
 file
 	terminal.lay,
 	terminal.iml,
-	Action.h,
+	terminal_rc.h,
+	terminal_rc.cpp,
 	terminal.t,
+	Action.h,
 	SerialIo.h,
 	SerialIo.cpp,
 	Conn.h,
 	ConnFactory.h,
 	ConnFactory.cpp,
 	ControlSeq.h,
-	terminal_rc.h,
 	ConnImpls/SerialConnRaw.h,
 	ConnImpls/SerialConnRaw.cpp,
 	ConnImpls/SerialConnVT.h,
@@ -34,5 +35,12 @@ file
 	ConnImpls/XtermControlSeq.h,
 	ConnImpls/SerialConnXterm.h,
 	ConnImpls/SerialConnXterm.cpp,
-	terminal_rc.cpp;
+	Proto.cpp,
+	Proto.h,
+	ProtoFactory.cpp,
+	ProtoFactory.h,
+	proto/ss.h,
+	proto/ss.cpp,
+	proto\ProtoSs.cpp,
+	proto\ProtoSs.h;
 

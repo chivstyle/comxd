@@ -179,7 +179,10 @@ public:
     virtual ~SerialConnVT();
     // clear screen and buffer, restore default, .etc, you can override it
     virtual void Clear();
-    //
+    // Editing commands
+    virtual void SelectAll();
+    virtual void Copy();
+    virtual void Paste();
 protected:
     // Font
     virtual void Paint(Upp::Draw& draw);

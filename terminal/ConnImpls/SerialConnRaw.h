@@ -2,6 +2,7 @@
 #define _comxd_SerialConnForm_h_
 
 #include "Conn.h"
+#include "Proto.h"
 // c++11 thread
 #include <thread>
 #include <vector>
@@ -27,6 +28,9 @@ protected:
     void UpdateAsHex();
     //
     void InstallActions();
+    //
+private:
+    Proto* mTxProto;
 };
 
 

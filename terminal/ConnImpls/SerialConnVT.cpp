@@ -1,7 +1,7 @@
 //
 // (c) 2020 chiv
 //
-#include "resource.h"
+#include "terminal_rc.h"
 #include "SerialConnVT.h"
 #include "ControlSeq.h"
 #include "ConnFactory.h"
@@ -72,7 +72,7 @@ SerialConnVT::~SerialConnVT()
 //
 void SerialConnVT::InstallUserActions()
 {
-    mUsrActions.emplace_back(comxd::clear_buffer(), t_("Clear Buffer"),
+    mUsrActions.emplace_back(terminal::clear_buffer(), t_("Clear Buffer"),
         t_("Clear the line buffers"), [=]() { Clear(); }
     );
 }
@@ -374,22 +374,46 @@ void SerialConnVT::LeftUp(Point p, dword)
     }
 }
 
+void SerialConnVT::Paste()
+{
+    String text = Upp::ReadClipboardUnicodeText().ToString();
+    GetSerial()->Write(text.ToStd());
+}
+
+void SerialConnVT::Copy()
+{
+    Upp::WriteClipboardText(GetSelectedText());
+}
+
+void SerialConnVT::SelectAll()
+{
+    if (!mLinesBuffer.empty() || !mLines.empty()) {
+        mSelectionSpan.X0 = 0;
+        mSelectionSpan.X1 = 0;
+        mSelectionSpan.Y0 = 0;
+        mSelectionSpan.Y1 = (int)(mLinesBuffer.size() + mLines.size());
+        //
+        Refresh();
+    }
+}
+
 void SerialConnVT::RightUp(Point, dword)
 {
-	MenuBar::Execute(
-		[=](Bar& bar) {
-		    bool has_sel = mSelectionSpan.X0 != mSelectionSpan.X1 ||
-		                   mSelectionSpan.Y0 != mSelectionSpan.Y1;
-			bar.Add(has_sel, t_("Copy"), [=] {
-			    // copy to clipboard
-			    Upp::WriteClipboardText(GetSelectedText());
-			});
-			String text2 = Upp::ReadClipboardUnicodeText().ToString();
-			bar.Add(text2.GetCount() > 0, t_("Paste"), [=] {
-			    GetSerial()->Write(text2.ToStd());
-			});
-		}
-	);
+	MenuBar::Execute([=](Bar& bar) {
+	    bool has_sel = mSelectionSpan.X0 != mSelectionSpan.X1 ||
+	                   mSelectionSpan.Y0 != mSelectionSpan.Y1;
+		bar.Add(has_sel, t_("Copy"), [=] {
+		    // copy to clipboard
+		    Copy();
+		}).Image(CtrlImg::copy()).Key(K_CTRL | K_SHIFT | K_C);
+		String text = Upp::ReadClipboardUnicodeText().ToString();
+		bar.Add(text.GetCount() > 0, t_("Paste"), [=] {
+		    Paste();
+		}).Image(CtrlImg::paste()).Key(K_CTRL | K_SHIFT | K_V);
+		bar.Add(true, t_("Select all"), [=]() {
+		    SelectAll();
+		}).Key(K_CTRL | K_SHIFT | K_A);
+	});
 }
 //----------------------------------------------
 bool SerialConnVT::ProcessKeyDown(dword key, dword flags)
@@ -443,6 +467,14 @@ bool SerialConnVT::ProcessKeyDown(dword key, dword flags)
 
 bool SerialConnVT::ProcessKeyUp(dword key, dword flags)
 {
+    if ((flags & (K_CTRL | K_SHIFT)) == (K_CTRL | K_SHIFT)) { // CTRL+SHIFT+
+        switch (key) {
+        case K_C: Copy(); return true;
+        case K_A: SelectAll(); return true;
+        case K_V: Paste(); return true;
+            break;
+        }
+    }
     return false;
 }
 
