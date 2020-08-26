@@ -1,5 +1,5 @@
-LAYOUT(MainWindow, 648, 420)
-	ITEM(TabCtrl, mDevsTab, HSizePosZ(8, 8).VSizePosZ(8, 8))
+LAYOUT(MainWindow, 736, 440)
+	ITEM(TabCtrl, mDevsTab, HSizePosZ(4, 4).VSizePosZ(4, 4))
 END_LAYOUT
 
 LAYOUT(SerialDevs, 348, 160)

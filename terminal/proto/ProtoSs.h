@@ -13,7 +13,7 @@ public:
     virtual std::string GetName() const;
     virtual std::string GetDescription() const;
     // use this proto to pack the data
-    virtual std::vector<unsigned char> Pack(unsigned char* buf, size_t sz);
+    virtual std::vector<unsigned char> Pack(unsigned char* buf, size_t sz, std::string& errmsg);
     // return  0 Absolutely not
     //         1 Pending
     //        >1 Yes

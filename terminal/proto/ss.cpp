@@ -49,8 +49,9 @@ unsigned char ss_chksum(const char* buf, int sz)
             s ^= buf[i++];
         }
     }
+    if (s < 30) s += 30;
     if (b1_count(s) % 2 == 0) {
-        s |= 0x80;
+        s |= s + 1;
     }
     return s;
 }

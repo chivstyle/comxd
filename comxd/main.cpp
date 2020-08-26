@@ -28,8 +28,9 @@ public:
 	}
 	~MainWindow()
 	{
-	    for (int i = 0; i < mDevsTab.GetCount(); ++i) {
-	        delete mDevsTab.GetItem(i).GetCtrl();
+	    int cnt = mDevsTab.GetCount();
+	    while (cnt--) {
+	        delete mDevsTab.GetItem(0).GetCtrl();
 	    }
 	}
 	//
@@ -109,6 +110,7 @@ protected:
 	        PromptOK(Upp::GetTopicLNG("comxd/comxd/welcome"));
 	    });
 	}
+	
 	void OndemandToolbar(Bar& bar)
 	{
 	    if (mDevsTab.GetCount()) {

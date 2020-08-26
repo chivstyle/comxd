@@ -12,6 +12,10 @@ REGISTER_PROTO_INSTANCE("Simple Stupid", ProtoSs);
 
 ProtoSs::ProtoSs()
 {
+    mUsrActions.emplace_back(terminal::help(), t_("Help"), t_("Popup help dialog"), [=]() {
+        PromptOK(Upp::DeQtf(t_("Input your command in JSON, here is an example:\n"
+            "{\n    \"Part\":\"LED2\",\n    \"Action\":\"Blink\", \n    \"Parameters\":[\"10\"]\n}")));
+    });
 }
 
 ProtoSs::~ProtoSs()
@@ -20,7 +24,7 @@ ProtoSs::~ProtoSs()
 
 std::string ProtoSs::GetName() const
 {
-    return "(ss) Simple Stupid";
+    return "Simple Stupid";
 }
 
 std::string ProtoSs::GetDescription() const
@@ -28,15 +32,54 @@ std::string ProtoSs::GetDescription() const
     return t_("This proto was designed by chivstyle acording to KISS principal");
 }
 // use this proto to pack the data
-std::vector<unsigned char> ProtoSs::Pack(unsigned char* buf, size_t sz)
+std::vector<unsigned char> ProtoSs::Pack(unsigned char* buf, size_t sz, std::string& errmsg)
 {
-    std::vector<unsigned char> out(sz+4);
-    out[0] = ss::ENQ;
-    memcpy(out.data() + 1, buf, sz);
-    out[sz+1] = ss::ETX;
-    out[sz+2] = ss::ss_chksum((const char*)out.data(), out.size());
-    out[sz+3] = ss::EOT;
-    return std::move(out);
+    std::vector<unsigned char> out;
+    std::string json_;json_.resize(sz);
+    for (size_t k = 0; k < sz; ++k) {
+        json_[k] = (char)buf[k];
+    }
+    Value json = ParseJSON(json_.c_str());
+    if (json.IsError()) {
+        errmsg = t_("Your input is not a valid JSON string");
+    } else {
+        if (json.GetType() != VALUEMAP_V) {
+            errmsg = t_("ROOT should be Object");
+        } else {
+            out.push_back(ss::ENQ);
+            out.push_back(ss::STX);
+            String part = json["Part"].ToString();
+            String action = json["Action"].ToString();
+            const Value& params = json["Parameters"];
+            // No check
+            for (int i = 0; i < part.GetLength(); ++i) {
+                out.push_back(part[i]);
+            }
+            out.push_back(ss::US);
+            for (int i = 0; i < action.GetLength(); ++i) {
+                out.push_back(action[i]);
+            }
+            out.push_back(ss::US);
+            if (params.GetType() == VALUEARRAY_V) {
+                int count = params.GetCount();
+                for (int n = 0; n < count; ++n) {
+                    String pn = params[n].ToString();
+                    for (int i = 0; i < pn.GetLength(); ++i) {
+                        out.push_back(pn[i]);
+                    }
+                }
+            } else {
+                String p0 = params.ToString();
+                for (int i = 0; i < p0.GetLength(); ++i) {
+                    out.push_back(p0[i]);
+                }
+            }
+            out.push_back(ss::ETX);
+            out.push_back(ss::ss_chksum((const char*)out.data() + 2, out.size()-3));
+            out.push_back(ss::EOT);
+        }
+    }
+    return out;
 }
 // return  0 Absolutely not
 //         1 Pending

@@ -34,6 +34,7 @@ SerialConnRaw::SerialConnRaw(std::shared_ptr<SerialIo> serial)
     this->mLineBreaks.SetIndex(1); //<! default: LF
     this->mTxHex.WhenAction = [=]() {
         mEnableEscape.SetEditable(mTxHex.Get() == 0);
+        mProtos.SetEditable(mTxHex.Get() == 0);
     };
     this->mEnableEscape.Tip(t_("Hex mode does not support this feature"));
     //------------------------------------------------------------------------
@@ -53,6 +54,20 @@ SerialConnRaw::SerialConnRaw(std::shared_ptr<SerialIo> serial)
     };
     //------------------------------------------------------------------------
     InstallActions();
+    this->mTx.WhenBar = [=](Bar& bar) {
+        mTx.StdBar(bar);
+        if (mTxProto) {
+            auto actions = mTxProto->GetActions();
+            if (!actions.empty()) {
+                bar.Separator();
+                bar.Sub(t_("Proto actions"), [=](Bar& sub) {
+                    for (auto it = actions.begin(); it != actions.end(); ++it) {
+                        sub.Add(it->Text, it->Icon, it->Func).Help(it->Help);
+                    }
+                });
+            }
+        }
+    };
     //------------------------------------------------------------------------
     // start receiving thread
     mRxThr = std::thread([=] { RxProc(); });
@@ -67,7 +82,7 @@ SerialConnRaw::~SerialConnRaw()
     if (mRxThr.joinable()) {
         mRxThr.join();
     }
-    Ctrl::KillTimeCallback(kPeriodicTimerId);
+    KillTimeCallback(kPeriodicTimerId);
     delete mTxProto;
 }
 
@@ -106,7 +121,7 @@ void SerialConnRaw::InstallActions()
             SetTimeCallback(-mTxInterval.GetData().To<int>(), [=]() { OnSend(); }, kPeriodicTimerId); // ID-0
         } else {
             mTxInterval.SetEditable(true);
-            Ctrl::KillTimeCallback(0);
+            KillTimeCallback(kPeriodicTimerId);
         }
     };
 }
@@ -263,7 +278,13 @@ void SerialConnRaw::OnSend()
             text = TranslateEscapeChars(text);
         }
         if (mTxProto) {
-            mSerial->Write(mTxProto->Pack((unsigned char*)text.c_str(), text.length()));
+            std::string errmsg;
+            auto out = mTxProto->Pack((unsigned char*)text.c_str(), text.length(), errmsg);
+            if (out.empty()) {
+                PromptOK(Upp::DeQtf(errmsg.c_str()));
+            } else {
+                mSerial->Write(out);
+            }
         } else {
             mSerial->Write(text);
         }
