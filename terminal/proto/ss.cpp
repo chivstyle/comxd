@@ -49,7 +49,7 @@ unsigned char ss_chksum(const char* buf, int sz)
             s ^= buf[i++];
         }
     }
-    if (s < 30) s += 30;
+    if (s < 0x30) s += 0x30;
     if (b1_count(s) % 2 == 0) {
         s |= s + 1;
     }
@@ -79,7 +79,7 @@ ss_command_t ss_parse_command(const std::string& ss)
             cmd.error = ss_command_t::error_format;
         } else {
             if (p_eot - p_etx == 2) {
-                if (ss[p_etx+1] != ss_chksum(ss.c_str(), (int)ss.length()-2)) {
+                if (ss[p_etx+1] != ss_chksum(ss.c_str()+2, p_etx-2)) {
                     cmd.error = ss_command_t::error_chksum;
                 }
             } else if (p_eot - p_etx != 1) {

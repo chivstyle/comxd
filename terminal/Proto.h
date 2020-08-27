@@ -16,13 +16,13 @@ public:
     virtual std::string GetName() const;
     virtual std::string GetDescription() const;
     // use this proto to pack the data
-    virtual std::vector<unsigned char> Pack(unsigned char* buf, size_t sz, std::string& errmsg) = 0;
+    virtual std::vector<unsigned char> Pack(const unsigned char* buf, size_t sz, std::string& errmsg) = 0;
     // return  0 Absolutely not
     //         1 Pending
     //        >1 Yes
-    virtual int IsProto(unsigned char* buf, size_t sz) = 0;
+    virtual int IsProto(const unsigned char* buf, size_t sz) = 0;
     // parse the proto message, generate report.
-    virtual std::string Parse(unsigned char* buf, size_t sz) = 0;
+    virtual std::string Parse(const unsigned char* buf, size_t sz) = 0;
     //
     const std::list<UsrAction>& GetActions() const { return mUsrActions; }
     //

@@ -32,7 +32,7 @@ std::string ProtoSs::GetDescription() const
     return t_("This proto was designed by chivstyle acording to KISS principal");
 }
 // use this proto to pack the data
-std::vector<unsigned char> ProtoSs::Pack(unsigned char* buf, size_t sz, std::string& errmsg)
+std::vector<unsigned char> ProtoSs::Pack(const unsigned char* buf, size_t sz, std::string& errmsg)
 {
     std::vector<unsigned char> out;
     std::string json_;json_.resize(sz);
@@ -84,7 +84,7 @@ std::vector<unsigned char> ProtoSs::Pack(unsigned char* buf, size_t sz, std::str
 // return  0 Absolutely not
 //         1 Pending
 //        >1 Yes
-int ProtoSs::IsProto(unsigned char* buf, size_t sz)
+int ProtoSs::IsProto(const unsigned char* buf, size_t sz)
 {
     if (sz > 0) {
         if (buf[0] == ss::ENQ) {
@@ -100,23 +100,29 @@ int ProtoSs::IsProto(unsigned char* buf, size_t sz)
     }
     return 0;
 }
-//
+// JSON
 static inline std::string GenerateReport(const ss::ss_command_t& rslt)
 {
-    std::string report = "Enq:\n";
-    report += "\t" + rslt.part + "\n";
-    report += "\t" + rslt.action + "\n";
+    std::string report = "\{\n";
+    report += "    \"Part\":\"" + rslt.part + "\",\n";
+    report += "    \"Action\":\"" + rslt.action + "\",\n";
+    report += "    \"Parameters\":[\n";
     for (size_t k = 0; k < rslt.params.size(); ++k) {
-        report += "\t" + rslt.params[k] + "\n";
+        report += "        \"" + rslt.params[k] + "\",\n";
     }
+    report += "    ],\n    \"Error\":";
     switch (rslt.error) {
-    case ss::ss_command_t::error_format: report += "Error: format\n"; break;
-    case ss::ss_command_t::error_chksum: report += "Error: chksum\n"; break;
+    case ss::ss_command_t::error_none:   report += "\"No error\"\n"; break;
+    case ss::ss_command_t::error_format: report += "\"format\"\n"; break;
+    case ss::ss_command_t::error_chksum: report += "\"chksum\"\n"; break;
+    default: report += "\"Unkown\""; break;
     }
+    report += "}"; // End of JSON Object
+    
     return report;
 }
 // parse the proto message, generate report.
-std::string ProtoSs::Parse(unsigned char* buf, size_t sz)
+std::string ProtoSs::Parse(const unsigned char* buf, size_t sz)
 {
     std::string report = "<Not recognized ss message>\n";
     if (IsProto(buf, sz) < 2) {
@@ -127,7 +133,7 @@ std::string ProtoSs::Parse(unsigned char* buf, size_t sz)
         int ret = ss::ss_parse_response((const char*)buf, (int)sz, json);
         if (ret < 0) return "Ack:format error\n";
         else if (ret == 0) return "Ack:chksum error\n";
-        else return std::string("Ack:") + json + "\n";
+        else return "<ACK>" + json;
     } else if (buf[0] == ss::ENQ) {
         report = GenerateReport(ss::ss_parse_command((const char*)buf, (int)sz));
     } else if (buf[0] == ss::SOH) {

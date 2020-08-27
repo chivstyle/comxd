@@ -7,9 +7,9 @@
 #include "ProtoFactory.h"
 #include <functional>
 #include <stdio.h>
-//
+
 REGISTER_CONN_INSTANCE("Raw", SerialConnRaw);
-//
+
 namespace {
 enum LineBreak_ {
     CR,
@@ -43,31 +43,8 @@ SerialConnRaw::SerialConnRaw(std::shared_ptr<SerialIo> serial)
     for (size_t k = 0; k < protos.size(); ++k) {
         this->mProtos.Add(protos[k].c_str());
     }
-    mProtos.WhenAction = [=]() {
-        delete mTxProto;
-        mTxProto = ProtoFactory::Inst()->CreateInst(mProtos.GetValue().ToString());
-        if (mTxProto) {
-            mProtos.Tip(mTxProto->GetDescription().c_str());
-        } else {
-            mProtos.Tip("");
-        }
-    };
     //------------------------------------------------------------------------
     InstallActions();
-    this->mTx.WhenBar = [=](Bar& bar) {
-        mTx.StdBar(bar);
-        if (mTxProto) {
-            auto actions = mTxProto->GetActions();
-            if (!actions.empty()) {
-                bar.Separator();
-                bar.Sub(t_("Proto actions"), [=](Bar& sub) {
-                    for (auto it = actions.begin(); it != actions.end(); ++it) {
-                        sub.Add(it->Text, it->Icon, it->Func).Help(it->Help);
-                    }
-                });
-            }
-        }
-    };
     //------------------------------------------------------------------------
     // start receiving thread
     mRxThr = std::thread([=] { RxProc(); });
@@ -124,6 +101,34 @@ void SerialConnRaw::InstallActions()
             KillTimeCallback(kPeriodicTimerId);
         }
     };
+    // proto
+    mProtos.WhenAction = [=]() {
+        delete mTxProto;
+        mTxProto = ProtoFactory::Inst()->CreateInst(mProtos.GetValue().ToString());
+        if (mTxProto) {
+            mProtos.Tip(mTxProto->GetDescription().c_str());
+        } else {
+            mProtos.Tip("");
+        }
+    };
+    this->mTx.WhenBar = [=](Bar& bar) {
+        mTx.StdBar(bar);
+        if (mTxProto) {
+            auto actions = mTxProto->GetActions();
+            if (!actions.empty()) {
+                bar.Separator();
+                bar.Sub(t_("Proto actions"), [=](Bar& sub) {
+                    for (auto it = actions.begin(); it != actions.end(); ++it) {
+                        sub.Add(it->Text, it->Icon, it->Func).Help(it->Help);
+                    }
+                });
+            }
+        }
+    };
+    this->mTxHex.WhenAction = [=]() {
+        mTxHex.Get() ? Set_TxInHex() : Set_TxInTxt();
+    };
+    this->mTxHex.Tip(t_("Will use proto to transcode your input"));
 }
 //-------------------------------------------------------------------------------
 // Help functions
@@ -161,7 +166,20 @@ static inline std::vector<byte> ToHex_(const std::string& hex_text)
     if (sn) { //<! There's one left
         out.push_back((byte)hex);
     }
-    
+    return out;
+}
+static inline std::string ToHexString_(const std::vector<unsigned char>& b)
+{
+    std::string out;
+    for (size_t k = 0; k < b.size(); ++k) {
+        char hex_[8];
+        if (k+1 == b.size()) {
+            sprintf(hex_, "%02x", b[k]);
+        } else {
+            sprintf(hex_, "%02x ", b[k]);
+        }
+        out += hex_;
+    }
     return out;
 }
 
@@ -266,6 +284,30 @@ static std::string ReplaceLineBreak_(const std::string& text, int lb)
     return out;
 }
 
+void SerialConnRaw::Set_TxInHex()
+{
+    if (mTxProto) {
+        std::string tx = mTx.GetData().ToString().ToStd(); // UTF-8
+        std::string errmsg;
+        auto out = mTxProto->Pack((unsigned char*)tx.c_str(), tx.length(), errmsg);
+        if (out.empty()) {
+            PromptOK(Upp::DeQtf(errmsg.c_str()));
+        } else {
+            mTx.Set(ToHexString_(out));
+        }
+    }
+}
+
+void SerialConnRaw::Set_TxInTxt()
+{
+    if (mTxProto) {
+        std::string tx = mTx.GetData().ToString().ToStd(); // UTF-8
+        std::vector<unsigned char> out = ToHex_(tx);
+        std::string json = mTxProto->Parse(out.data(), out.size());
+        mTx.Set(json);
+    }
+}
+
 void SerialConnRaw::OnSend()
 {
     std::string tx = mTx.GetData().ToString().ToStd(); // UTF-8
@@ -273,7 +315,7 @@ void SerialConnRaw::OnSend()
         // write as hex.
         mSerial->Write(ToHex_(tx));
     } else {
-        std::string text = ReplaceLineBreak_(tx, mLineBreaks.GetKey(mLineBreaks.GetIndex()).To<int>());
+        std::string text = tx;
         if (mEnableEscape.Get()) {
             text = TranslateEscapeChars(text);
         }
@@ -286,7 +328,7 @@ void SerialConnRaw::OnSend()
                 mSerial->Write(out);
             }
         } else {
-            mSerial->Write(text);
+            mSerial->Write(ReplaceLineBreak_(text, mLineBreaks.GetKey(mLineBreaks.GetIndex()).To<int>()));
         }
     }
 }

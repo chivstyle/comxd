@@ -19,8 +19,9 @@ SerialDevsDialog::SerialDevsDialog()
     for (size_t k = 0; k < ports.size(); ++k) {
         mDevsList.AddList(ports[k].port.c_str());
     }
-    // set default
-    mDevsList.SetData(mDevsList.Get(0));
+    if (!ports.empty()) {
+        mDevsList.SetData(mDevsList.Get(0));
+    }
     // data bits
     mDataBits.Add(serial::fivebits, "5");
     mDataBits.Add(serial::sixbits, "6");
@@ -54,7 +55,9 @@ SerialDevsDialog::SerialDevsDialog()
     for (size_t k = 0; k < types.size(); ++k) {
         mTypes.Add(types[k].c_str());
     }
-    mTypes.SetIndex(0);
+    if (!types.empty()) {
+        mTypes.SetIndex(0);
+    }
     //
     Acceptor(mBtnOk, IDOK).Acceptor(mBtnCancel, IDCANCEL);
 }
@@ -106,8 +109,8 @@ std::shared_ptr<serial::Serial> SerialDevsDialog::NewSerial()
             (serial::flowcontrol_t)mFlowCtrl.GetKey(mFlowCtrl.GetIndex()).To<int>());
     } catch (const std::exception&) {
         Upp::PromptOK(t_("Can't open:") + mDevsList.GetData().ToString() + "&"
-                      + t_("1. Not supported settings") + "&"
-                      + t_("2. Device was opened already"));
+                      + t_("-|1. Not supported settings") + "&"
+                      + t_("-|2. Device was opened already"));
     }
 
     return nullptr;
@@ -122,7 +125,6 @@ SerialConn* SerialDevsDialog::RequestConn()
         if (serial) {
             auto conn = ConnFactory::Inst()->CreateInst(type_name, std::make_shared<SerialPort>(serial));
             if (!conn) {
-                String type_name = mTypes.GetValue(mTypes.GetIndex()).ToString();
                 Upp::PromptOK(t_("Dose not support:") + type_name);
             } else return conn;
         }

@@ -28,6 +28,9 @@ protected:
     void UpdateAsHex();
     //
     void InstallActions();
+    // UI
+    void Set_TxInHex();
+    void Set_TxInTxt();
     //
 private:
     Proto* mTxProto;
