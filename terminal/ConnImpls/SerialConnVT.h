@@ -1,6 +1,8 @@
 //
 // (c) 2020 chiv
 //
+// 2020/9/4 - From now on, CursorX, CursorY is the data position, not presentation position
+//            anymore.
 #ifndef _comxd_ConnVT_h_
 #define _comxd_ConnVT_h_
 
@@ -35,6 +37,7 @@ static inline std::string Utf32ToUtf8(const uint32_t& cp)
     }
     return out;
 }
+
 static inline std::vector<uint32_t> Utf8ToUtf32(const std::string& seq, size_t& ep)
 {
     std::vector<uint32_t> out;
@@ -144,6 +147,11 @@ public:
         : mChar(c)
     {
     }
+    VTChar(const uint32_t& c, const std::vector<std::function<void()> >& attr_funs)
+        : mChar(c)
+        , mAttrFuns(attr_funs)
+    {
+    }
     // operators
     operator uint32_t() const
     {
@@ -167,9 +175,65 @@ public:
             mAttrFuns[k]();
         }
     }
+    //
+    void SetVar(const std::string& name, const std::string& value)
+    {
+        mVars[name] = value;
+    }
+    void RemoveVar(const std::string& name)
+    {
+        mVars.erase(name);
+    }
+    //
+    std::string Var(const std::string& name) const
+    {
+        auto it = mVars.find(name);
+        if (it != mVars.end()) {
+            return it->second;
+        }
+        return "";
+    }
 private:
     uint32_t mChar; // UTF-32 LE
     std::vector<std::function<void()> > mAttrFuns;
+    //
+    std::map<std::string, std::string> mVars;
+};
+/// warning: You should set height manually.
+class VTLine : public std::vector<VTChar> {
+public:
+    VTLine() {}
+    explicit VTLine(size_t sz)
+        : std::vector<VTChar>(sz)
+        , mHeight(1)
+    {
+    }
+    VTLine(size_t sz, const VTChar& c)
+        : std::vector<VTChar>(sz, c)
+        , mHeight(1)
+    {
+    }
+    VTLine& SetHeight(int height) { mHeight = height; return *this; }
+    int GetHeight() const { return mHeight; };
+    // vars, for user.
+    std::string Var(const std::string& name)
+    {
+        auto it = mVars.find(name);
+        if (it != mVars.end()) return it->second;
+        else return "";
+    }
+    void SetVar(const std::string& name, std::string& value)
+    {
+        mVars[name] = value;
+    }
+    void RemoveVar(const std::string& name)
+    {
+        mVars.erase(name);
+    }
+    
+private:
+    int mHeight;
+    std::map<std::string, std::string> mVars;
 };
 
 class SerialConnVT : public SerialConn {
@@ -195,13 +259,13 @@ protected:
     virtual void RightUp(Upp::Point p, Upp::dword keyflags);
     virtual Upp::Image CursorImage(Upp::Point p, Upp::dword keyflags);
     //
-    typedef std::vector<VTChar> VTLine;
-    VTChar mBlankChr;
+    VTChar mBlankChar;
     //
     std::vector<VTLine> mLinesBuffer; //<! All rendered text
     std::vector<VTLine> mLines; //<! Text on current screen, treat is as virtual screen
-    /// Position of virtual cursor
-    int mCursorX, mCursorY;
+    /// Active position
+    int mVx, mVy;      //<! Active position of data component
+    int mPx, mPy;      //<! Active position of presentation component
     /// \brief Render text on virtual screen
     /// \param seq complete VT characters
     virtual void RenderText(const std::vector<uint32_t>& s);
@@ -211,10 +275,6 @@ protected:
     void PushToLinesBufferAndCheck(const VTLine& vline);
     // check the new line, and push it to the lines buffer if needed.
     virtual void ProcessOverflowLines();
-    // Get virtual screen from position p. This routine make a virtual screen from
-    // LinesBuffer+Lines.
-    // nlines_from_buffer, store the count of lines from lines buffer
-    virtual std::vector<VTLine> GetMergedScreen(size_t p, int& nlines_from_buffer) const;
     // calcualte blank lines from end of lines
     int CalculateNumberOfBlankLinesFromEnd(const std::vector<VTLine>& lines) const;
     int CalculateNumberOfBlankCharsFromEnd(const VTLine& vline) const;
@@ -238,16 +298,17 @@ protected:
     SelectionSpan mSelectionSpan;
     std::vector<std::string> GetSelection() const;
     Upp::String GetSelectedText() const;
-    // return x position of virtual screen
-    // lx - unit: logic unit
+    // lx, ly - Absolute position
+    Upp::Point LogicToVirtual(int lx, int ly) const;
+    Upp::Point VirtualToLogic(int vx, int vy) const;
+    // lx, ly - lines is virtual screen
+    Upp::Point LogicToVirtual(const std::vector<VTLine>& lines, int lx, int ly) const;
+    Upp::Point VirtualToLogic(const std::vector<VTLine>& lines, int vx, int vy) const;
+    // x
     int LogicToVirtual(const VTLine& vline, int lx) const;
-    // return x position of logic screen
-    // vx - unit: char
     int VirtualToLogic(const VTLine& vline, int vx) const;
-    // return logic width of vline, equal to VirtualToLogic(vline, 0);
-    int GetLogicWidth(const VTLine& vline) const;
-    // return longest line size, unit: logic or char
-    int GetLongestLineSize(const std::vector<VTLine>& vlines, bool in_logic = true) const;
+    // return logic width of vline, unit: pixels
+    int GetLogicWidth(const VTLine& vline, int count = -1) const;
     // adjust virtual screen, what can affect this routine were listed below
     //  1. Font
     //  2. Size of client region
@@ -272,16 +333,25 @@ protected:
     Upp::VScrollBar mSbV;
     Upp::HScrollBar mSbH;
     //
-    int GetCharWidth(const VTChar& c) const;
+    virtual int GetCharWidth(const VTChar& c) const;
+    // vy - absolute position
+    virtual int GetLineHeight(int vy) const;
     // calculate the size of console
     virtual Upp::Size GetConsoleSize() const;
     // VTChar contains the codepoint
     virtual std::string TranscodeToUTF8(const VTChar& cc) const;
     //
-    virtual int IsControlSeq(const std::string& seq) = 0;
+    virtual int IsControlSeq(const std::string& seq);
     virtual void ProcessControlSeq(const std::string& seq, int seq_type);
     // 00~0x1f
-    virtual void ProcessAsciiControlChar(char cc);
+    // VT will process following chars
+    // 0x0b VT
+    // 0x09 HT
+    // 0x08 BS
+    // 0x0a LN
+    // 0x0d CR
+    // others were ignored.
+    virtual bool ProcessAsciiControlChar(char cc);
     // with K_DELTA
     virtual bool ProcessKeyDown(Upp::dword key, Upp::dword flags);
     virtual bool ProcessKeyUp(Upp::dword key, Upp::dword flags);
@@ -291,23 +361,22 @@ protected:
     virtual void SetDefaultStyle();
     // render text
     virtual void Render(Upp::Draw& draw);
-    // vx    - the position of vchar in vline, we render vchars from this position
-    // vy    - the position of vline in virtual screen
+    // draw cursor
+    virtual void DrawCursor(Upp::Draw& draw);
+    // draw character
+    virtual void DrawVTChar(Upp::Draw& draw, int x, int y, const VTChar& c,
+                            const Upp::Font& font, const Upp::Color& cr);
     //
-    //       |````````````````````````````|
-    //       |       lines buffer         |        lines buffer , var: mLinesBuffer
-    //       |                            |
-    //       |                            |
-    //       `````````````````````````````
-    //       |       virtual screen       |        virtual screen, var: mLines
-    //       |                            |
-    //       `````````````````````````````
-    // vline - vline to draw
-    virtual void DrawVLine(Upp::Draw& draw, int vx, int vy, const VTLine& vline);
-    virtual void DrawVLines(Upp::Draw& draw, const std::vector<VTLine>& vlines);
-    virtual void DrawCursor(Upp::Draw& draw, int vx, int vy);
-    virtual void DrawText(Upp::Draw& draw, int x, int y, const std::string& text,
-        const Upp::Font& font, const Upp::Color& cr);
+    virtual void DrawVT(Upp::Draw& draw);
+    virtual void DrawVTLine(Upp::Draw& draw, const VTLine& vline,
+                            int vx, int vy, /*! absolute position of data */
+                            int lxoff, int lyoff);
+    //
+    int GetVTLinesHeight(const std::vector<VTLine>& lines) const;
+    //
+    virtual void UpdatePresentationPos();
+    virtual void UpdateScrollbar();
+    virtual void UpdatePresentation();
 private:
     // receiver
     volatile bool mRxShouldStop;
@@ -315,8 +384,8 @@ private:
     //
     std::thread mRxThr;
     size_t mMaxLinesBufferSize;
-    /// the x,y is absolute position, unit: char, virtual screen.
-    inline bool IsCharInSelectionSpan(int x, int y) const;
+    // vx,vy Position of data
+    inline bool IsCharInSelectionSpan(int vx, int vy) const;
     //
     void InstallUserActions();
 };

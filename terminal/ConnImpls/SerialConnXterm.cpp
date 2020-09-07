@@ -23,19 +23,27 @@ SerialConnXterm::~SerialConnXterm()
 
 void SerialConnXterm::SaveScr(ScreenData& sd)
 {
-    SaveCursor(sd.CursorData_);
-    sd.AttrFuncs_ = mCurrAttrFuncs;
-    sd.LinesBuffer_ = mLinesBuffer;
-    sd.Lines_ = mLines;
+    sd.Vx = mVx;
+    sd.Vy = mVy;
+    sd.Font = mFont;
+    sd.Blink = mBlink;
+    sd.BgColor = mBgColor;
+    sd.FgColor = mFgColor;
+    sd.AttrFuncs = mCurrAttrFuncs;
+    sd.LinesBuffer = mLinesBuffer;
+    sd.Lines = mLines;
 }
 
 void SerialConnXterm::LoadScr(const ScreenData& sd)
 {
-    mLinesBuffer = sd.LinesBuffer_;
-    mLines = sd.Lines_;
-    mCurrAttrFuncs = sd.AttrFuncs_;
-    // before LoadCursor, others should be loaded already.
-    LoadCursor(sd.CursorData_);
+    mLinesBuffer = sd.LinesBuffer;
+    mLines = sd.Lines;
+    mCurrAttrFuncs = sd.AttrFuncs;
+    mVx = sd.Vx;
+    mVy = sd.Vy;
+    mFgColor = sd.FgColor;
+    mBgColor = sd.BgColor;
+    mBlink = sd.Blink;
 }
 
 void SerialConnXterm::ProcessXtermTrivial(const std::string& seq)

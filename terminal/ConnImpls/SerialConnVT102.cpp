@@ -27,31 +27,31 @@ SerialConnVT102::~SerialConnVT102()
 
 int SerialConnVT102::IsControlSeq(const std::string& seq)
 {
-    return IsVT102ControlSeq(seq);
+    int ret = IsVT102ControlSeq(seq);
+    if (ret == 0) {
+        ret = Superclass::IsControlSeq(seq);
+    }
+    return ret;
 }
 //----------------------------------------------------------------------------------------------
 void SerialConnVT102::SaveCursor(CursorData& cd)
 {
-    cd.X = mCursorX;
-    cd.Y = mCursorY;
+    cd.Vx = mVx;
+    cd.Vy = mVy;
     cd.FgColor = mFgColor;
     cd.BgColor = mBgColor;
-    cd.Bold = mFont.IsBold();
-    cd.Italic = mFont.IsItalic();
-    cd.Strikeout = mFont.IsStrikeout();
-    cd.Underline = mFont.IsUnderline();
+    cd.Font = mFont;
+    cd.Blink = mBlink;
 }
 
 void SerialConnVT102::LoadCursor(const CursorData& cd)
 {
-    mCursorX = cd.X;
-    mCursorY = cd.Y;
-    mFont.Bold(cd.Bold);
-    mFont.Italic(cd.Italic);
-    mFont.Strikeout(cd.Strikeout);
-    mFont.Underline(cd.Underline);
+    mVx = cd.Vx;
+    mVy = cd.Vy;
+    mFont = cd.Font;
     mFgColor = cd.FgColor;
     mBgColor = cd.BgColor;
+    mBlink = cd.Blink;
     //
     DoLayout();
 }
@@ -70,32 +70,19 @@ void SerialConnVT102::ProcessOverflowLines()
     if (bottom < 0 || bottom >= csz.cy)
         bottom = csz.cy-1;
     ASSERT(span.Top < (int)mLines.size());
-    if (mCursorY == bottom+1) {
+    if (mVy == bottom+1) {
         PushToLinesBufferAndCheck(mLines[span.Top]);
         mLines.erase(mLines.begin() + span.Top);
-        mLines.insert(mLines.begin() + bottom, VTLine(csz.cx, mBlankChr));
-        mCursorY = bottom;
-    } else if (mCursorY >= csz.cy) { // wrap lines, override the last line of virtual screen.
-        mCursorY = csz.cy - 1;
+        mLines.insert(mLines.begin() + bottom, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
+        mVy = bottom;
+    } else if (mVy >= csz.cy) { // wrap lines, override the last line of virtual screen.
+        mVy = csz.cy - 1;
     }
 }
 //
 std::string SerialConnVT102::TranscodeToUTF8(const VTChar& cc) const
 {
     return Utf32ToUtf8(VT102_Transcode(cc, mCharset, mSS));
-}
-//
-void SerialConnVT102::DrawCursor(Upp::Draw& draw, int vx, int vy)
-{
-    Size csz = GetConsoleSize();
-    int top = mScrollingRegion.Top;
-    int bot = mScrollingRegion.Bottom;
-    if (bot < 0) bot = csz.cy - 1;
-    if (vy >= 0 && vy <= bot) {
-        int x = -mSbH.Get() + mFontW*vx;
-        int y = mFontH*vy;
-        draw.DrawRect(x, y, mFontW, mFontH, Color(0, 255, 0));
-    }
 }
 //
 void SerialConnVT102::ExtendVirtualScreen(int cx, int cy)
@@ -112,16 +99,16 @@ void SerialConnVT102::ExtendVirtualScreen(int cx, int cy)
         for (int i = 0; i < extcn && !mLinesBuffer.empty(); ++i) {
             VTLine vline = *mLinesBuffer.rbegin(); mLinesBuffer.pop_back();
             for (int n = (int)vline.size(); n < cx; ++n) {
-                vline.push_back(mBlankChr);
+                vline.push_back(mBlankChar);
             }
             mLines.insert(mLines.begin(), vline);
             ln++;
         }
-        mCursorY += ln;
+        mVy += ln;
     }
     // 1. push blanks
     for (int i = ln; i < cy && i < extcn; ++i) {
-        mLines.push_back(VTLine(cx, mBlankChr));
+        mLines.push_back(VTLine(cx, mBlankChar).SetHeight(mFontH));
     }
 }
 
@@ -149,8 +136,8 @@ void SerialConnVT102::ShrinkVirtualScreen(int cx, int cy)
     for (int i = ln; i < shkcn; ++i) {
         PushToLinesBufferAndCheck(*mLines.begin());
         mLines.erase(mLines.begin());
-        if (mCursorY > 0) {
-            mCursorY--;
+        if (mVy > 0) {
+            mVy--;
         }
     }
     // set scrolling region to default.
@@ -170,7 +157,7 @@ void SerialConnVT102::DoLayout()
 	for (size_t k = 0; k < mLines.size(); ++k) {
 	    VTLine& vline = mLines[k];
 	    for (size_t i = vline.size(); (int)i < csz.cx; ++i) {
-	        vline.push_back(mBlankChr);
+	        vline.push_back(mBlankChar);
 	    }
 	}
 	// extend or shrink the virtual screen
@@ -180,47 +167,6 @@ void SerialConnVT102::DoLayout()
 	} else {
 	    ShrinkVirtualScreen(csz.cx, csz.cy);
 	}
-}
-//
-std::vector<SerialConnVT::VTLine> SerialConnVT102::GetMergedScreen(size_t p, int& nlines_from_buffer) const
-{
-    Size csz = GetConsoleSize();
-    std::vector<VTLine> out(csz.cy);
-    size_t ln = 0;
-    // -----------------------------------------------------------------------------------------
-    //  part 0,    0 ~ Top
-    //  part 1,    p ~ buffer lines, max count is (bot-top), denote as sn
-    //  part 3,    top ~ bot - sn, include bot-sn
-    //  part 4,    bot ~ end of lines
-    //  for example, top = 9, bot = 19, it defines a scrolling range, 11 lines total
-    //------------------------------------------------------------------------------------------
-    int top = mScrollingRegion.Top;
-    int bot = mScrollingRegion.Bottom;
-    if (bot < 0) bot = csz.cy - 1;
-    // part 0
-    for (int k = 0; k < (int)mLines.size() && k < top; ++k) {
-        out[ln++] = mLines[k];
-    }
-    // part 1
-    int sn = 0;
-    for (size_t k = p; k < mLinesBuffer.size() && ln < out.size() && sn <= bot-top; ++k) {
-        VTLine vline = mLinesBuffer[k];
-        for (int i = (int)vline.size(); i < csz.cx; ++i) {
-            vline.push_back(mBlankChr);
-        }
-        out[ln++] = vline;
-        sn++;
-    }
-    nlines_from_buffer = sn;
-    // part 3
-    for (int k = top; k <= bot - sn && ln < out.size(); ++k) {
-        out[ln++] = mLines[k];
-    }
-    for (size_t k = bot + 1; k < out.size() && ln < out.size(); ++k) {
-        out[ln++] = mLines[k];
-    }
-    
-    return out;
 }
 //----------------------------------------------------------------------------------------------
 void SerialConnVT102::InstallVT102Functions()
@@ -378,23 +324,23 @@ void SerialConnVT102::InstallVT102Functions()
         // home
         mScrollToEnd = true;
         if (mModes.Origin == VT102Modes::Relative) {
-            mCursorY = mScrollingRegion.Top;
+            mVy = mScrollingRegion.Top;
         } else {
-            mCursorY = 0;
+            mVy = 0;
         }
-        mCursorX = 0;
+        mVx = 0;
     };
     mVT102TrivialHandlers["[f"] = mVT102TrivialHandlers["[H"];
     mVT102TrivialHandlers["E"] = [=]() { // next line
-        mCursorY++;
-        mCursorX = 0;
+        mVy++;
+        mVx = 0;
     };
     mVT102TrivialHandlers["D"] = [=]() { // index
-        mCursorY++;
+        mVy++;
     };
     mVT102TrivialHandlers["M"] = [=]() { // reverse index
-        mCursorY--;
-        if (mCursorY < 0) mCursorY = 0;
+        mVy--;
+        if (mVy < 0) mVy = 0;
     };
     mVT102TrivialHandlers["7"] = [=]() { SaveCursor(mCursorData); };
     mVT102TrivialHandlers["8"] = [=]() { LoadCursor(mCursorData); };
@@ -409,32 +355,32 @@ void SerialConnVT102::InstallVT102Functions()
     // 1.11 Line attributes, we do not implement line attributes
     // 1.12 Erasing
     mVT102TrivialHandlers["[K"] = [=]() { // erase in line, cursor to end of line
-        if (mCursorY < (int)mLines.size()) {
+        if (mVy < (int)mLines.size()) {
             Size csz = GetConsoleSize();
-            for (int i = mCursorX; i < csz.cx; ++i) {
-                mLines[mCursorY][i] = mBlankChr;
+            for (int i = mVx; i < csz.cx; ++i) {
+                mLines[mVy][i] = mBlankChar;
             }
         }
     };
     mVT102TrivialHandlers["[0K"] = mVT102TrivialHandlers["[K"];
     mVT102TrivialHandlers["[1K"] = [=]() { // erase in line, beginning of line to cursor
-        if (mCursorY < (int)mLines.size()) {
+        if (mVy < (int)mLines.size()) {
             Size csz = GetConsoleSize();
-            for (int i = 0; i < mCursorX; ++i) {
-                mLines[mCursorY][i] = mBlankChr;
+            for (int i = 0; i < mVx; ++i) {
+                mLines[mVy][i] = mBlankChar;
             }
         }
     };
     mVT102TrivialHandlers["[2K"] = [=]() { // erase in line, entire line containing cursor
         Size csz = GetConsoleSize();
-        if (mCursorY < (int)mLines.size()) {
-            mLines[mCursorY] = VTLine(csz.cx, mBlankChr);
+        if (mVy < (int)mLines.size()) {
+            mLines[mVy] = VTLine(csz.cx, mBlankChar).SetHeight(mFontH);
         }
     };
     mVT102TrivialHandlers["[J"] = [=]() { // erase in display, cursor to end of screen
         // If VT will clear entire screen, push lines to buffer.
 #if 0   // We do not buffer the lines deleted.
-        if (mCursorX == 0 && mCursorY == 0) {
+        if (mVx == 0 && mVy == 0) {
             int nlines = (int)mLines.size() - this->CalculateNumberOfBlankLinesFromEnd(mLines);
             for (int i = 0; i < nlines; ++i) {
                 this->PushToLinesBufferAndCheck(mLines[i]);
@@ -442,32 +388,32 @@ void SerialConnVT102::InstallVT102Functions()
         }
 #endif
         Size csz = GetConsoleSize();
-        if (mCursorY < (int)mLines.size()) {
+        if (mVy < (int)mLines.size()) {
             // csz.cy == mLines.size(), this condition is always true.
-            for (int i = mCursorX; i < csz.cx; ++i) {
-                mLines[mCursorY][i] = mBlankChr;
+            for (int i = mVx; i < csz.cx; ++i) {
+                mLines[mVy][i] = mBlankChar;
             }
-            for (int i = mCursorY+1; i < csz.cy; ++i) {
-                mLines[i] = VTLine(csz.cx, mBlankChr);
+            for (int i = mVy+1; i < csz.cy; ++i) {
+                mLines[i] = VTLine(csz.cx, mBlankChar).SetHeight(mFontH);
             }
         }
     };
     mVT102TrivialHandlers["[0J"] = mVT102TrivialHandlers["[J"];
     mVT102TrivialHandlers["[1J"] = [=]() { // erase in display, beginning of screen to cursor
-        if (mCursorY < (int)mLines.size()) {
+        if (mVy < (int)mLines.size()) {
             Size csz = GetConsoleSize();
-            for (int i = 0; i < mCursorX; ++i) {
-                mLines[mCursorY][i] = mBlankChr;
+            for (int i = 0; i < mVx; ++i) {
+                mLines[mVy][i] = mBlankChar;
             }
-            for (int i = 0; i < mCursorY; ++i) {
-                mLines[i] = VTLine(csz.cx, mBlankChr);
+            for (int i = 0; i < mVy; ++i) {
+                mLines[i] = VTLine(csz.cx, mBlankChar).SetHeight(mFontH);
             }
         }
     };
     mVT102TrivialHandlers["[2J"] = [=]() { // erase in display, entire screen
         Size csz = GetConsoleSize();
         for (size_t k = 0; k < mLines.size(); ++k) {
-            mLines[k] = VTLine(csz.cx, mBlankChr);
+            mLines[k] = VTLine(csz.cx, mBlankChar).SetHeight(mFontH);
         }
     };
     // 1.13 Editing functions, see IsVT102EditingFunctions
@@ -482,8 +428,8 @@ void SerialConnVT102::InstallVT102Functions()
     };
     mVT102TrivialHandlers["[6n"] = [=]() {
         std::string rsp = "\033["
-                          + std::to_string(mCursorY+1) + ";"
-                          + std::to_string(mCursorX+1) + "R";
+                          + std::to_string(mVy+1) + ";"
+                          + std::to_string(mVx+1) + "R";
         GetSerial()->Write(rsp);
     };
     mVT102TrivialHandlers["[c"] = [=]() {
@@ -496,7 +442,7 @@ void SerialConnVT102::InstallVT102Functions()
     mVT102TrivialHandlers["#8"] = [=]() {
         Size csz = GetConsoleSize();
         for (size_t i = 0; i < mLines.size(); ++i) {
-            mLines[i] = VTLine(csz.cx, 'E');
+            mLines[i] = VTLine(csz.cx, 'E').SetHeight(mFontH);
         }
     };
     // 1.18 keyboard led
@@ -517,24 +463,24 @@ void SerialConnVT102::ProcessVT102CursorMovementCmds(const std::string& seq)
     case 'A':if (1) {
         int n = atoi(seq.substr(1, seq.length() - 2).c_str());
         if (n <= 0) n = 1;
-        mCursorY -= n;
-        mCursorY = std::max(mCursorY, 0);
+        mVy -= n;
+        mVy = std::max(mVy, 0);
     } break;
     case 'B':if (1) {
         int n = atoi(seq.substr(1, seq.length() - 2).c_str());
         if (n <= 0) n = 1;
-        mCursorY += n;
+        mVy += n;
     } break;
     case 'C':if (1) {
         int n = atoi(seq.substr(1, seq.length() - 2).c_str());
         if (n <= 0) n = 1;
-        mCursorX += n;
+        mVx += n;
     } break;
     case 'D':if (1) {
         int n = atoi(seq.substr(1, seq.length() - 2).c_str());
         if (n <= 0) n = 1;
-        mCursorX -= n;
-        mCursorX = std::max(mCursorX, 0);
+        mVx -= n;
+        mVx = std::max(mVx, 0);
     } break;
     case 'H':
     case 'f':if (1) {
@@ -543,8 +489,8 @@ void SerialConnVT102::ProcessVT102CursorMovementCmds(const std::string& seq)
             int y = atoi(seq.substr(1, p-1).c_str()) - 1;
             int x = atoi(seq.substr(p+1, seq.size() - p - 1).c_str()) - 1;
             Size csz = GetConsoleSize();
-            if (x < 0) x = 0; mCursorX = x; if (mCursorX >= csz.cx) mCursorX = csz.cx-1;
-            if (y < 0) y = 0; mCursorY = y; if (mCursorY >= csz.cy) mCursorY = csz.cy-1;
+            if (x < 0) x = 0; mVx = x; if (mVx >= csz.cx) mVx = csz.cx-1;
+            if (y < 0) y = 0; mVy = y; if (mVy >= csz.cy) mVy = csz.cy-1;
         }
     } break;
     }
@@ -562,8 +508,39 @@ void SerialConnVT102::ProcessVT102ScrollingRegion(const std::string& seq)
             mScrollingRegion.Top = t;
             mScrollingRegion.Bottom = b;
             // Home to scrolling region.
-            mCursorX = 0; mCursorY = t;
+            mVx = 0; mVy = t;
         }
+    }
+}
+// To support Scrolling region
+void SerialConnVT102::DrawVT(Draw& draw)
+{
+    // calculate offset
+    Point vpos = LogicToVirtual(mSbH.Get(), mSbV.Get());
+    if (vpos.x < 0 || vpos.y < 0) return;
+    Point lpos = VirtualToLogic(vpos.x, vpos.y);
+    int lxoff = lpos.x - mSbH.Get();
+    int lyoff = lpos.y - mSbV.Get();
+    //--------------------------------------------------------------
+    // draw lines, and calculate the presentation information
+    int bot = mScrollingRegion.Bottom;
+    if (bot < 0) {
+        bot = (int)mLines.size() - 1;
+    }
+    //
+    Size usz = GetSize(); int vy = vpos.y;
+    for (int i = vpos.y; i < (int)mLinesBuffer.size(); ++i) {
+        const VTLine& vline = mLinesBuffer[i];
+        DrawVTLine(draw, vline, vpos.x, vy++, lxoff, lyoff);
+        lyoff += vline.GetHeight();
+        if (vy >= bot) break;
+    }
+    for (int i = std::max(0, vpos.y - (int)mLinesBuffer.size()); i < (int)mLines.size(); ++i) {
+        const VTLine& vline = mLines[i];
+        DrawVTLine(draw, vline, vpos.x, vy++, lxoff, lyoff);
+        lyoff += vline.GetHeight();
+        if (lyoff >= usz.cy)
+            break;
     }
 }
 //
@@ -572,19 +549,19 @@ void SerialConnVT102::ProcessVT102EditingFunctions(const std::string& seq)
     if (seq.length() < 2) return;
     switch (*seq.rbegin()) {
     case 'P':if (1) { // delete character
-        if (mCursorY >= (int)mLines.size()) break;
+        if (mVy >= (int)mLines.size()) break;
         const int n_chars = atoi(seq.substr(1, seq.length()-2).c_str());
         int n_moved = 0;
-        const int& y = mCursorY;
-        int p = mCursorX + n_chars;
+        const int& y = mVy;
+        int p = mVx + n_chars;
         if (p < (int)mLines[y].size()) {
-            for (int i = mCursorX; n_moved < n_chars && i < (int)mLines[y].size(); ++i) {
+            for (int i = mVx; n_moved < n_chars && i < (int)mLines[y].size(); ++i) {
                 mLines[y][i] = mLines[y][p+i];
                 n_moved++;
             }
         } else {
-            for (int i = mCursorX; n_moved < n_chars && i < (int)mLines[y].size(); ++i) {
-                mLines[y][i] = mBlankChr;
+            for (int i = mVx; n_moved < n_chars && i < (int)mLines[y].size(); ++i) {
+                mLines[y][i] = mBlankChar;
             }
         }
     } break;
@@ -659,7 +636,7 @@ void SerialConnVT102::ProcessControlSeq(const std::string& seq, int seq_type)
     }
 }
 //
-void SerialConnVT102::ProcessAsciiControlChar(char cc)
+bool SerialConnVT102::ProcessAsciiControlChar(char cc)
 {
     switch (cc) {
     case 0x00: break; // NUL
@@ -667,28 +644,18 @@ void SerialConnVT102::ProcessAsciiControlChar(char cc)
     case 0x04: break; // EOT
     case 0x05: break; // ENQ
     case 0x07: break; // BEL
-    case 0x08: // BS
-        if (mCursorX > 0) {
-            mCursorX -= 1;
-        }
-        break;
-    case 0x09: if (1) { // HT, TODO: HTS
-    } break;
     case 0x0a: // LF, Also causes printing if auto print operation selected.
                // We do not support printer, just process the linefeed/newline.
     case 0x0b: // VT, vertical tab
     case 0x0c: // FF
         if (mModes.LineFeedNewLine == VT102Modes::NewLine) {
             // LF,FF,VT - cursor moves to left margin of next line
-            mCursorY += 1;
-            mCursorX = 0;
+            mVy += 1;
+            mVx = 0;
         } else {
             // LF,FF,VT - cursor moves to next line but stays in same column
-            mCursorY += 1;
+            mVy += 1;
         }
-        break;
-    case 0x0d: // CR
-        mCursorX = 0;
         break;
     // WE DO NOT NEED THESE, because we support them in other ways.
     case 0x0e: mSS = VT102_SO; break; // SO
@@ -698,7 +665,9 @@ void SerialConnVT102::ProcessAsciiControlChar(char cc)
     case 0x18: // CAN
     case 0x1a: // SUB, processed as CAN
         break;
+    default: return Superclass::ProcessAsciiControlChar(cc);
     }
+    return true;
 }
 //----------------------------------------------
 bool SerialConnVT102::ProcessKeyDown(dword key, dword flags)

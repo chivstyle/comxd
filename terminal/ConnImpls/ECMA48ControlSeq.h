@@ -276,6 +276,7 @@ static const char kECMA48_C1[] = {
 };
 
 static const char* kECMA48CtrlSeqs[] = {
+    "[H"
 };
 
 enum ECMA48FuncionType {
@@ -474,8 +475,9 @@ static inline int IsECMA48_2PsB(const std::string& seq)
                 return SEQ_PENDING;
             else {
                 if (seq[b] == ';') {
+                    b++; // skip ;
                     while (b < seq_sz) {
-                        if ((seq[b] >= '0' && seq[b] <= '9') || seq[b] == ' ')
+                        if ((seq[b] >= '0' && seq[b] <= '9'))
                             b++;
                         else
                             break;
@@ -519,8 +521,9 @@ static inline int IsECMA48_2PnB(const std::string& seq)
                 return SEQ_PENDING;
             else {
                 if (seq[b] == ';') {
+                    b++; // skip ;
                     while (b < seq_sz) {
-                        if ((seq[b] >= '0' && seq[b] <= '9') || seq[b] == ' ')
+                        if ((seq[b] >= '0' && seq[b] <= '9'))
                             b++;
                         else
                             break;
@@ -564,8 +567,9 @@ static inline int IsECMA48_2Pn(const std::string& seq)
                 return SEQ_PENDING;
             else {
                 if (seq[b] == ';') {
+                    b++; // skip ;
                     while (b < seq_sz) {
-                        if ((seq[b] >= '0' && seq[b] <= '9') || seq[b] == ' ')
+                        if ((seq[b] >= '0' && seq[b] <= '9'))
                             b++;
                         else
                             break;

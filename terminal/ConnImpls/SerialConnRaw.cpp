@@ -287,30 +287,35 @@ static std::string ReplaceLineBreak_(const std::string& text, int lb)
 void SerialConnRaw::Set_TxInHex()
 {
     if (mTxProto) {
-        std::string tx = mTx.GetData().ToString().ToStd(); // UTF-8
+        std::string tx = mTx.GetData().ToString().ToStd();
         std::string errmsg;
-        auto out = mTxProto->Pack((unsigned char*)tx.c_str(), tx.length(), errmsg);
-        if (out.empty()) {
-            PromptOK(Upp::DeQtf(errmsg.c_str()));
-        } else {
+        auto out = mTxProto->Pack(tx, errmsg);
+        if (!out.empty()) {
             mTx.Set(ToHexString_(out));
         }
+        this->mTmpStatus.SetText(errmsg.c_str());
+        mTx.MoveEnd();
     }
 }
 
 void SerialConnRaw::Set_TxInTxt()
 {
     if (mTxProto) {
-        std::string tx = mTx.GetData().ToString().ToStd(); // UTF-8
+        std::string tx = mTx.GetData().ToString().ToStd();
         std::vector<unsigned char> out = ToHex_(tx);
-        std::string json = mTxProto->Parse(out.data(), out.size());
-        mTx.Set(json);
+        std::string errmsg;
+        std::string json = mTxProto->Unpack(out, errmsg);
+        if (!json.empty()) {
+            mTx.Set(json);
+        }
+        this->mTmpStatus.SetText(errmsg.c_str());
+        mTx.MoveEnd();
     }
 }
 
 void SerialConnRaw::OnSend()
 {
-    std::string tx = mTx.GetData().ToString().ToStd(); // UTF-8
+    std::string tx = mTx.GetData().ToString().ToStd();
     if (mTxHex.Get()) {
         // write as hex.
         mSerial->Write(ToHex_(tx));
@@ -321,7 +326,7 @@ void SerialConnRaw::OnSend()
         }
         if (mTxProto) {
             std::string errmsg;
-            auto out = mTxProto->Pack((unsigned char*)text.c_str(), text.length(), errmsg);
+            auto out = mTxProto->Pack(text, errmsg);
             if (out.empty()) {
                 PromptOK(Upp::DeQtf(errmsg.c_str()));
             } else {
@@ -335,10 +340,69 @@ void SerialConnRaw::OnSend()
 
 void SerialConnRaw::UpdateAsTxt()
 {
+    std::string text;
     mRxBufferLock.lock();
-    String text(mRxBuffer.data(), mRxBuffer.size());
+    const auto& buf = mRxBuffer;
+    // abc, you known
+    if (mShowInvisibleChars.Get()) {
+        for (size_t k = 0; k < buf.size(); ++k) {
+            if (buf[k] == 0x7f || buf[k] >= 0 && buf[k] < 0x20) {
+                switch (buf[k]) {
+                case 0x00: text += "<NUL>"; break;
+                case 0x01: text += "<SOH>"; break;
+                case 0x02: text += "<STX>"; break;
+                case 0x03: text += "<ETX>"; break;
+                case 0x04: text += "<EOT>"; break;
+                case 0x05: text += "<ENQ>"; break;
+                case 0x06: text += "<ACK>"; break;
+                case 0x07: text += "<BEL>"; break;
+                case 0x08: text += "<BS>"; break;
+                // case 0x09: break; Tab
+                // case 0x0a: break; Line feed
+                case 0x0b: text += "<VT>"; break;
+                case 0x0c: text += "<FF>"; break;
+                // case 0x0d: break; carrier
+                case 0x0e: text += "<SO>"; break;
+                case 0x0f: text += "<SI>"; break;
+                case 0x10: text += "<DLE>"; break;
+                case 0x11: text += "<DC1>"; break;
+                case 0x12: text += "<DC2>"; break;
+                case 0x13: text += "<DC3>"; break;
+                case 0x14: text += "<DC4>"; break;
+                case 0x15: text += "<NAK>"; break;
+                case 0x16: text += "<SYN>"; break;
+                case 0x17: text += "<ETB>"; break;
+                case 0x18: text += "<CAN>"; break;
+                case 0x19: text += "<EM>"; break;
+                case 0x1a: text += "<SUB>"; break;
+                case 0x1b: text += "<ESC>"; break;
+                case 0x1c: text += "<FS>"; break;
+                case 0x1d: text += "<GS>"; break;
+                case 0x1e: text += "<RS>"; break;
+                case 0x1f: text += "<US>"; break;
+                case 0x7f: text += "<DEL>"; break;
+                default:
+                    text.push_back((char)buf[k]);
+                    break;
+                }
+            } else if (buf[k] >= 0x20 && buf[k] < 0x7f) {
+                text.push_back((char)buf[k]);
+            } else {
+                char hex[8];
+                sprintf(hex, "\\x%02x", buf[k]);
+                text += hex;
+            }
+        }
+    } else {
+        text.resize(buf.size());
+        for (size_t k = 0; k < buf.size(); ++k) {
+            text.push_back((char)buf[k]);
+        }
+    }
     mRxBufferLock.unlock();
-    mRx.SetData(text);
+    //
+    mRx.Set(text);
+    mRx.MoveEnd();
     mRx.ScrollEnd();
 }
 
@@ -361,6 +425,7 @@ void SerialConnRaw::UpdateAsHex()
     mRxBufferLock.unlock();
     //
     mRx.SetData(text);
+    mRx.MoveEnd();
     mRx.ScrollEnd();
 }
 

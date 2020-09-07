@@ -15,18 +15,14 @@ public:
     //-------------------------------------------------------------------------------------
     struct CursorData {
         // position
-        int X, Y;
-        // attributes
-        bool Bold, Italic, Strikeout, Underline;
-        // color
-        Upp::Color FgColor, BgColor;
+        int Vx, Vy;
+        bool Blink;
+        Upp::Font Font;
+        Upp::Color BgColor, FgColor;
         CursorData()
-            : X(0)
-            , Y(0)
-            , Bold(false)
-            , Italic(false)
-            , Strikeout(false)
-            , Underline(false)
+            : Vx(0)
+            , Vy(0)
+            , Blink(false)
         {
         }
     };
@@ -50,8 +46,9 @@ protected:
     // you can override these two routines to modify all functions.
     virtual void ProcessControlSeq(const std::string& seq, int seq_type);
     // C0 set.
-    virtual void ProcessAsciiControlChar(char cc);
+    virtual bool ProcessAsciiControlChar(char cc);
     //-------------------------------------------------------------------------------------
+    //
     // key, must be
     // 1. key with K_DELTA
     // 2. RETURN
@@ -72,11 +69,11 @@ protected:
     //-------------------------------------------------------------------------------------
     virtual Upp::Size GetConsoleSize() const;
     virtual void ProcessOverflowLines();
-    virtual std::vector<VTLine> GetMergedScreen(size_t p, int& nlines_from_buffer) const;
-    virtual void DrawCursor(Upp::Draw& draw, int vx, int vy);
     virtual void DoLayout();
     //-------------------------------------------------------------------------------------
     std::string TranscodeToUTF8(const VTChar& cc) const;
+    // override DrawVT to support scrolling region
+    void DrawVT(Upp::Draw& draw);
     //
 private:
     void ExtendVirtualScreen(int cx, int cy);

@@ -42,5 +42,6 @@ file
 	proto/ss.h,
 	proto/ss.cpp,
 	proto\ProtoSs.cpp,
-	proto\ProtoSs.h;
+	proto\ProtoSs.h,
+	srcimp.tpp;
 

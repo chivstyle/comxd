@@ -13,10 +13,13 @@ public:
     virtual ~SerialConnXterm();
     // public methods
     struct ScreenData {
-        std::vector<VTLine> LinesBuffer_; // buffer
-        std::vector<VTLine> Lines_;       // virtual screen
-        std::vector<std::function<void()> > AttrFuncs_;
-        CursorData CursorData_; // include 2 parts, position and attrs
+        std::vector<VTLine> LinesBuffer; // buffer
+        std::vector<VTLine> Lines;       // virtual screen
+        std::vector<std::function<void()> > AttrFuncs;
+        int Vx, Vy;
+        Upp::Font Font;
+        Upp::Color FgColor, BgColor;
+        bool Blink;
     };
     void SaveScr(ScreenData& sd);
     void LoadScr(const ScreenData& sd);
