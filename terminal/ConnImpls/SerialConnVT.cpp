@@ -33,7 +33,7 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> serial)
     // double buffer
     BackPaint();
     // default font
-    mFont = Monospace();
+    mFont = Upp::Monospace();
     // handlers
     mFontW = mFont.GetWidth('M');
     mFontH = mFont.GetLineHeight();
@@ -161,9 +161,7 @@ int SerialConnVT::GetCharWidth(const VTChar& c) const
     if (c == '\t') {
         return mFontW * atoi(c.Var("CellSize").c_str());
     } else {
-        int cx = mFont.GetWidth((int)c);
-        // adjust width
-        return (cx + mFontW-1) / mFontW * mFontW;
+        return mFont.IsFixedPitch() ? mFontW : mFont.GetWidth((int)c);
     }
 }
 
@@ -200,7 +198,7 @@ Point SerialConnVT::LogicToVirtual(const std::vector<VTLine>& lines, int lx, int
     int px = 0, vx = 0;
     for (int i = 0; i < (int)lines[vy].size(); ++i) {
         px += GetCharWidth(lines[vy][i]);
-        if (px >= lx) {
+        if (px > lx) {
             vx = i;
             break;
         }
@@ -278,7 +276,7 @@ Point SerialConnVT::LogicToVirtual(int lx, int ly) const
     int px = 0, vx = 0;
     for (int k = 0; k < (int)vline->size(); ++k) {
         px += GetCharWidth(vline->at(k));
-        if (px >= lx) {
+        if (px > lx) {
             vx = k;
             break;
         }
@@ -409,7 +407,7 @@ Image SerialConnVT::CursorImage(Point p, dword keyflags)
     (void)p;
     (void)keyflags;
     //
-    return Image::IBeam();
+    return terminal::cursor_beam;
 }
 
 void SerialConnVT::MouseWheel(Point, int zdelta, dword)
@@ -442,29 +440,15 @@ void SerialConnVT::MouseMove(Point p, dword)
         // scroll over
         if (p.y < 0) {
             int b0 = mSbV.Get();
-            mSbV.Set(mSbV.Get() - this->GetLineHeight(vpos.y - 1));
-            Rect rc = this->GetCaret();
-            rc.Offset(0, -mSbV.Get() + b0);
-            SetCaret(rc);
+            mSbV.PrevLine();
         } else if (p.y > GetSize().cy) {
             int b0 = mSbV.Get();
-            mSbV.Set(mSbV.Get() + this->GetLineHeight(vpos.y + 1));
-            Rect rc = this->GetCaret();
-            rc.Offset(0, mSbV.Get() - b0);
-            SetCaret(rc);
+            mSbV.NextLine();
         }
         if (p.x < 0) {
-            int b0 = mSbV.Get();
-            mSbH.Set(mSbH.Get() - this->GetLineHeight(vpos.y - 1));
-            Rect rc = this->GetCaret();
-            rc.Offset(0, -mSbH.Get() + b0);
-            SetCaret(rc);
+            mSbH.PrevLine();
         } else if (p.x > GetSize().cx) {
-            int b0 = mSbV.Get();
-            mSbH.Set(mSbH.Get() + this->GetLineHeight(vpos.y + 1));
-            Rect rc = this->GetCaret();
-            rc.Offset(0, mSbH.Get() - b0);
-            SetCaret(rc);
+            mSbH.NextLine();
         }
         //
         mSelectionSpan.x1 = p.x;
@@ -491,9 +475,6 @@ void SerialConnVT::LeftDown(Point p, dword)
     mSelectionSpan.Y1 = vpos.y;
     mSelectionSpan.x0 = mSelectionSpan.x1 = p.x;
     mSelectionSpan.y0 = mSelectionSpan.y1 = p.y;
-    //
-    int caret_height = GetLineHeight(vpos.y);
-    this->SetCaret(lpos.x - mSbH.Get(), lpos.y - mSbV.Get(), 1, caret_height);
     // capture, event the cursor move out of the client region.
     SetFocus();
     SetCapture();
@@ -503,7 +484,6 @@ void SerialConnVT::LeftUp(Point p, dword)
 {
     (void)p;
     if (mPressed) {
-        this->KillCaret();
         mPressed = false;
         Refresh();
     }
@@ -811,9 +791,6 @@ String SerialConnVT::GetSelectedText() const
     String out;
     auto lines = GetSelection();
     for (size_t k = 0; k < lines.size(); ++k) {
-        if (k != 0) {
-            out += "\n";
-        }
         // strip tail blanks of lines or \v
         size_t n = 0;
         while (n < lines[k].size()) {
@@ -823,6 +800,9 @@ String SerialConnVT::GetSelectedText() const
             else break;
         }
         out += lines[k].substr(0, lines[k].size() - n);
+        if (k + 1 != lines.size()) {
+            out += '\n';
+        }
     }
     return out;
 }
@@ -916,10 +896,10 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
             }
             std::swap(mBgColor, mFgColor);
         }
-        
     }
     for (int i = csz.cx; i < (int)vline.size(); ++i) {
         vline[i].ApplyAttrs();
+        x += GetCharWidth(vline[i]);
     }
 }
 

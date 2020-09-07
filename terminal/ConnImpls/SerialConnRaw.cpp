@@ -74,6 +74,10 @@ void SerialConnRaw::InstallActions()
     this->mRxHex.WhenAction = [=]() {
         mRxHex.Get() ? UpdateAsHex() : UpdateAsTxt();
         mLineSz.SetEditable(mRxHex.Get() != 0);
+        this->mShowInvisibleChars.SetEditable(mRxHex.Get() == 0);
+    };
+    this->mShowInvisibleChars.WhenAction = [=]() {
+        UpdateAsTxt();
     };
     // clear rx
     this->mBtnClearRx.WhenAction = [=]() {
@@ -337,67 +341,34 @@ void SerialConnRaw::OnSend()
         }
     }
 }
+//
+static const char* kC0_Names[] = {
+    "<NUL>", "<SOH>",  "<STX>", "<ETX>", "<EOT>",
+    "<ENQ>", "<ACK>",  "<BEL>", "<BS>",  "<HT>",
+    "<LN>",  "<VT>",   "<FF>",  "<CR>",  "<SO>",
+    "<SI>",  "<DLE>",  "<DC1>", "<DC2>", "<DC3>",
+    "<DC4>", "<NAK>",  "<SYN>", "<ETB>", "<CAN>",
+    "<EM>",  "<SUB>",  "<ESC>", "<FS>",  "<GS>",
+    "<RS>",   "<US>"
+};
 
 void SerialConnRaw::UpdateAsTxt()
 {
-    std::string text;
+    String text;
     mRxBufferLock.lock();
     const auto& buf = mRxBuffer;
-    // abc, you known
     if (mShowInvisibleChars.Get()) {
         for (size_t k = 0; k < buf.size(); ++k) {
-            if (buf[k] == 0x7f || buf[k] >= 0 && buf[k] < 0x20) {
-                switch (buf[k]) {
-                case 0x00: text += "<NUL>"; break;
-                case 0x01: text += "<SOH>"; break;
-                case 0x02: text += "<STX>"; break;
-                case 0x03: text += "<ETX>"; break;
-                case 0x04: text += "<EOT>"; break;
-                case 0x05: text += "<ENQ>"; break;
-                case 0x06: text += "<ACK>"; break;
-                case 0x07: text += "<BEL>"; break;
-                case 0x08: text += "<BS>"; break;
-                // case 0x09: break; Tab
-                // case 0x0a: break; Line feed
-                case 0x0b: text += "<VT>"; break;
-                case 0x0c: text += "<FF>"; break;
-                // case 0x0d: break; carrier
-                case 0x0e: text += "<SO>"; break;
-                case 0x0f: text += "<SI>"; break;
-                case 0x10: text += "<DLE>"; break;
-                case 0x11: text += "<DC1>"; break;
-                case 0x12: text += "<DC2>"; break;
-                case 0x13: text += "<DC3>"; break;
-                case 0x14: text += "<DC4>"; break;
-                case 0x15: text += "<NAK>"; break;
-                case 0x16: text += "<SYN>"; break;
-                case 0x17: text += "<ETB>"; break;
-                case 0x18: text += "<CAN>"; break;
-                case 0x19: text += "<EM>"; break;
-                case 0x1a: text += "<SUB>"; break;
-                case 0x1b: text += "<ESC>"; break;
-                case 0x1c: text += "<FS>"; break;
-                case 0x1d: text += "<GS>"; break;
-                case 0x1e: text += "<RS>"; break;
-                case 0x1f: text += "<US>"; break;
-                case 0x7f: text += "<DEL>"; break;
-                default:
-                    text.push_back((char)buf[k]);
-                    break;
-                }
-            } else if (buf[k] >= 0x20 && buf[k] < 0x7f) {
-                text.push_back((char)buf[k]);
+            if (buf[k] == 0x7f || buf[k] >= 0 && buf[k] < 0x20 &&
+                buf[k] != 0x09 && buf[k] != 0x0a && buf[k] != 0x0d)
+            {
+                text += buf[k] == 0x7f ? "<DEL>" : kC0_Names[buf[k]];
             } else {
-                char hex[8];
-                sprintf(hex, "\\x%02x", buf[k]);
-                text += hex;
+                text << (char)buf[k];
             }
         }
     } else {
-        text.resize(buf.size());
-        for (size_t k = 0; k < buf.size(); ++k) {
-            text.push_back((char)buf[k]);
-        }
+        text = String(buf.data(), buf.size());
     }
     mRxBufferLock.unlock();
     //
