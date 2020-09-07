@@ -42,12 +42,12 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> serial)
     mBlankChar = ' ';
     mBlankChar.SetAttrFuns(mCurrAttrFuncs);
     // enable scroll bar
-    mSbH.SetLine(1); mSbH.Set(0); mSbV.SetTotal(0); AddFrame(mSbH);
+    mSbH.SetLine(mFontW); mSbH.Set(0); mSbV.SetTotal(0); AddFrame(mSbH);
     mSbH.WhenScroll = [=]() {
         Refresh();
     };
     // vertical
-    mSbV.SetLine(1); mSbV.Set(0); mSbV.SetTotal(0); AddFrame(mSbV);
+    mSbV.SetLine(mFontH); mSbV.Set(0); mSbV.SetTotal(0); AddFrame(mSbV);
     mSbV.WhenScroll = [=]() {
         int lposy = mSbV.Get();
         if (lposy + GetSize().cy >= mSbV.GetTotal()) {
@@ -481,8 +481,6 @@ void SerialConnVT::MouseMove(Point p, dword)
 
 void SerialConnVT::LeftDown(Point p, dword)
 {
-    int nlines = (int)mLinesBuffer.size() + \
-        (int)mLines.size() - this->CalculateNumberOfBlankLinesFromEnd(mLines);
     mPressed = true;
     Point vpos = this->LogicToVirtual(mSbH.Get() + p.x, mSbV.Get() + p.y);
     Point lpos = this->VirtualToLogic(vpos.x, vpos.y);
@@ -496,7 +494,7 @@ void SerialConnVT::LeftDown(Point p, dword)
     //
     int caret_height = GetLineHeight(vpos.y);
     this->SetCaret(lpos.x - mSbH.Get(), lpos.y - mSbV.Get(), 1, caret_height);
-    
+    // capture, event the cursor move out of the client region.
     SetFocus();
     SetCapture();
 }
@@ -553,6 +551,7 @@ void SerialConnVT::RightUp(Point, dword)
 		//
 		bar.Add("Test height", [=]() {
 		    mLines[5].SetHeight(25);
+		    UpdatePresentation();
 		    Refresh();
 		});
 	});

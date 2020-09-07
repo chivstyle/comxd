@@ -521,19 +521,21 @@ void SerialConnVT102::DrawVT(Draw& draw)
     Point lpos = VirtualToLogic(vpos.x, vpos.y);
     int lxoff = lpos.x - mSbH.Get();
     int lyoff = lpos.y - mSbV.Get();
-    //--------------------------------------------------------------
-    // draw lines, and calculate the presentation information
+    //
     int bot = mScrollingRegion.Bottom;
     if (bot < 0) {
         bot = (int)mLines.size() - 1;
     }
-    //
+    //--------------------------------------------------------------
+    // draw lines, and calculate the presentation information
     Size usz = GetSize(); int vy = vpos.y;
     for (int i = vpos.y; i < (int)mLinesBuffer.size(); ++i) {
         const VTLine& vline = mLinesBuffer[i];
         DrawVTLine(draw, vline, vpos.x, vy++, lxoff, lyoff);
         lyoff += vline.GetHeight();
-        if (vy >= bot) break;
+        // Top, Bottom is relative
+        if (vy - vpos.y >= bot)
+            break;
     }
     for (int i = std::max(0, vpos.y - (int)mLinesBuffer.size()); i < (int)mLines.size(); ++i) {
         const VTLine& vline = mLines[i];
