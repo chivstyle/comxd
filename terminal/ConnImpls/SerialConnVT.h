@@ -255,12 +255,17 @@ protected:
     virtual void MouseWheel(Upp::Point, int zdelta, Upp::dword);
     virtual void LeftUp(Upp::Point p, Upp::dword keyflags);
     virtual void LeftDown(Upp::Point p, Upp::dword keyflags);
+    virtual void LeftDouble(Upp::Point p, Upp::dword keyflags);
     virtual void MouseMove(Upp::Point p, Upp::dword keyflags);
     virtual void RightUp(Upp::Point p, Upp::dword keyflags);
     virtual Upp::Image CursorImage(Upp::Point p, Upp::dword keyflags);
     //
     VTChar mBlankChar;
-    //
+    // If the lines buffer is very very long, we should modify LogicToVirtual, VirtualToLogic
+    // to improve performance. For example, let's add position to VTLine, then you can use
+    // binary_search to find the position, i.e the logic position and virtual position pair.
+    // Now, the size of lines buffer is limited to 20000, it's a small number for modern computer, so
+    // we do nothing to keep the code simple and stupid.
     std::vector<VTLine> mLinesBuffer; //<! All rendered text
     std::vector<VTLine> mLines; //<! Text on current screen, treat is as virtual screen
     /// Active position

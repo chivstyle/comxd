@@ -25,3 +25,12 @@ LAYOUT(ConnRaw, 692, 428)
 	ITEM(Label, mTmpStatus, LeftPosZ(172, 452).BottomPosZ(5, 19))
 END_LAYOUT
 
+LAYOUT(VTOptions, 424, 104)
+	ITEM(EditInt, dv___0, Max(20000).Min(1).LeftPosZ(80, 80).TopPosZ(8, 19))
+	ITEM(Label, dv___1, SetLabel(t_("LinesBuffer")).LeftPosZ(8, 64).TopPosZ(8, 19))
+	ITEM(ColorPusher, dv___2, LeftPosZ(80, 80).VSizePosZ(67, 13))
+	ITEM(Label, dv___3, SetLabel(t_("Font Color")).LeftPosZ(8, 64).TopPosZ(72, 19))
+	ITEM(ColorPusher, dv___4, LeftPosZ(80, 80).VSizePosZ(36, 44))
+	ITEM(Label, dv___5, SetLabel(t_("Paper Color")).LeftPosZ(8, 64).TopPosZ(41, 19))
+END_LAYOUT
+

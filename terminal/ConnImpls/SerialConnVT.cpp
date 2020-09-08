@@ -127,7 +127,6 @@ void SerialConnVT::RxProc()
                             ProcessControlSeq(pattern, ret);
                             if (ret != SEQ_NONE) {
                                 ProcessOverflowLines();
-                                UpdatePresentation();
                             }
                         });
                         pending = false;
@@ -138,7 +137,7 @@ void SerialConnVT::RxProc()
                     if (!raw.empty()) {
                         size_t ep; auto s = Utf8ToUtf32(raw, ep);
                         raw = raw.substr(ep);
-                        PostCallback([=]() { RenderText(s); ProcessOverflowLines(); UpdatePresentation(); });
+                        PostCallback([=]() { RenderText(s); ProcessOverflowLines(); });
                     }
                     pending = true; // continue
                 } else {
@@ -148,21 +147,23 @@ void SerialConnVT::RxProc()
             if (!raw.empty()) {
                 size_t ep; auto s = Utf8ToUtf32(raw, ep);
                 raw = raw.substr(ep);
-                PostCallback([=]() { RenderText(s); ProcessOverflowLines(); UpdatePresentation(); });
+                PostCallback([=]() { RenderText(s); ProcessOverflowLines(); });
             }
             // callback is
-            PostCallback([=]() { this->Refresh(); });
+            PostCallback([=]() { this->UpdatePresentation(); });
         } else std::this_thread::sleep_for(std::chrono::duration<double>(0.01));
     }
 }
 
 int SerialConnVT::GetCharWidth(const VTChar& c) const
 {
-    if (c == '\t') {
+    switch (c) {
+    case '\t':
         return mFontW * atoi(c.Var("CellSize").c_str());
-    } else {
-        return mFont.IsFixedPitch() ? mFontW : mFont.GetWidth((int)c);
+    case ' ': return mFontW;
+    default:return mFont.GetWidth((int)c);
     }
+    return 0;
 }
 
 int SerialConnVT::IsControlSeq(const std::string& seq)
@@ -266,7 +267,8 @@ Point SerialConnVT::LogicToVirtual(int lx, int ly) const
         }
     }
     if (vy < 0)
-        return Point(-1, -1);
+        vy = (int)(mLinesBuffer.size() + mLines.size()) - 1;
+    if (vy < 0) return Point(-1, -1); // error
     const VTLine* vline = nullptr;
     if (vy < (int)mLinesBuffer.size()) {
         vline = &mLinesBuffer[vy];
@@ -434,15 +436,10 @@ void SerialConnVT::MouseMove(Point p, dword)
         if (p.x - mSelectionSpan.x0 == 0 && p.y - mSelectionSpan.y0 == 0) {
             return; // No movement
         }
-        Point vpos = LogicToVirtual(mSbH.Get() + p.x, mSbV.Get() + p.y);
-        mSelectionSpan.X1 = vpos.x;
-        mSelectionSpan.Y1 = vpos.y;
         // scroll over
         if (p.y < 0) {
-            int b0 = mSbV.Get();
             mSbV.PrevLine();
         } else if (p.y > GetSize().cy) {
-            int b0 = mSbV.Get();
             mSbV.NextLine();
         }
         if (p.x < 0) {
@@ -450,6 +447,9 @@ void SerialConnVT::MouseMove(Point p, dword)
         } else if (p.x > GetSize().cx) {
             mSbH.NextLine();
         }
+        Point vpos = LogicToVirtual(mSbH.Get() + p.x, mSbV.Get() + p.y);
+        mSelectionSpan.X1 = vpos.x;
+        mSelectionSpan.Y1 = vpos.y;
         //
         mSelectionSpan.x1 = p.x;
         mSelectionSpan.y1 = p.y;
@@ -478,6 +478,35 @@ void SerialConnVT::LeftDown(Point p, dword)
     // capture, event the cursor move out of the client region.
     SetFocus();
     SetCapture();
+}
+
+void SerialConnVT::LeftDouble(Point p, dword)
+{
+    // Select the word under the caret
+    Point vpos = this->LogicToVirtual(mSbH.Get() + p.x, mSbV.Get() + p.y);
+    VTLine* vline = nullptr;
+    if (vpos.y < 0 || vpos.x < 0) return;
+    if (vpos.y < (int)mLinesBuffer.size()) {
+        vline = &mLinesBuffer[vpos.y];
+    } else if (vpos.y - (int)mLinesBuffer.size() < (int)mLines.size()) {
+        vline = &mLines[vpos.y - (int)mLinesBuffer.size()];
+    }
+    if (vline && vpos.x < (int)vline->size()) {
+        // well, let's go
+        mSelectionSpan.Y0 = mSelectionSpan.Y1 = vpos.y;
+        // forward
+        int fx = vpos.x;
+        while (fx >= 0 && vline->at(fx) != ' ') {
+            mSelectionSpan.X0 = fx--;
+        }
+        // backward
+        int bx = vpos.x;
+        while (bx < (int)vline->size() && vline->at(bx) != ' ') {
+            mSelectionSpan.X1 = 1 + bx++;
+        }
+        //
+        Refresh();
+    }
 }
 
 void SerialConnVT::LeftUp(Point p, dword)
@@ -528,12 +557,6 @@ void SerialConnVT::RightUp(Point, dword)
 		bar.Add(true, t_("Select all"), [=]() {
 		    SelectAll();
 		}).Key(K_CTRL | K_SHIFT | K_A);
-		//
-		bar.Add("Test height", [=]() {
-		    mLines[5].SetHeight(25);
-		    UpdatePresentation();
-		    Refresh();
-		});
 	});
 }
 //----------------------------------------------
@@ -593,7 +616,13 @@ bool SerialConnVT::ProcessKeyUp(dword key, dword flags)
         case K_C: Copy(); return true;
         case K_A: SelectAll(); return true;
         case K_V: Paste(); return true;
-            break;
+        default:break;
+        }
+    } else if (flags & K_CTRL) { // only CTRL+
+        switch (key) {
+        case K_HOME: mSbV.Set(0); break;
+        case K_END: mSbV.End(); break;
+        default:break;
         }
     }
     return false;
@@ -857,11 +886,11 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
                               int lxoff, int lyoff)
 {
     Size usz = GetSize(), csz = GetConsoleSize();
-    int x = lxoff;
-    int y = lyoff;
-    for (int i = vx; i < (int)vline.size() && x < usz.cx; ++i) {
+    int x = lxoff, y = lyoff, i = 0;
+    bool line_selected = IsCharInSelectionSpan(0, vy) && IsCharInSelectionSpan((int)vline.size()-1, vy);
+    for (i = vx; i < (int)vline.size() && x < usz.cx; ++i) {
         vline[i].ApplyAttrs();
-        bool is_selected = IsCharInSelectionSpan(i, vy);
+        bool is_selected = line_selected ? true : IsCharInSelectionSpan(i, vy);
         if (is_selected) {
             std::swap(mBgColor, mFgColor);
         }
@@ -897,9 +926,9 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
             std::swap(mBgColor, mFgColor);
         }
     }
-    for (int i = csz.cx; i < (int)vline.size(); ++i) {
-        vline[i].ApplyAttrs();
-        x += GetCharWidth(vline[i]);
+    // apply attrs of invisible chars
+    for (int k = i; k < (int)vline.size(); ++k) {
+        vline[k].ApplyAttrs();
     }
 }
 
@@ -946,6 +975,8 @@ void SerialConnVT::UpdatePresentation()
 {
     UpdateScrollbar();
     UpdatePresentationPos();
+    //
+    Refresh();
 }
 
 void SerialConnVT::DrawVT(Draw& draw)
@@ -959,17 +990,15 @@ void SerialConnVT::DrawVT(Draw& draw)
     //--------------------------------------------------------------
     // draw lines, and calculate the presentation information
     Size usz = GetSize(); int vy = vpos.y;
-    for (int i = vpos.y; i < (int)mLinesBuffer.size(); ++i) {
+    for (int i = vpos.y; i < (int)mLinesBuffer.size() && lyoff < usz.cy; ++i) {
         const VTLine& vline = mLinesBuffer[i];
         DrawVTLine(draw, vline, vpos.x, vy++, lxoff, lyoff);
         lyoff += vline.GetHeight();
     }
-    for (int i = std::max(0, vpos.y - (int)mLinesBuffer.size()); i < (int)mLines.size(); ++i) {
+    for (int i = std::max(0, vpos.y - (int)mLinesBuffer.size()); i < (int)mLines.size() && lyoff < usz.cy; ++i) {
         const VTLine& vline = mLines[i];
         DrawVTLine(draw, vline, vpos.x, vy++, lxoff, lyoff);
         lyoff += vline.GetHeight();
-        if (lyoff >= usz.cy)
-            break;
     }
 }
 

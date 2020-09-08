@@ -346,11 +346,28 @@ void SerialConnVT102::InstallVT102Functions()
     mVT102TrivialHandlers["8"] = [=]() { LoadCursor(mCursorData); };
     // 1.10 Tab stops
     mVT102TrivialHandlers["H"] = [=]() { // HTS
+        this->ProcessAsciiControlChar(0x09);
     };
-    mVT102TrivialHandlers["[g"] = [=]() { // TBC
+    mVT102TrivialHandlers["[g"] = [=]() { // TBC , clear tab
+        if (mLines[mVy][mVx] == '\t') { // remove it.
+            mLines[mVy].erase(mLines[mVy].begin() + mVx);
+            mLines[mVy].push_back(mBlankChar);
+        }
     };
     mVT102TrivialHandlers["[0g"] = mVT102TrivialHandlers["[g"];
     mVT102TrivialHandlers["[3g"] = [=]() { // clear all tabs
+        for (size_t i = 0; i < mLines.size(); ++i) {
+            VTLine vline;
+            for (size_t j = 0; j < mLines[i].size(); ++j) {
+                if (mLines[i][j] != '\t') {
+                    vline.push_back(mLines[i][j]);
+                }
+            }
+            for (size_t k = vline.size(); k < mLines[i].size(); ++k) {
+                vline.push_back(' ');
+            }
+            mLines[i] = std::move(vline);
+        }
     };
     // 1.11 Line attributes, we do not implement line attributes
     // 1.12 Erasing
@@ -378,15 +395,6 @@ void SerialConnVT102::InstallVT102Functions()
         }
     };
     mVT102TrivialHandlers["[J"] = [=]() { // erase in display, cursor to end of screen
-        // If VT will clear entire screen, push lines to buffer.
-#if 0   // We do not buffer the lines deleted.
-        if (mVx == 0 && mVy == 0) {
-            int nlines = (int)mLines.size() - this->CalculateNumberOfBlankLinesFromEnd(mLines);
-            for (int i = 0; i < nlines; ++i) {
-                this->PushToLinesBufferAndCheck(mLines[i]);
-            }
-        }
-#endif
         Size csz = GetConsoleSize();
         if (mVy < (int)mLines.size()) {
             // csz.cy == mLines.size(), this condition is always true.
@@ -529,7 +537,7 @@ void SerialConnVT102::DrawVT(Draw& draw)
     //--------------------------------------------------------------
     // draw lines, and calculate the presentation information
     Size usz = GetSize(); int vy = vpos.y;
-    for (int i = vpos.y; i < (int)mLinesBuffer.size(); ++i) {
+    for (int i = vpos.y; i < (int)mLinesBuffer.size() && lyoff < usz.cy; ++i) {
         const VTLine& vline = mLinesBuffer[i];
         DrawVTLine(draw, vline, vpos.x, vy++, lxoff, lyoff);
         lyoff += vline.GetHeight();
@@ -537,7 +545,7 @@ void SerialConnVT102::DrawVT(Draw& draw)
         if (vy - vpos.y >= bot)
             break;
     }
-    for (int i = std::max(0, vpos.y - (int)mLinesBuffer.size()); i < (int)mLines.size(); ++i) {
+    for (int i = std::max(0, vpos.y - (int)mLinesBuffer.size()); i < (int)mLines.size() && lyoff < usz.cy; ++i) {
         const VTLine& vline = mLines[i];
         DrawVTLine(draw, vline, vpos.x, vy++, lxoff, lyoff);
         lyoff += vline.GetHeight();

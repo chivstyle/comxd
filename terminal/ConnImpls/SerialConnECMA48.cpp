@@ -530,6 +530,7 @@ void SerialConnECMA48::ProcessED(const std::string& seq)
     } break;
     }
 }
+
 void SerialConnECMA48::ProcessEF(const std::string& seq)
 {
     // erase in field, [ Ps 0x4e
@@ -539,6 +540,7 @@ void SerialConnECMA48::ProcessEF(const std::string& seq)
     } break;
     }
 }
+
 void SerialConnECMA48::ProcessEL(const std::string& seq)
 {
     // erase in line, [ Ps 0x4b
@@ -926,9 +928,9 @@ bool SerialConnECMA48::ProcessKeyDown(Upp::dword key, Upp::dword flags)
     if (flags == 0) {
         std::string seq;
         switch (key) {
-        case K_UP: seq = "\x1b[\x41"; break;
-        case K_DOWN: seq = "\x1b[\42"; break;
-        case K_LEFT: seq = "\x1b[\x44"; break;
+        case K_UP:    seq = "\x1b[\x41"; break;
+        case K_DOWN:  seq = "\x1b[\x42"; break;
+        case K_LEFT:  seq = "\x1b[\x44"; break;
         case K_RIGHT: seq = "\x1b[\x43"; break;
         default:break;
         }
