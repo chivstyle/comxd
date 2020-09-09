@@ -387,6 +387,8 @@ protected:
     virtual void UpdateHScrollbar();
     virtual void UpdateVScrollbar();
     virtual void UpdatePresentation();
+    //
+    VTLine* GetVTLine(int vy);
     //------------------------------------------------------------------------------------------
     // Scrolling region defines a subsequent page
     struct ScrollingRegion {

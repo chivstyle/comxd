@@ -238,29 +238,16 @@ Size SerialConnVT::GetConsoleSize() const
     }
     return Size(sz.cx / mFontW, sz.cy / mFontH);
 }
-// lx, ly - lines is virtual screen
-Point SerialConnVT::LogicToVirtual(const std::vector<VTLine>& lines, int lx, int ly)
+//
+VTLine* SerialConnVT::GetVTLine(int vy)
 {
-    // find vy
-    int vy = -1, py = 0;
-    for (int i = 0; i < (int)lines.size(); ++i) {
-        py += lines[i].GetHeight();
-        if (py >= ly) {
-            vy = i;
-            break;
-        }
+    VTLine* vline = nullptr;
+    if (vy < (int)mLinesBuffer.size()) {
+        vline = &mLinesBuffer[vy];
+    } else {
+        vline = &mLines[vy - (int)mLinesBuffer.size()];
     }
-    if (vy < 0)
-        return Point(-1, -1);
-    int px = 0, vx = (int)lines[vy].size()-1;
-    for (int i = 0; i < (int)lines[vy].size(); ++i) {
-        px += GetCharWidth(lines[vy][i]);
-        if (px > lx) {
-            vx = i;
-            break;
-        }
-    }
-    return Point(vx, vy);
+    return vline;
 }
 //
 Point SerialConnVT::VirtualToLogic(const std::vector<VTLine>& lines, int vx, int vy)
@@ -301,6 +288,50 @@ Point SerialConnVT::VirtualToLogic(int vx, int vy)
         lx += GetCharWidth(vline->at(k));
     }
     return Point(lx, ly);
+}
+//
+int SerialConnVT::VirtualToLogic(const VTLine& vline, int vx)
+{
+    int lx = 0;
+    for (int i = 0; i < vx; ++i) {
+        lx += GetCharWidth(vline[i]);
+    }
+    return lx;
+}
+//
+int SerialConnVT::GetLogicWidth(const VTLine& vline, int count)
+{
+    int x = 0;
+    if (count < 0) count = (int)vline.size();
+    for (int k = 0; k < count; ++k) {
+        x += GetCharWidth(vline[k]);
+    }
+    return x;
+}
+//
+// lx, ly - lines is virtual screen
+Point SerialConnVT::LogicToVirtual(const std::vector<VTLine>& lines, int lx, int ly)
+{
+    // find vy
+    int vy = -1, py = 0;
+    for (int i = 0; i < (int)lines.size(); ++i) {
+        py += lines[i].GetHeight();
+        if (py > ly) {
+            vy = i;
+            break;
+        }
+    }
+    if (vy < 0)
+        return Point(-1, -1);
+    int px = 0, vx = (int)lines[vy].size()-1;
+    for (int i = 0; i < (int)lines[vy].size(); ++i) {
+        px += GetCharWidth(lines[vy][i]);
+        if (px > lx) {
+            vx = i;
+            break;
+        }
+    }
+    return Point(vx, vy);
 }
 //
 Point SerialConnVT::LogicToVirtual(int lx, int ly)
@@ -353,25 +384,6 @@ int SerialConnVT::LogicToVirtual(const VTLine& vline, int lx)
         }
     }
     return vx;
-}
-//
-int SerialConnVT::VirtualToLogic(const VTLine& vline, int vx)
-{
-    int lx = 0;
-    for (int i = 0; i < vx; ++i) {
-        lx += GetCharWidth(vline[i]);
-    }
-    return lx;
-}
-//
-int SerialConnVT::GetLogicWidth(const VTLine& vline, int count)
-{
-    int x = 0;
-    if (count < 0) count = (int)vline.size();
-    for (int k = 0; k < count; ++k) {
-        x += GetCharWidth(vline[k]);
-    }
-    return x;
 }
 //
 void SerialConnVT::PushToLinesBufferAndCheck(const VTLine& vline)
@@ -515,16 +527,11 @@ void SerialConnVT::MouseMove(Point p, dword)
             mSbH.NextLine();
         }
         Point vpos = LogicToVirtual(mSbH.Get() + p.x, mSbV.Get() + p.y);
-        mSelectionSpan.X1 = vpos.x;
+        mSelectionSpan.X1 = p.x - mSelectionSpan.x0 > 0 ? vpos.x + 1 : vpos.x - 1;
         mSelectionSpan.Y1 = vpos.y;
         //
         mSelectionSpan.x1 = p.x;
         mSelectionSpan.y1 = p.y;
-        // fix it
-        if (mSelectionSpan.X0 < 0) mSelectionSpan.X0 = 0;
-        if (mSelectionSpan.X1 < 0) mSelectionSpan.X1 = 0;
-        if (mSelectionSpan.Y0 < 0) mSelectionSpan.Y0 = 0;
-        if (mSelectionSpan.Y1 < 0) mSelectionSpan.Y1 = 0;
         //
         Refresh();
     }
@@ -934,13 +941,14 @@ String SerialConnVT::GetSelectedText() const
 //
 bool SerialConnVT::IsCharInSelectionSpan(int vx, int vy) const
 {
-    auto span = mSelectionSpan;
+    auto span = mSelectionSpan; bool lr = true;
     if (span.Y0 > span.Y1) { // top left
         std::swap(span.Y0, span.Y1);
         std::swap(span.X0, span.X1);
     } else if (span.Y0 == span.Y1) {
         if (span.X0 > span.X1) {
             std::swap(span.X0, span.X1);
+            lr = false;
         }
     }
     // calculate absolute position
@@ -949,7 +957,11 @@ bool SerialConnVT::IsCharInSelectionSpan(int vx, int vy) const
     int abs_x = vx, abs_y = vy;
     if (abs_y == span.Y0) { // head line
         if (span.Y1-span.Y0 == 0) {
-            if (abs_x >= span.X0 && abs_x < span.X1) return true;
+            if (lr) {
+                if (abs_x >= span.X0 && abs_x < span.X1) return true;
+            } else {
+                if (abs_x > span.X0 && abs_x <= span.X1) return true;
+            }
         } else {
             return abs_x >= span.X0;
         }
@@ -983,7 +995,8 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
 {
     Size usz = GetSize(), csz = GetConsoleSize();
     int x = lxoff, y = lyoff, i = 0;
-    bool line_selected = IsCharInSelectionSpan(0, vy) && IsCharInSelectionSpan((int)vline.size()-1, vy);
+    bool tail_selected = IsCharInSelectionSpan((int)vline.size()-1, vy);
+    bool line_selected = IsCharInSelectionSpan(0, vy) && tail_selected; // line was selected.
     for (i = vx; i < (int)vline.size() && x < usz.cx; ++i) {
         vline[i].ApplyAttrs();
         bool is_selected = line_selected ? true : IsCharInSelectionSpan(i, vy);
@@ -1015,11 +1028,14 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
             }
         }
         x += vchar_cx;
-        if (is_selected) {
-            if (usz.cx - x < mFontW) { // padding
-                draw.DrawRect(x, y, usz.cx-x, vline.GetHeight(), mBgColor);
-            }
+        if (is_selected) { // restore color
             std::swap(mBgColor, mFgColor);
+        }
+    }
+    if (IsCharInSelectionSpan(0, vy+1) && tail_selected) { // we need to pad the blank
+        if (usz.cx - x > 0) {
+            // Use black to tell the user it's the end of the normal text.
+            draw.DrawRect(x, y, usz.cx-x, vline.GetHeight(), Color(0, 0, 0));
         }
     }
     // apply attrs of invisible chars
