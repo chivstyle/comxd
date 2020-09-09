@@ -15,6 +15,8 @@ SerialConnXterm::SerialConnXterm(std::shared_ptr<SerialIo> serial)
     , mIsAltScr(false)
 {
     InstallXtermFunctions();
+    //
+    SaveScr(mAltScr);
 }
 //
 SerialConnXterm::~SerialConnXterm()
@@ -44,6 +46,10 @@ void SerialConnXterm::LoadScr(const ScreenData& sd)
     mFgColor = sd.FgColor;
     mBgColor = sd.BgColor;
     mBlink = sd.Blink;
+    mFont = sd.Font;
+    //
+    DoLayout();
+    UpdatePresentation();
 }
 
 void SerialConnXterm::ProcessXtermTrivial(const std::string& seq)

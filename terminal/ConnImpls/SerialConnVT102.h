@@ -66,18 +66,8 @@ protected:
     virtual void ProcessVT102ScrollingRegion(const std::string& seq);
     // VT102 subroutines
     virtual void ProcessVT102CharAttribute(int attr_code);
-    //-------------------------------------------------------------------------------------
-    virtual Upp::Size GetConsoleSize() const;
-    virtual void ProcessOverflowLines();
-    virtual void DoLayout();
-    //-------------------------------------------------------------------------------------
     std::string TranscodeToUTF8(const VTChar& cc) const;
-    // override DrawVT to support scrolling region
-    void DrawVT(Upp::Draw& draw);
-    //
 private:
-    void ExtendVirtualScreen(int cx, int cy);
-    void ShrinkVirtualScreen(int cx, int cy);
     //
     std::map<std::string, std::function<void()> > mVT102TrivialHandlers;
     void InstallVT102Functions();
@@ -156,15 +146,6 @@ private:
         }
     };
     VT102Modes mModes;
-    struct ScrollingRegion {
-        int Top, Bottom;
-        ScrollingRegion()
-            : Top(0)
-            , Bottom(-1)
-        {
-        }
-    };
-    ScrollingRegion mScrollingRegion;
     // To support feature: disable 'auto repeat'.
     std::map<Upp::dword, bool> mKeyStats;
     bool ShouldIgnoreKey(Upp::dword key);

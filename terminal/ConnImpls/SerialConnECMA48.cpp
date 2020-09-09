@@ -5,7 +5,7 @@
 #include "ECMA48ControlSeq.h"
 #include "ConnFactory.h"
 // We implement this as the base-class of Xterm, we'll provide ecma48 in future.
-REGISTER_CONN_INSTANCE("ECMA-48", SerialConnECMA48);
+// REGISTER_CONN_INSTANCE("ECMA-48", SerialConnECMA48);
 
 using namespace Upp;
 //----------------------------------------------------------------------------------------------
@@ -474,30 +474,115 @@ void SerialConnECMA48::ProcessCVT(const std::string& seq)
 
 void SerialConnECMA48::ProcessDA(const std::string& seq)
 {
+    // ECMA48 is protocol, it tells us how to request/response.
 }
-// Not support now.
+
 void SerialConnECMA48::ProcessDAQ(const std::string& seq)
 {
 }
 
 void SerialConnECMA48::ProcessDCH(const std::string& seq)
 {
+    int pn = 1;
+    std::string pn_s = seq.substr(1, seq.length()-2);
+    if (!pn_s.empty()) {
+        pn = atoi(pn_s.c_str());
+    }
+    // Delete the char, not erasing, so we should pad the line.
+    if (mModes.HEM == Ecma48Modes::HemFollowing) {
+        int p_ = mVx + pn;
+        if (p_ >= (int)mLines[mVy].size()) {
+            p_ = (int)mLines[mVy].size()-1;
+        }
+        mLines[mVy].erase(mLines[mVy].begin() + mVx, mLines[mVy].begin() + p_ + 1);
+    } else { // Preceding
+        int p_ = mVx - pn;
+        if (p_ < 0) p_ = 0;
+        mLines[mVy].erase(mLines[mVy].begin() + p_, mLines[mVy].begin() + mVx + 1);
+    }
+    // Why we do not pad the current line ?
+    // Actually, we do not need to do this. After every control function, or C0,C1
+    // the VT(base class) will invoke ProcessOverflowlines which will pad the lines.
 }
 
 void SerialConnECMA48::ProcessDL(const std::string& seq)
 {
+    int pn = 1;
+    std::string pn_s = seq.substr(1, seq.length()-2);
+    if (!pn_s.empty()) {
+        pn = atoi(pn_s.c_str());
+    }
+    if (mModes.VEM == Ecma48Modes::VemFollowing) {
+        int p_ = mVy + pn;
+        if (p_ >= (int)mLines.size()) {
+            p_ = (int)mLines.size() - 1;
+        }
+        mLines.erase(mLines.begin() + mVy, mLines.begin() + p_ + 1);
+    } else {
+        int p_ = mVy - pn;
+        if (p_ < 0) p_ = 0;
+        mLines.erase(mLines.begin() + p_, mLines.begin() + mVx + 1);
+    }
 }
+
 void SerialConnECMA48::ProcessDSR(const std::string& seq)
 {
+    // [ ps 0x6e
+    int ps = atoi(seq.substr(1, seq.length()-2).c_str());
+    switch (ps) {
+    case 0: // ready, no malfunction detected
+        break;
+    case 1: // busy, another DSR must be requested later
+        break;
+    case 2: // busy, another DSR will be sent later
+        break;
+    case 3: // some malfunction detected, another DSR must be requested later
+        break;
+    case 4: // some malfunction detected, another DSR will be sent later
+        break;
+    case 5: // a DSR is requested
+        break;
+    case 6:
+        // a report of the active presentation position or of the active data position in the form of
+        // ACTIVE POSITION REPORT (CPR) is requested.
+        // The presentation position is the logical position, in pixels. We return data
+        // position.
+        GetSerial()->Write(std::string("\x1b[") + std::to_string(mVy+1) + ";" +
+                           std::to_string(mVx+1) + "R");
+        break;
+    }
 }
+
 void SerialConnECMA48::ProcessDTA(const std::string& seq)
 {
+    // [ pn1;pn2 0x20 0x54
+    // define a subsequent page
+    int p[2] = {0}, idx = 0;
+    SplitString(seq.substr(1, seq.length()-3), ';', [&](const char* token) {
+        if (idx < 2) {
+            p[idx++] = atoi(token);
+        }
+    });
+    if (p[0] <= 0) p[0] = 1;
+    // update subsequent page span.
+    mScrollingRegion.Top = p[0]-1;
+    mScrollingRegion.Bottom = p[1]-1;
 }
+
 void SerialConnECMA48::ProcessEA(const std::string& seq)
 {
 }
+
 void SerialConnECMA48::ProcessECH(const std::string& seq)
 {
+    int pn = 1;
+    std::string pn_s = seq.substr(1, seq.length()-2);
+    if (!pn_s.empty()) {
+        pn = atoi(pn_s.c_str());
+    }
+    for (int i = mVx; i < pn && i < (int)mLines[mVy].size(); ++i) {
+        mLines[mVy][i] = mBlankChar;
+    }
 }
 // What's page? What's field?
 // I ignore field, treat page as current virtual screen
@@ -578,24 +663,90 @@ void SerialConnECMA48::ProcessGSM(const std::string& seq)
 void SerialConnECMA48::ProcessGSS(const std::string& seq)
 {
 }
+
 void SerialConnECMA48::ProcessHPA(const std::string& seq)
 {
+    int pn = 1;
+    std::string pn_s = seq.substr(1, seq.length()-2);
+    if (!pn_s.empty()) {
+        pn = atoi(pn_s.c_str());
+    }
+    pn -= 1;
+    if (pn < 0) pn = 0;
+    else if (pn >= (int)mLines[mVy].size())
+        pn = (int)mLines[mVy].size()-1;
+    mVx = pn;
 }
+
 void SerialConnECMA48::ProcessHPB(const std::string& seq)
 {
+    int pn = 1;
+    std::string pn_s = seq.substr(1, seq.length()-2);
+    if (!pn_s.empty()) {
+        pn = atoi(pn_s.c_str());
+    }
+    int p = mVx - pn;
+    if (p < 0) p = 0;
+    mVx = p;
 }
+
 void SerialConnECMA48::ProcessHPR(const std::string& seq)
 {
+    int pn = 1;
+    std::string pn_s = seq.substr(1, seq.length()-2);
+    if (!pn_s.empty()) {
+        pn = atoi(pn_s.c_str());
+    }
+    int p = mVx + pn;
+    if (p >= (int)mLines[mVy].size()) p = (int)mLines[mVy].size()-1;
+    mVx = p;
 }
+
 void SerialConnECMA48::ProcessHVP(const std::string& seq)
 {
+    // [ pn1;pn2 0x66
+    int p[2] = {1,1}, idx = 0;
+    SplitString(seq.substr(1, seq.length()-2), ';', [&](const char* token) {
+        if (idx < 2) {
+            p[idx++] = atoi(token);
+        }
+    });
+    // check and fix
+    Size csz = GetConsoleSize();
+    p[0] -= 1; p[1] -= 1;
+    if (p[0] < 0) p[0] = 0; else if (p[0] >= csz.cy) p[0] = csz.cy-1;
+    if (p[1] < 0) p[1] = 0; else if (p[1] >= csz.cx) p[1] = csz.cx-1;
+    mVx = p[1]; mVy = p[0];
 }
+
 void SerialConnECMA48::ProcessICH(const std::string& seq)
 {
+    // insert character, [ pn 0x40
+    int pn = 1;
+    std::string pn_s = seq.substr(1, seq.length()-2);
+    if (!pn_s.empty()) {
+        pn = atoi(pn_s.c_str());
+    }
+    // erase, not remove.
+    if (mModes.HEM == Ecma48Modes::HemFollowing) {
+        int cnt = 0;
+        for (int i = mVx; i < (int)mLines[mVy].size(); ++i) {
+            mLines[mVy][i] = mBlankChar;
+            if (++cnt >= pn) break;
+        }
+    } else {
+        int cnt = 0;
+        for (int i = mVx; i >= 0; --i) {
+            mLines[mVy][i] = mBlankChar;
+            if (++cnt >= pn) break;
+        }
+    }
 }
+
 void SerialConnECMA48::ProcessIDCS(const std::string& seq)
 {
 }
+
 void SerialConnECMA48::ProcessIGS(const std::string& seq)
 {
 }

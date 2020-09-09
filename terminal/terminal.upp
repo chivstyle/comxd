@@ -28,7 +28,7 @@ file
 	ConnImpls/SerialConnRaw.cpp,
 	ConnImpls/SerialConnVT.h,
 	ConnImpls/SerialConnVT.cpp,
-	ConnImpls/VT102ConsoleSeq.h,
+	ConnImpls/VT102ControlSeq.h,
 	ConnImpls/SerialConnVT102.h,
 	ConnImpls/SerialConnVT102.cpp,
 	ConnImpls/ECMA48ControlSeq.h,

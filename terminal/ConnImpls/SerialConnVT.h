@@ -387,7 +387,21 @@ protected:
     virtual void UpdateHScrollbar();
     virtual void UpdateVScrollbar();
     virtual void UpdatePresentation();
+    //------------------------------------------------------------------------------------------
+    // Scrolling region defines a subsequent page
+    struct ScrollingRegion {
+        int Top, Bottom;
+        ScrollingRegion()
+            : Top(0)
+            , Bottom(-1)
+        {
+        }
+    };
+    ScrollingRegion mScrollingRegion;
+    //------------------------------------------------------------------------------------------
 private:
+    void ExtendVirtualScreen(int cx, int cy);
+    void ShrinkVirtualScreen(int cx, int cy);
     // receiver
     volatile bool mRxShouldStop;
     void RxProc();

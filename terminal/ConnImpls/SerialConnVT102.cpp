@@ -56,117 +56,9 @@ void SerialConnVT102::LoadCursor(const CursorData& cd)
     DoLayout();
 }
 //----------------------------------------------------------------------------------------------
-// These overrides, support ScrollingRegion
-Size SerialConnVT102::GetConsoleSize() const
-{
-    return Superclass::GetConsoleSize();
-}
-// If the scrolling region was set, we should ignore those lines out of region
-void SerialConnVT102::ProcessOverflowLines()
-{
-    auto& span = mScrollingRegion;
-    Size csz = GetConsoleSize();
-    int bottom = span.Bottom;
-    if (bottom < 0 || bottom >= csz.cy)
-        bottom = csz.cy-1;
-    ASSERT(span.Top < (int)mLines.size());
-    if (mVy == bottom+1) {
-        PushToLinesBufferAndCheck(mLines[span.Top]);
-        mLines.erase(mLines.begin() + span.Top);
-        mLines.insert(mLines.begin() + bottom, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
-        mVy = bottom;
-    } else if (mVy >= csz.cy) { // wrap lines, override the last line of virtual screen.
-        mVy = csz.cy - 1;
-    }
-}
-//
 std::string SerialConnVT102::TranscodeToUTF8(const VTChar& cc) const
 {
     return Utf32ToUtf8(VT102_Transcode(cc, mCharset, mSS));
-}
-//
-void SerialConnVT102::ExtendVirtualScreen(int cx, int cy)
-{
-    // extend virtual screen
-    int bot = mScrollingRegion.Bottom;
-    if (bot < 0) {
-        bot = cy;
-    }
-    // 0. pull lines from lines buffer
-    int ln = 0;
-    int extcn = cy - (int)mLines.size();
-    if (bot >= cy) {
-        for (int i = 0; i < extcn && !mLinesBuffer.empty(); ++i) {
-            VTLine vline = *mLinesBuffer.rbegin(); mLinesBuffer.pop_back();
-            for (int n = (int)vline.size(); n < cx; ++n) {
-                vline.push_back(mBlankChar);
-            }
-            mLines.insert(mLines.begin(), vline);
-            ln++;
-        }
-        mVy += ln;
-    }
-    // 1. push blanks
-    for (int i = ln; i < cy && i < extcn; ++i) {
-        mLines.push_back(VTLine(cx, mBlankChar).SetHeight(mFontH));
-    }
-}
-
-void SerialConnVT102::ShrinkVirtualScreen(int cx, int cy)
-{
-    // shrink virtual screen
-    // Shrink maybe destroy the scrolling region. We'll keep the scrolling region
-    // as we can, but two conditions will destroy them, if that happened, we use
-    // entire screen as scrolling region.
-    int top = mScrollingRegion.Top;
-    int bot = mScrollingRegion.Bottom;
-    if (bot < 0) {
-        bot = (int)mLines.size()-1;
-    }
-    // 0. remove blanks firstly
-    int blankcnt = CalculateNumberOfBlankLinesFromEnd(mLines);
-    int shkcn = (int)mLines.size() - cy;
-    int ln = 0;
-    for (int i = 0; i < shkcn && i < blankcnt; ++i) {
-        mLines.pop_back();
-        ln++;
-        top--;
-    }
-    // 1. remove from head
-    for (int i = ln; i < shkcn; ++i) {
-        PushToLinesBufferAndCheck(*mLines.begin());
-        mLines.erase(mLines.begin());
-        if (mVy > 0) {
-            mVy--;
-        }
-    }
-    // set scrolling region to default.
-    if (top < 0 || bot >= mLines.size()) {
-        mScrollingRegion.Top = 0;
-        mScrollingRegion.Bottom = -1;
-    }
-}
-//
-void SerialConnVT102::DoLayout()
-{
-    Size csz = GetConsoleSize();
-	mSbV.SetPage(mFontH*csz.cy);
-	mSbH.SetPage(mFontW*csz.cx);
-	if (csz.cx <= 0 || csz.cy <= 0) return;
-	// check and fix
-	for (size_t k = 0; k < mLines.size(); ++k) {
-	    VTLine& vline = mLines[k];
-	    for (size_t i = vline.size(); (int)i < csz.cx; ++i) {
-	        vline.push_back(mBlankChar);
-	    }
-	}
-	// extend or shrink the virtual screen
-	if (mLines.size() < csz.cy) {
-	    ExtendVirtualScreen(csz.cx, csz.cy);
-	    //--------------------------------------------------------------------------------------
-	} else {
-	    ShrinkVirtualScreen(csz.cx, csz.cy);
-	}
 }
 //----------------------------------------------------------------------------------------------
 void SerialConnVT102::InstallVT102Functions()
@@ -518,40 +410,6 @@ void SerialConnVT102::ProcessVT102ScrollingRegion(const std::string& seq)
             // Home to scrolling region.
             mVx = 0; mVy = t;
         }
-    }
-}
-// To support Scrolling region
-void SerialConnVT102::DrawVT(Draw& draw)
-{
-    // calculate offset
-    int sbh = mSbH.Get(), sbv = mSbV.Get();
-    Point vpos = LogicToVirtual(sbh, sbv);
-    if (vpos.x < 0 || vpos.y < 0) return;
-    Point lpos = VirtualToLogic(vpos.x, vpos.y);
-    int lyoff = lpos.y - mSbV.Get();
-    // use bot
-    int bot = mScrollingRegion.Bottom;
-    if (bot < 0) {
-        bot = (int)mLines.size() - 1;
-    }
-    //--------------------------------------------------------------
-    // draw lines, and calculate the presentation information
-    Size usz = GetSize(); int vy = vpos.y;
-    for (int i = vpos.y; i < (int)mLinesBuffer.size() && lyoff < usz.cy; ++i) {
-        const VTLine& vline = mLinesBuffer[i];
-        int vx = this->LogicToVirtual(vline, sbh);
-        int lx = this->VirtualToLogic(vline, vx);
-        int lxoff = lx - sbh;
-        DrawVTLine(draw, vline, vpos.x, vy++, lxoff, lyoff);
-        lyoff += vline.GetHeight();
-    }
-    for (int i = std::max(0, vpos.y - (int)mLinesBuffer.size()); i < (int)mLines.size() && lyoff < usz.cy; ++i) {
-        const VTLine& vline = mLines[i];
-        int vx = this->LogicToVirtual(vline, sbh);
-        int lx = this->VirtualToLogic(vline, vx);
-        int lxoff = lx - sbh;
-        DrawVTLine(draw, vline, vpos.x, vy++, lxoff, lyoff);
-        lyoff += vline.GetHeight();
     }
 }
 //
