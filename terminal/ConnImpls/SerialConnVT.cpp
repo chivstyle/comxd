@@ -1099,7 +1099,7 @@ void SerialConnVT::DrawVT(Draw& draw)
         int vx = this->LogicToVirtual(vline, sbh);
         int lx = this->VirtualToLogic(vline, vx);
         int lxoff = lx - sbh;
-        DrawVTLine(draw, vline, vpos.x, vy++, lxoff, lyoff);
+        DrawVTLine(draw, vline, vx, vy++, lxoff, lyoff);
         lyoff += vline.GetHeight();
     }
     for (int i = std::max(0, vpos.y - (int)mLinesBuffer.size()); i < (int)mLines.size() && lyoff < usz.cy; ++i) {
@@ -1107,7 +1107,7 @@ void SerialConnVT::DrawVT(Draw& draw)
         int vx = this->LogicToVirtual(vline, sbh);
         int lx = this->VirtualToLogic(vline, vx);
         int lxoff = lx - sbh;
-        DrawVTLine(draw, vline, vpos.x, vy++, lxoff, lyoff);
+        DrawVTLine(draw, vline, vx, vy++, lxoff, lyoff);
         lyoff += vline.GetHeight();
     }
 }
