@@ -3,6 +3,7 @@
 //
 #include "terminal_rc.h"
 #include "SerialConnVT.h"
+#include "VTOptionsDialog.h"
 #include "ControlSeq.h"
 #include "ConnFactory.h"
 #include <algorithm>
@@ -33,9 +34,9 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> serial)
     // double buffer
     BackPaint();
     // default font
-    mFont = Upp::Monospace();
+    mFont = VTOptionsDialog::DefaultFont();
     // handlers
-    mFontW = mFont.GetWidth('M');
+    mFontW = mFont.GetAveWidth();
     mFontH = mFont.GetLineHeight();
     // default style
     mCurrAttrFuncs.push_back([=]() { SetDefaultStyle(); });
@@ -44,6 +45,7 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> serial)
     // enable scroll bar
     mSbH.SetLine(mFontW); mSbH.Set(0); mSbV.SetTotal(0); AddFrame(mSbH);
     mSbH.WhenScroll = [=]() {
+        UpdatePresentationPos();
         Refresh();
     };
     // vertical
@@ -55,6 +57,8 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> serial)
         } else {
             mScrollToEnd = false;
         }
+        UpdateHScrollbar();
+        UpdatePresentationPos();
         Refresh();
     };
     // blink timer
@@ -79,9 +83,42 @@ SerialConnVT::~SerialConnVT()
 //
 void SerialConnVT::InstallUserActions()
 {
-    mUsrActions.emplace_back(terminal::clear_buffer(), t_("Clear Buffer"),
-        t_("Clear the line buffers"), [=]() { Clear(); }
+    mUsrActions.emplace_back(terminal::clear_buffer(),
+        t_("Clear Buffer"), t_("Clear the line buffers"), [=]() { Clear(); }
     );
+    mUsrActions.emplace_back(terminal::vt_options(),
+        t_("VT options"), t_("Virtual terminal options"), [=]() {
+            VTOptionsDialog::Options options;
+            options.Font = mFont;
+            options.LinesBufferSize = this->mMaxLinesBufferSize;
+            options.PaperColor = mPaperColor;
+            options.FontColor = mDefaultFgColor;
+            VTOptionsDialog opt; opt.SetOptions(options);
+            int ret = opt.Run();
+            if (ret == IDOK) {
+                options = opt.GetOptions();
+                this->mPaperColor = options.PaperColor;
+                this->mDefaultFgColor = options.FontColor;
+                this->mDefaultBgColor = options.PaperColor;
+                this->mFont = options.Font;
+                this->mMaxLinesBufferSize = options.LinesBufferSize;
+                int fontw = mFont.GetAveWidth(), fonth = mFont.GetLineHeight();
+                // will override the old parameters, such as line-height
+                for (size_t k = 0; k < mLinesBuffer.size(); ++k) {
+                    int h = mLinesBuffer[k].GetHeight();
+                    mLinesBuffer[k].SetHeight((int)((double)h / mFontH * fonth));
+                }
+                for (size_t k = 0; k < mLines.size(); ++k) {
+                    int h = mLines[k].GetHeight();
+                    mLines[k].SetHeight((int)((double)h / mFontH * fonth));
+                }
+                mFontW = fontw, mFontH = fonth;
+                // fix virtual screen.
+                DoLayout();
+                //
+                UpdatePresentation();
+            }
+        });
 }
 //
 void SerialConnVT::SetDefaultStyle()
@@ -155,13 +192,28 @@ void SerialConnVT::RxProc()
     }
 }
 
-int SerialConnVT::GetCharWidth(const VTChar& c) const
+int SerialConnVT::GetCharWidth(const VTChar& c)
 {
     switch (c) {
     case '\t':
         return mFontW * atoi(c.Var("CellSize").c_str());
     case ' ': return mFontW;
-    default:return mFont.GetWidth((int)c);
+    default: if (1) {
+        // Save
+        Color bg_color = mBgColor;
+        Color fg_color = mFgColor;
+        bool blink = mBlink;
+        Font font = mFont;
+        // we should use apply the attrs, so the GetWidth could return a correct value.
+        c.ApplyAttrs();
+        int cx = mFont.GetWidth((int)c);
+        // Restore
+        mBgColor = bg_color;
+        mFgColor = fg_color;
+        mFont = font;
+        mBlink = blink;
+        return cx <= 0 ? mFontW : cx;
+    } break;
     }
     return 0;
 }
@@ -183,7 +235,7 @@ Size SerialConnVT::GetConsoleSize() const
     return Size(sz.cx / mFontW, sz.cy / mFontH);
 }
 // lx, ly - lines is virtual screen
-Point SerialConnVT::LogicToVirtual(const std::vector<VTLine>& lines, int lx, int ly) const
+Point SerialConnVT::LogicToVirtual(const std::vector<VTLine>& lines, int lx, int ly)
 {
     // find vy
     int vy = -1, py = 0;
@@ -196,7 +248,7 @@ Point SerialConnVT::LogicToVirtual(const std::vector<VTLine>& lines, int lx, int
     }
     if (vy < 0)
         return Point(-1, -1);
-    int px = 0, vx = 0;
+    int px = 0, vx = (int)lines[vy].size()-1;
     for (int i = 0; i < (int)lines[vy].size(); ++i) {
         px += GetCharWidth(lines[vy][i]);
         if (px > lx) {
@@ -207,7 +259,7 @@ Point SerialConnVT::LogicToVirtual(const std::vector<VTLine>& lines, int lx, int
     return Point(vx, vy);
 }
 //
-Point SerialConnVT::VirtualToLogic(const std::vector<VTLine>& lines, int vx, int vy) const
+Point SerialConnVT::VirtualToLogic(const std::vector<VTLine>& lines, int vx, int vy)
 {
     if (vy < 0 || vy >= (int)lines.size())
         return Size(-1, -1);
@@ -222,7 +274,7 @@ Point SerialConnVT::VirtualToLogic(const std::vector<VTLine>& lines, int vx, int
     return Point(lx, ly);
 }
 //
-Point SerialConnVT::VirtualToLogic(int vx, int vy)  const
+Point SerialConnVT::VirtualToLogic(int vx, int vy)
 {
     const VTLine* vline = nullptr;
     if (vy < 0 || vy >= (int)(mLines.size() + mLinesBuffer.size()))
@@ -247,7 +299,7 @@ Point SerialConnVT::VirtualToLogic(int vx, int vy)  const
     return Point(lx, ly);
 }
 //
-Point SerialConnVT::LogicToVirtual(int lx, int ly) const
+Point SerialConnVT::LogicToVirtual(int lx, int ly)
 {
     int vy = -1, py = 0;
     for (int i = 0; i < (int)mLinesBuffer.size(); ++i) {
@@ -275,7 +327,7 @@ Point SerialConnVT::LogicToVirtual(int lx, int ly) const
     } else {
         vline = &mLines[vy - (int)mLinesBuffer.size()];
     }
-    int px = 0, vx = 0;
+    int px = 0, vx = (int)vline->size()-1;
     for (int k = 0; k < (int)vline->size(); ++k) {
         px += GetCharWidth(vline->at(k));
         if (px > lx) {
@@ -286,9 +338,9 @@ Point SerialConnVT::LogicToVirtual(int lx, int ly) const
     return Point(vx, vy);
 }
 //
-int SerialConnVT::LogicToVirtual(const VTLine& vline, int lx) const
+int SerialConnVT::LogicToVirtual(const VTLine& vline, int lx)
 {
-    int px = 0, vx = 0;
+    int px = 0, vx = (int)vline.size()-1;
     for (int i = 0; i < (int)vline.size(); ++i) {
         px += GetCharWidth(vline[i]);
         if (px > lx) {
@@ -299,7 +351,7 @@ int SerialConnVT::LogicToVirtual(const VTLine& vline, int lx) const
     return vx;
 }
 //
-int SerialConnVT::VirtualToLogic(const VTLine& vline, int vx) const
+int SerialConnVT::VirtualToLogic(const VTLine& vline, int vx)
 {
     int lx = 0;
     for (int i = 0; i < vx; ++i) {
@@ -308,7 +360,7 @@ int SerialConnVT::VirtualToLogic(const VTLine& vline, int vx) const
     return lx;
 }
 //
-int SerialConnVT::GetLogicWidth(const VTLine& vline, int count) const
+int SerialConnVT::GetLogicWidth(const VTLine& vline, int count)
 {
     int x = 0;
     if (count < 0) count = (int)vline.size();
@@ -467,8 +519,6 @@ void SerialConnVT::LeftDown(Point p, dword)
 {
     mPressed = true;
     Point vpos = this->LogicToVirtual(mSbH.Get() + p.x, mSbV.Get() + p.y);
-    Point lpos = this->VirtualToLogic(vpos.x, vpos.y);
-    
     mSelectionSpan.X0 = vpos.x;
     mSelectionSpan.X1 = vpos.x;
     mSelectionSpan.Y0 = vpos.y;
@@ -869,7 +919,7 @@ bool SerialConnVT::IsCharInSelectionSpan(int vx, int vy) const
 
 void SerialConnVT::DrawCursor(Draw& draw)
 {
-    draw.DrawRect(mPx, mPy, mFontW, mFontH, Color(0, 255, 0));
+    draw.DrawRect(mPx, mPy, 2, mFontH, Color(0, 255, 0));
 }
 
 int SerialConnVT::GetVTLinesHeight(const std::vector<VTLine>& lines) const
@@ -939,18 +989,22 @@ void SerialConnVT::UpdatePresentationPos()
     mPy = ppos.y - mSbV.Get();
 }
 
-void SerialConnVT::UpdateScrollbar()
+void SerialConnVT::UpdateVScrollbar()
 {
     mSbV.SetTotal((int)(GetVTLinesHeight(mLines) + GetVTLinesHeight(mLinesBuffer)));
     if (mScrollToEnd) {
         mSbV.End();
     }
+}
+
+void SerialConnVT::UpdateHScrollbar()
+{
     Point vpos = LogicToVirtual(0, mSbV.Get());
     if (vpos.x < 0 || vpos.y < 0) return;
     // let's begin
     Size usz = GetSize(); int vy = vpos.y;
     int longest_linesz = 0, lyoff = 0;
-    for (int i = vpos.y; i < (int)mLinesBuffer.size(); ++i) {
+    for (int i = vpos.y; i < (int)mLinesBuffer.size() && lyoff < usz.cy; ++i) {
         const VTLine& vline = mLinesBuffer[i];
         lyoff += vline.GetHeight();
         int linesz = this->GetLogicWidth(vline, (int)vline.size() - this->CalculateNumberOfBlankCharsFromEnd(vline));
@@ -958,11 +1012,9 @@ void SerialConnVT::UpdateScrollbar()
             longest_linesz = linesz;
         }
     }
-    for (int i = 0; i < (int)mLines.size(); ++i) {
+    for (int i = std::max(0, vpos.y - (int)mLinesBuffer.size()); i < (int)mLines.size() && lyoff < usz.cy; ++i) {
         const VTLine& vline = mLines[i];
         lyoff += vline.GetHeight();
-        if (lyoff >= usz.cy)
-            break;
         int linesz = this->GetLogicWidth(vline, (int)vline.size() - this->CalculateNumberOfBlankCharsFromEnd(vline));
         if (linesz > longest_linesz) {
             longest_linesz = linesz;
@@ -973,7 +1025,8 @@ void SerialConnVT::UpdateScrollbar()
 
 void SerialConnVT::UpdatePresentation()
 {
-    UpdateScrollbar();
+    UpdateVScrollbar();
+    UpdateHScrollbar();
     UpdatePresentationPos();
     //
     Refresh();
@@ -982,22 +1035,28 @@ void SerialConnVT::UpdatePresentation()
 void SerialConnVT::DrawVT(Draw& draw)
 {
     // calculate offset
-    Point vpos = LogicToVirtual(mSbH.Get(), mSbV.Get());
+    int sbh = mSbH.Get(), sbv = mSbV.Get();
+    Point vpos = LogicToVirtual(sbh, sbv);
     if (vpos.x < 0 || vpos.y < 0) return;
     Point lpos = VirtualToLogic(vpos.x, vpos.y);
-    int lxoff = lpos.x - mSbH.Get();
     int lyoff = lpos.y - mSbV.Get();
     //--------------------------------------------------------------
     // draw lines, and calculate the presentation information
     Size usz = GetSize(); int vy = vpos.y;
     for (int i = vpos.y; i < (int)mLinesBuffer.size() && lyoff < usz.cy; ++i) {
         const VTLine& vline = mLinesBuffer[i];
-        DrawVTLine(draw, vline, vpos.x, vy++, lxoff, lyoff);
+        int vx = this->LogicToVirtual(vline, sbh);
+        int lx = this->VirtualToLogic(vline, vx);
+        int lxoff = lx - sbh;
+        DrawVTLine(draw, vline, vx, vy++, lxoff, lyoff);
         lyoff += vline.GetHeight();
     }
     for (int i = std::max(0, vpos.y - (int)mLinesBuffer.size()); i < (int)mLines.size() && lyoff < usz.cy; ++i) {
         const VTLine& vline = mLines[i];
-        DrawVTLine(draw, vline, vpos.x, vy++, lxoff, lyoff);
+        int vx = this->LogicToVirtual(vline, sbh);
+        int lx = this->VirtualToLogic(vline, vx);
+        int lxoff = lx - sbh;
+        DrawVTLine(draw, vline, vx, vy++, lxoff, lyoff);
         lyoff += vline.GetHeight();
     }
 }
@@ -1008,8 +1067,6 @@ void SerialConnVT::Render(Draw& draw)
     draw.DrawRect(GetRect(), mPaperColor);
     //
     DrawVT(draw);
-    //
-    UpdatePresentationPos();
     //
     DrawCursor(draw);
 }

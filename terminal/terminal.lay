@@ -25,12 +25,19 @@ LAYOUT(ConnRaw, 692, 428)
 	ITEM(Label, mTmpStatus, LeftPosZ(172, 452).BottomPosZ(5, 19))
 END_LAYOUT
 
-LAYOUT(VTOptions, 424, 104)
-	ITEM(EditInt, dv___0, Max(20000).Min(1).LeftPosZ(80, 80).TopPosZ(8, 19))
+LAYOUT(VTOptions, 456, 120)
+	ITEM(EditInt, mLinesBufferSize, Max(20000).Min(1).LeftPosZ(80, 80).TopPosZ(8, 19))
 	ITEM(Label, dv___1, SetLabel(t_("LinesBuffer")).LeftPosZ(8, 64).TopPosZ(8, 19))
-	ITEM(ColorPusher, dv___2, LeftPosZ(80, 80).VSizePosZ(67, 13))
+	ITEM(ColorPusher, mFontColor, LeftPosZ(80, 80).VSizePosZ(67, 29))
 	ITEM(Label, dv___3, SetLabel(t_("Font Color")).LeftPosZ(8, 64).TopPosZ(72, 19))
-	ITEM(ColorPusher, dv___4, LeftPosZ(80, 80).VSizePosZ(36, 44))
+	ITEM(ColorPusher, mPaperColor, LeftPosZ(80, 80).VSizePosZ(36, 60))
 	ITEM(Label, dv___5, SetLabel(t_("Paper Color")).LeftPosZ(8, 64).TopPosZ(41, 19))
+	ITEM(DropList, mFontList, HSizePosZ(212, 112).TopPosZ(8, 19))
+	ITEM(Label, dv___7, SetLabel(t_("Font")).LeftPosZ(172, 32).TopPosZ(8, 19))
+	ITEM(Label, dv___8, SetLabel(t_("Font Size")).LeftPosZ(348, 48).TopPosZ(8, 19))
+	ITEM(Label, mFontPreview, SetAlign(ALIGN_CENTER).LeftPosZ(172, 276).TopPosZ(32, 60))
+	ITEM(Button, mCancel, SetLabel(t_("Cancel")).LeftPosZ(392, 56).TopPosZ(96, 19))
+	ITEM(Button, mOk, SetLabel(t_("Ok")).LeftPosZ(332, 56).TopPosZ(96, 19))
+	ITEM(WithDropChoice<EditInt>, mFontSize, LeftPosZ(400, 48).TopPosZ(8, 19))
 END_LAYOUT
 

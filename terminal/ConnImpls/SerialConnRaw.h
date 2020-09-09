@@ -2,10 +2,11 @@
 #define _comxd_SerialConnForm_h_
 
 #include "Conn.h"
-#include "Proto.h"
 // c++11 thread
 #include <thread>
 #include <vector>
+
+class Proto;
 
 class SerialConnRaw : public WithConnRaw<SerialConn> {
 public:

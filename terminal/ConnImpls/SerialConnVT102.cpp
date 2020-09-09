@@ -524,12 +524,12 @@ void SerialConnVT102::ProcessVT102ScrollingRegion(const std::string& seq)
 void SerialConnVT102::DrawVT(Draw& draw)
 {
     // calculate offset
-    Point vpos = LogicToVirtual(mSbH.Get(), mSbV.Get());
+    int sbh = mSbH.Get(), sbv = mSbV.Get();
+    Point vpos = LogicToVirtual(sbh, sbv);
     if (vpos.x < 0 || vpos.y < 0) return;
     Point lpos = VirtualToLogic(vpos.x, vpos.y);
-    int lxoff = lpos.x - mSbH.Get();
     int lyoff = lpos.y - mSbV.Get();
-    //
+    // use bot
     int bot = mScrollingRegion.Bottom;
     if (bot < 0) {
         bot = (int)mLines.size() - 1;
@@ -539,18 +539,19 @@ void SerialConnVT102::DrawVT(Draw& draw)
     Size usz = GetSize(); int vy = vpos.y;
     for (int i = vpos.y; i < (int)mLinesBuffer.size() && lyoff < usz.cy; ++i) {
         const VTLine& vline = mLinesBuffer[i];
+        int vx = this->LogicToVirtual(vline, sbh);
+        int lx = this->VirtualToLogic(vline, vx);
+        int lxoff = lx - sbh;
         DrawVTLine(draw, vline, vpos.x, vy++, lxoff, lyoff);
         lyoff += vline.GetHeight();
-        // Top, Bottom is relative
-        if (vy - vpos.y >= bot)
-            break;
     }
     for (int i = std::max(0, vpos.y - (int)mLinesBuffer.size()); i < (int)mLines.size() && lyoff < usz.cy; ++i) {
         const VTLine& vline = mLines[i];
+        int vx = this->LogicToVirtual(vline, sbh);
+        int lx = this->VirtualToLogic(vline, vx);
+        int lxoff = lx - sbh;
         DrawVTLine(draw, vline, vpos.x, vy++, lxoff, lyoff);
         lyoff += vline.GetHeight();
-        if (lyoff >= usz.cy)
-            break;
     }
 }
 //

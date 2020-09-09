@@ -308,16 +308,16 @@ protected:
     std::vector<std::string> GetSelection() const;
     Upp::String GetSelectedText() const;
     // lx, ly - Absolute position
-    Upp::Point LogicToVirtual(int lx, int ly) const;
-    Upp::Point VirtualToLogic(int vx, int vy) const;
+    Upp::Point LogicToVirtual(int lx, int ly);
+    Upp::Point VirtualToLogic(int vx, int vy);
     // lx, ly - lines is virtual screen
-    Upp::Point LogicToVirtual(const std::vector<VTLine>& lines, int lx, int ly) const;
-    Upp::Point VirtualToLogic(const std::vector<VTLine>& lines, int vx, int vy) const;
+    Upp::Point LogicToVirtual(const std::vector<VTLine>& lines, int lx, int ly);
+    Upp::Point VirtualToLogic(const std::vector<VTLine>& lines, int vx, int vy);
     // x
-    int LogicToVirtual(const VTLine& vline, int lx) const;
-    int VirtualToLogic(const VTLine& vline, int vx) const;
+    int LogicToVirtual(const VTLine& vline, int lx);
+    int VirtualToLogic(const VTLine& vline, int vx);
     // return logic width of vline, unit: pixels
-    int GetLogicWidth(const VTLine& vline, int count = -1) const;
+    int GetLogicWidth(const VTLine& vline, int count = -1);
     // adjust virtual screen, what can affect this routine were listed below
     //  1. Font
     //  2. Size of client region
@@ -342,7 +342,7 @@ protected:
     Upp::VScrollBar mSbV;
     Upp::HScrollBar mSbH;
     //
-    virtual int GetCharWidth(const VTChar& c) const;
+    virtual int GetCharWidth(const VTChar& c);
     // vy - absolute position
     virtual int GetLineHeight(int vy) const;
     // calculate the size of console
@@ -384,7 +384,8 @@ protected:
     int GetVTLinesHeight(const std::vector<VTLine>& lines) const;
     //
     virtual void UpdatePresentationPos();
-    virtual void UpdateScrollbar();
+    virtual void UpdateHScrollbar();
+    virtual void UpdateVScrollbar();
     virtual void UpdatePresentation();
 private:
     // receiver
