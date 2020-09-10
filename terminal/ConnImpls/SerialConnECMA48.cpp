@@ -315,6 +315,17 @@ void SerialConnECMA48::ProcessCUD(const std::string& seq)
     if (!token.empty()) {
         p = atoi(token.c_str());
     }
+    mVy += p; // allow the user move vy out of range.
+}
+//
+void SerialConnECMA48::ProcessCUU(const std::string& seq)
+{
+    // up
+    std::string token = seq.substr(1, seq.length() - 2);
+    int p = 1;
+    if (!token.empty()) {
+        p = atoi(token.c_str());
+    }
     mVy = std::max(0, mVy - p);
 }
 //
@@ -327,7 +338,7 @@ void SerialConnECMA48::ProcessCUF(const std::string& seq)
     if (!token.empty()) {
         p = atoi(token.c_str());
     }
-    mVx = std::min(csz.cx-1, mVy - p);
+    mVx = std::min(csz.cx-1, mVx + p);
 }
 //
 void SerialConnECMA48::ProcessCUP(const std::string& seq)
@@ -344,17 +355,6 @@ void SerialConnECMA48::ProcessCUP(const std::string& seq)
     if (p[1] < 0) p[1] = 0; else if (p[1] >= csz.cx) p[1] = csz.cx-1;
     mVx = p[1];
     mVy = p[0];
-}
-//
-void SerialConnECMA48::ProcessCUU(const std::string& seq)
-{
-    // up
-    std::string token = seq.substr(1, seq.length() - 2);
-    int p = 1;
-    if (!token.empty()) {
-        p = atoi(token.c_str());
-    }
-    mVy = std::max(0, mVy - p);
 }
 
 void SerialConnECMA48::ProcessCTC(int ps)

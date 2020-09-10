@@ -507,7 +507,7 @@ Image SerialConnVT::CursorImage(Point p, dword keyflags)
     (void)p;
     (void)keyflags;
     //
-    return terminal::cursor_beam;
+    return Image::IBeam();
 }
 
 void SerialConnVT::MouseWheel(Point, int zdelta, dword)
@@ -973,14 +973,14 @@ String SerialConnVT::GetSelectedText() const
 //
 bool SerialConnVT::IsCharInSelectionSpan(int vx, int vy) const
 {
-    auto span = mSelectionSpan; bool lr = true;
+    auto span = mSelectionSpan;
+    bool lr = span.Y0 == span.Y1 ? span.x0 < span.x1 : span.y0 < span.y1;
     if (span.Y0 > span.Y1) { // top left
         std::swap(span.Y0, span.Y1);
         std::swap(span.X0, span.X1);
     } else if (span.Y0 == span.Y1) {
         if (span.X0 > span.X1) {
             std::swap(span.X0, span.X1);
-            lr = false;
         }
     }
     // calculate absolute position
@@ -989,16 +989,12 @@ bool SerialConnVT::IsCharInSelectionSpan(int vx, int vy) const
     int abs_x = vx, abs_y = vy;
     if (abs_y == span.Y0) { // head line
         if (span.Y1-span.Y0 == 0) {
-            if (lr) {
-                if (abs_x >= span.X0 && abs_x < span.X1) return true;
-            } else {
-                if (abs_x > span.X0 && abs_x <= span.X1) return true;
-            }
+            return lr ? abs_x >= span.X0 && abs_x < span.X1 : abs_x > span.X0 && abs_x <= span.X1;
         } else {
-            return abs_x >= span.X0;
+            return lr ? abs_x >= span.X0 : abs_x > span.X0;
         }
-    } else if (abs_y == span.Y1) {
-        if (abs_x < span.X1) return true;
+    } else if (abs_y == span.Y1) { // tail.
+        return lr ? abs_x < span.X1 : abs_x <= span.X1;
     } else {
         if (abs_y > span.Y0 && abs_y < span.Y1) {
             return true;
