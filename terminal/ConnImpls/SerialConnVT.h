@@ -290,17 +290,16 @@ protected:
     struct SelectionSpan {
         int X0, Y0; // virtual screen, unit: char [fixed width]
         int X1, Y1; // virtual screen, unit: char [fixed height]
-        int x0, x1; // logical unit
-        int y0, y1; // logical unit
+        int x0, y0; // reserved for define the whether the span is valid.
+        bool Valid;
         SelectionSpan()
-            : x0(0)
-            , y0(0)
-            , x1(0)
-            , y1(0)
-            , X0(0)
+            : X0(0)
             , Y0(0)
             , X1(0)
             , Y1(0)
+            , x0(0)
+            , y0(0)
+            , Valid(false)
         {
         }
     };

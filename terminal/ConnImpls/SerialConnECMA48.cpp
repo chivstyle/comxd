@@ -338,7 +338,7 @@ void SerialConnECMA48::ProcessCUF(const std::string& seq)
     if (!token.empty()) {
         p = atoi(token.c_str());
     }
-    mVx = std::min(csz.cx-1, mVx + p);
+    mVx += p;  // allow the user move vx out of range.
 }
 //
 void SerialConnECMA48::ProcessCUP(const std::string& seq)
@@ -351,6 +351,9 @@ void SerialConnECMA48::ProcessCUP(const std::string& seq)
             p[idx++] = atoi(token) - 1;
         }
     });
+    // limit to data-component range, why ?
+    // Because the sender will send a [999999;99999H seq, how do you process it?
+    // I guess it's meaning is "Please move the cursor to end of data".
     if (p[0] < 0) p[0] = 0; else if (p[0] >= csz.cy) p[0] = csz.cy-1;
     if (p[1] < 0) p[1] = 0; else if (p[1] >= csz.cx) p[1] = csz.cx-1;
     mVx = p[1];

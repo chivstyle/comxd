@@ -507,7 +507,7 @@ Image SerialConnVT::CursorImage(Point p, dword keyflags)
     (void)p;
     (void)keyflags;
     //
-    return Image::IBeam();
+    return terminal::cursor_beam();
 }
 
 void SerialConnVT::MouseWheel(Point, int zdelta, dword)
@@ -546,11 +546,9 @@ void SerialConnVT::MouseMove(Point p, dword)
             mSbH.NextLine();
         }
         Point vpos = LogicToVirtual(mSbH.Get() + p.x, mSbV.Get() + p.y);
-        mSelectionSpan.X1 = p.x - mSelectionSpan.x0 > 0 ? vpos.x + 1 : vpos.x - 1;
+        mSelectionSpan.X1 = vpos.x;
         mSelectionSpan.Y1 = vpos.y;
-        //
-        mSelectionSpan.x1 = p.x;
-        mSelectionSpan.y1 = p.y;
+        mSelectionSpan.Valid = true;
         //
         Refresh();
     }
@@ -564,8 +562,9 @@ void SerialConnVT::LeftDown(Point p, dword)
     mSelectionSpan.X1 = vpos.x;
     mSelectionSpan.Y0 = vpos.y;
     mSelectionSpan.Y1 = vpos.y;
-    mSelectionSpan.x0 = mSelectionSpan.x1 = p.x;
-    mSelectionSpan.y0 = mSelectionSpan.y1 = p.y;
+    mSelectionSpan.x0 = p.x;
+    mSelectionSpan.y0 = p.y;
+    mSelectionSpan.Valid = false;
     // capture, event the cursor move out of the client region.
     SetFocus();
     SetCapture();
@@ -593,8 +592,10 @@ void SerialConnVT::LeftDouble(Point p, dword)
         // backward
         int bx = vpos.x;
         while (bx < (int)vline->size() && vline->at(bx) != ' ') {
-            mSelectionSpan.X1 = 1 + bx++;
+            mSelectionSpan.X1 = bx++;
         }
+        // Create a condition
+        mSelectionSpan.Valid = true;
         //
         Refresh();
     }
@@ -635,8 +636,7 @@ void SerialConnVT::SelectAll()
 void SerialConnVT::RightUp(Point, dword)
 {
 	MenuBar::Execute([=](Bar& bar) {
-	    bool has_sel = mSelectionSpan.X0 != mSelectionSpan.X1 ||
-	                   mSelectionSpan.Y0 != mSelectionSpan.Y1;
+	    bool has_sel = mSelectionSpan.Valid;
 		bar.Add(has_sel, t_("Copy"), [=] {
 		    // copy to clipboard
 		    Copy();
@@ -973,8 +973,7 @@ String SerialConnVT::GetSelectedText() const
 //
 bool SerialConnVT::IsCharInSelectionSpan(int vx, int vy) const
 {
-    auto span = mSelectionSpan;
-    bool lr = span.Y0 == span.Y1 ? span.x0 < span.x1 : span.y0 < span.y1;
+    auto span = mSelectionSpan; if (!span.Valid) return false;
     if (span.Y0 > span.Y1) { // top left
         std::swap(span.Y0, span.Y1);
         std::swap(span.X0, span.X1);
@@ -983,20 +982,16 @@ bool SerialConnVT::IsCharInSelectionSpan(int vx, int vy) const
             std::swap(span.X0, span.X1);
         }
     }
-    // calculate absolute position
-    if (span.X1 - span.X0 <= 0 &&
-        span.Y1 - span.Y0 <= 0) return false;
-    int abs_x = vx, abs_y = vy;
-    if (abs_y == span.Y0) { // head line
+    if (vy == span.Y0) { // head line
         if (span.Y1-span.Y0 == 0) {
-            return lr ? abs_x >= span.X0 && abs_x < span.X1 : abs_x > span.X0 && abs_x <= span.X1;
+            return vx >= span.X0 && vx <= span.X1;
         } else {
-            return lr ? abs_x >= span.X0 : abs_x > span.X0;
+            return vx >= span.X0;
         }
-    } else if (abs_y == span.Y1) { // tail.
-        return lr ? abs_x < span.X1 : abs_x <= span.X1;
+    } else if (vy == span.Y1) { // tail.
+        return vx <= span.X1;
     } else {
-        if (abs_y > span.Y0 && abs_y < span.Y1) {
+        if (vy > span.Y0 && vy < span.Y1) {
             return true;
         }
     }
@@ -1065,10 +1060,6 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
             // Use black to tell the user it's the end of the normal text.
             draw.DrawRect(x, y, usz.cx-x, vline.GetHeight(), Color(0, 0, 0));
         }
-    }
-    // apply attrs of invisible chars
-    for (int k = i; k < (int)vline.size(); ++k) {
-        vline[k].ApplyAttrs();
     }
 }
 
