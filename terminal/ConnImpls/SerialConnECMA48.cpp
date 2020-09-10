@@ -1000,6 +1000,9 @@ void SerialConnECMA48::InstallEcma48Functions()
         mVx = 0;
         mVy = 0;
     };
+    mEcma48TrivialHandlers["[m"] = [=]() {
+        ProcessSGR(0);
+    };
 }
 
 void SerialConnECMA48::ProcessEcma48Trivial(const std::string& seq)

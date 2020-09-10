@@ -39,5 +39,6 @@ LAYOUT(VTOptions, 456, 120)
 	ITEM(Button, mCancel, SetLabel(t_("Cancel")).LeftPosZ(392, 56).TopPosZ(96, 19))
 	ITEM(Button, mOk, SetLabel(t_("Ok")).LeftPosZ(332, 56).TopPosZ(96, 19))
 	ITEM(WithDropChoice<EditInt>, mFontSize, LeftPosZ(400, 48).TopPosZ(8, 19))
+	ITEM(Option, mTrackCaret, SetLabel(t_("Track Caret")).Tip(t_("Track the caret when you input valid chars")).LeftPosZ(8, 152).TopPosZ(100, 16))
 END_LAYOUT
 

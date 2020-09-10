@@ -13,6 +13,7 @@ public:
     virtual ~VTOptionsDialog();
     // Set
     struct Options {
+        bool       TrackCaret;
         Upp::Color PaperColor;
         Upp::Color FontColor;
         Upp::Font  Font;

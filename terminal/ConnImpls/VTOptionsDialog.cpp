@@ -109,6 +109,7 @@ void VTOptionsDialog::SetOptions(const Options& options)
     mPaperColor.SetData(options.PaperColor);
     mFontColor.SetData(options.FontColor);
     mFontList.WhenAction();
+    mTrackCaret.Set(options.TrackCaret ? 1 : 0);
     //
     PreviewFont();
 }
@@ -120,6 +121,7 @@ VTOptionsDialog::Options VTOptionsDialog::GetOptions() const
     options.PaperColor = mPaperColor.GetData();
     options.FontColor = mFontColor.GetData();
     options.LinesBufferSize = mLinesBufferSize.GetData();
+    options.TrackCaret = mTrackCaret.Get() > 0;
     return options;
 }
 

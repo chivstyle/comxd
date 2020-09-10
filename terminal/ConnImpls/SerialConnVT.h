@@ -278,7 +278,8 @@ protected:
     // NOTE: If you want push one line to lines buffer, please use this routine.
     //       DO NOT use push_back directly.
     void PushToLinesBufferAndCheck(const VTLine& vline);
-    // check the new line, and push it to the lines buffer if needed.
+    // 1. If mVy is out of range, push the overflow lines to buffer
+    // 2. If mVx is out of range, extend the line in position mVy.
     virtual void ProcessOverflowLines();
     // calcualte blank lines from end of lines
     int CalculateNumberOfBlankLinesFromEnd(const std::vector<VTLine>& lines) const;
@@ -341,6 +342,7 @@ protected:
     // scroll bar
     Upp::VScrollBar mSbV;
     Upp::HScrollBar mSbH;
+    bool mTrackCaret;
     //
     virtual int GetCharWidth(const VTChar& c);
     // vy - absolute position

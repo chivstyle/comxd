@@ -276,7 +276,8 @@ static const char kECMA48_C1[] = {
 };
 
 static const char* kECMA48CtrlSeqs[] = {
-    "[H"
+    "[H",
+    "[m"
 };
 
 enum ECMA48FuncionType {

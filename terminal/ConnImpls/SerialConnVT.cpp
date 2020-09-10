@@ -30,6 +30,7 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> serial)
     , mScrollToEnd(true)
     , mPressed(false)
     , mMaxLinesBufferSize(5000)
+    , mTrackCaret(true)
 {
     // double buffer
     BackPaint();
@@ -67,9 +68,9 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> serial)
         this->Refresh();
         }, kBlinkTimerId);
     //
-    mRxThr = std::thread([=]() { RxProc(); });
-    //
     InstallUserActions();
+    // finally start the rx-thread.
+    mRxThr = std::thread([=]() { RxProc(); });
 }
 
 SerialConnVT::~SerialConnVT()
@@ -93,10 +94,12 @@ void SerialConnVT::InstallUserActions()
             options.LinesBufferSize = this->mMaxLinesBufferSize;
             options.PaperColor = mPaperColor;
             options.FontColor = mDefaultFgColor;
+            options.TrackCaret = mTrackCaret;
             VTOptionsDialog opt; opt.SetOptions(options);
             int ret = opt.Run();
             if (ret == IDOK) {
                 options = opt.GetOptions();
+                this->mTrackCaret = options.TrackCaret;
                 this->mPaperColor = options.PaperColor;
                 this->mDefaultFgColor = options.FontColor;
                 this->mDefaultBgColor = options.PaperColor;
@@ -446,8 +449,7 @@ void SerialConnVT::ProcessOverflowLines()
     } else if (mVy >= csz.cy) { // wrap lines, override the last line of virtual screen.
         mVy = csz.cy - 1;
     }
-    // padding chars
-    int cnt = csz.cx - (int)mLines[mVy].size();
+    int cnt = mVx - (int)mLines[mVy].size();
     for (int i = 0; i < cnt; ++i) {
         mLines[mVy].push_back(mBlankChar);
     }
@@ -479,6 +481,23 @@ void SerialConnVT::RenderText(const std::vector<uint32_t>& s)
                 vline.push_back(chr);
             }
             mVx++;
+        }
+    }
+    //
+    if (mTrackCaret) {
+        UpdatePresentation();
+        Size usz = GetSize();
+        // If px is out of range, py is in range
+        if (mPy >= 0 || mPy < usz.cy) {
+            if (mPx < 0) { // scroll back
+                int scr = -mPx + mFontW;
+                int sbh = mSbH.Get();
+                mSbH.Set(sbh - scr);
+            } else if (mPx >= usz.cx) {
+                int scr = mPx - usz.cx + mFontW;
+                int sbh = mSbH.Get();
+                mSbH.Set(sbh + scr);
+            }
         }
     }
 }
@@ -676,6 +695,9 @@ bool SerialConnVT::ProcessKeyDown(dword key, dword flags)
         }
     }
     if (!d.empty()) {
+        // scroll to end when the user input valid chars.
+        mSbV.End();
+        //
         GetSerial()->Write(d);
         return true;
     }
@@ -843,6 +865,16 @@ void SerialConnVT::DoLayout()
 	    for (size_t i = vline.size(); (int)i < csz.cx; ++i) {
 	        vline.push_back(mBlankChar);
 	    }
+	    int overflow_cnt = (int)vline.size() - csz.cx;
+	    if (overflow_cnt > 0) {
+	        // erase those blanks out of range
+	        int blanks_cnt = this->CalculateNumberOfBlankCharsFromEnd(vline);
+	        int k = 0;
+	        while (k < overflow_cnt && k < blanks_cnt) {
+	            k++;
+	            vline.pop_back();
+	        }
+	    }
 	}
 	// extend or shrink the virtual screen
 	if (mLines.size() < csz.cy) {
@@ -855,9 +887,9 @@ void SerialConnVT::DoLayout()
 
 void SerialConnVT::Layout()
 {
-	DoLayout();
-	//
-	UpdatePresentation();
+    DoLayout();
+    //
+    UpdatePresentation();
 }
 //
 std::vector<std::string> SerialConnVT::GetSelection() const
@@ -1069,7 +1101,7 @@ void SerialConnVT::UpdateHScrollbar()
     for (int i = vpos.y; i < (int)mLinesBuffer.size() && lyoff < usz.cy; ++i) {
         const VTLine& vline = mLinesBuffer[i];
         lyoff += vline.GetHeight();
-        int linesz = this->GetLogicWidth(vline, (int)vline.size() - this->CalculateNumberOfBlankCharsFromEnd(vline));
+        int linesz = this->GetLogicWidth(vline, -1); //(int)vline.size() - this->CalculateNumberOfBlankCharsFromEnd(vline));
         if (linesz > longest_linesz) {
             longest_linesz = linesz;
         }
@@ -1077,7 +1109,7 @@ void SerialConnVT::UpdateHScrollbar()
     for (int i = std::max(0, vpos.y - (int)mLinesBuffer.size()); i < (int)mLines.size() && lyoff < usz.cy; ++i) {
         const VTLine& vline = mLines[i];
         lyoff += vline.GetHeight();
-        int linesz = this->GetLogicWidth(vline, (int)vline.size() - this->CalculateNumberOfBlankCharsFromEnd(vline));
+        int linesz = this->GetLogicWidth(vline, -1); //(int)vline.size() - this->CalculateNumberOfBlankCharsFromEnd(vline));
         if (linesz > longest_linesz) {
             longest_linesz = linesz;
         }
