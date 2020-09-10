@@ -130,7 +130,7 @@ void SerialConnVT::InstallUserActions()
 //
 void SerialConnVT::SetDefaultStyle()
 {
-    mFont.NoBold().NoItalic().NoUnderline();
+    mFont.NoBold().NoItalic().NoUnderline().NoStrikeout();
     mBgColor = mDefaultBgColor;
     mFgColor = mDefaultFgColor;
     mBlink = false;
@@ -1020,7 +1020,8 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
     int x = lxoff, y = lyoff, i = 0;
     bool tail_selected = IsCharInSelectionSpan((int)vline.size()-1, vy);
     bool line_selected = IsCharInSelectionSpan(0, vy) && tail_selected; // line was selected.
-    for (i = vx; i < (int)vline.size() && x < usz.cx; ++i) {
+    int abc_cnt = (int)vline.size();
+    for (i = vx; i < abc_cnt && x < usz.cx; ++i) {
         vline[i].ApplyAttrs();
         bool is_selected = line_selected ? true : IsCharInSelectionSpan(i, vy);
         if (is_selected) {
@@ -1058,7 +1059,7 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
     if (IsCharInSelectionSpan(0, vy+1) && tail_selected) { // we need to pad the blank
         if (usz.cx - x > 0) {
             // Use black to tell the user it's the end of the normal text.
-            draw.DrawRect(x, y, usz.cx-x, vline.GetHeight(), Color(0, 0, 0));
+            draw.DrawRect(x, y, usz.cx-x, vline.GetHeight(), mFgColor);
         }
     }
 }

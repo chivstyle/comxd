@@ -31,7 +31,8 @@ void SerialConnECMA48::ProcessSGR(int attr_code)
         break;
     case 1:
         mCurrAttrFuncs.push_back([=]() {
-            mFont.Bold();
+            if (mFont.IsScaleable())
+                mFont.Bold();
         });
         break;
     case 2:
@@ -41,7 +42,8 @@ void SerialConnECMA48::ProcessSGR(int attr_code)
         break;
     case 3:
         mCurrAttrFuncs.push_back([=]() {
-            mFont.Italic();
+            if (mFont.IsScaleable())
+                mFont.Italic();
         });
         break;
     case 4:

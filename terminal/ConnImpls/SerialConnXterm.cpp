@@ -15,7 +15,9 @@ SerialConnXterm::SerialConnXterm(std::shared_ptr<SerialIo> serial)
     , mIsAltScr(false)
 {
     InstallXtermFunctions();
-    //
+    // The default setting of alt screen is fixed, inherit from VT.
+    // The user can change settings when the alt screen is active, but we do not store the
+    // configuration after the user exit the alt screen.
     SaveScr(mAltScr);
 }
 //
@@ -47,6 +49,8 @@ void SerialConnXterm::LoadScr(const ScreenData& sd)
     mBgColor = sd.BgColor;
     mBlink = sd.Blink;
     mFont = sd.Font;
+    mFontW = mFont.GetAveWidth();
+    mFontH = mFont.GetLineHeight();
     //
     DoLayout();
     UpdatePresentation();
@@ -98,9 +102,11 @@ bool SerialConnXterm::ProcessKeyDown(Upp::dword key, Upp::dword flags)
 void SerialConnXterm::InstallXtermFunctions()
 {
     mXtermTrivialHandlers["[?1049h"] = [=]() { // switch to alternative screen
-        SaveScr(mBkgScr); // backup current screen
-        LoadScr(mAltScr); // load alternative screen.
-        mIsAltScr = true;
+        if (mIsAltScr == false) {
+            SaveScr(mBkgScr); // backup current screen
+            LoadScr(mAltScr); // load alternative screen.
+            mIsAltScr = true;
+        }
     };
     mXtermTrivialHandlers["[?1049l"] = [=]() { // switch to main screen
         if (mIsAltScr) {
