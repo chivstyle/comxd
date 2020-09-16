@@ -88,6 +88,9 @@ bool SerialConnXterm::ProcessKeyDown(Upp::dword key, Upp::dword flags)
 {
     std::string d;
     switch (key) {
+    case K_HOME:
+        d = "\033[H";
+        break;
     case K_END:
         d = "\033[F";
         break;

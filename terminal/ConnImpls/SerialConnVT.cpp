@@ -105,25 +105,36 @@ void SerialConnVT::InstallUserActions()
                 this->mDefaultBgColor = options.PaperColor;
                 this->mFont = options.Font;
                 this->mMaxLinesBufferSize = options.LinesBufferSize;
-                int fontw = mFont.GetAveWidth(), fonth = mFont.GetLineHeight();
-                int shrink_cnt = (int)mLinesBuffer.size() - options.LinesBufferSize;
-                if (shrink_cnt > 0) {
-                    mLinesBuffer.erase(mLinesBuffer.begin(), mLinesBuffer.begin() + shrink_cnt);
-                }
-                // will override the old parameters, such as line-height
-                for (size_t k = 0; k < mLinesBuffer.size(); ++k) {
-                    int h = mLinesBuffer[k].GetHeight();
-                    mLinesBuffer[k].SetHeight((int)((double)h / mFontH * fonth));
-                }
-                for (size_t k = 0; k < mLines.size(); ++k) {
-                    int h = mLines[k].GetHeight();
-                    mLines[k].SetHeight((int)((double)h / mFontH * fonth));
-                }
-                mFontW = fontw, mFontH = fonth;
-                // fix virtual screen.
-                DoLayout();
                 //
-                UpdatePresentation();
+                bool vscr_modified = false; // lines buffer or virtual screen was modified ?
+                // need to shrink the lines buffer ?
+                if (this->mMaxLinesBufferSize < this->mLinesBuffer.size()) {
+                    size_t cnt = mLinesBuffer.size() - mMaxLinesBufferSize;
+                    mLinesBuffer.erase(mLinesBuffer.begin(), mLinesBuffer.begin() + cnt);
+                    vscr_modified = true;
+                }
+                int fontw = mFont.GetAveWidth(), fonth = mFont.GetLineHeight();
+                if (fontw != mFontW || fonth != mFontH) {
+                    int shrink_cnt = (int)mLinesBuffer.size() - options.LinesBufferSize;
+                    if (shrink_cnt > 0) {
+                        mLinesBuffer.erase(mLinesBuffer.begin(), mLinesBuffer.begin() + shrink_cnt);
+                    }
+                    // will override the old parameters, such as line-height
+                    for (size_t k = 0; k < mLinesBuffer.size(); ++k) {
+                        int h = mLinesBuffer[k].GetHeight();
+                        mLinesBuffer[k].SetHeight((int)((double)h / mFontH * fonth));
+                    }
+                    for (size_t k = 0; k < mLines.size(); ++k) {
+                        int h = mLines[k].GetHeight();
+                        mLines[k].SetHeight((int)((double)h / mFontH * fonth));
+                    }
+                    mFontW = fontw, mFontH = fonth;
+                    vscr_modified = true;
+                }
+                if (vscr_modified) {
+                    DoLayout();
+                    UpdatePresentation();
+                }
             }
         });
 }
@@ -313,78 +324,97 @@ int SerialConnVT::GetLogicWidth(const VTLine& vline, int count)
 }
 //
 // lx, ly - lines is virtual screen
-Point SerialConnVT::LogicToVirtual(const std::vector<VTLine>& lines, int lx, int ly)
+Point SerialConnVT::LogicToVirtual(const std::vector<VTLine>& lines, int lx, int ly, int& px, int& next_px,
+                                                                                     int& py, int& next_py)
 {
     // find vy
-    int vy = -1, py = 0;
+    int vy = (int)lines.size()-1; py = 0; next_py = 0;
     for (int i = 0; i < (int)lines.size(); ++i) {
-        py += lines[i].GetHeight();
-        if (py > ly) {
+        int line_sz = lines[i].GetHeight();
+        next_py += line_sz;
+        //
+        if (ly >= py && ly < next_py) {
             vy = i;
             break;
         }
+        py += line_sz;
     }
-    if (vy < 0)
-        return Point(-1, -1);
-    int px = 0, vx = (int)lines[vy].size()-1;
+    int vx = (int)lines[vy].size() - 1; px = 0; next_px = 0;
     for (int i = 0; i < (int)lines[vy].size(); ++i) {
-        px += GetCharWidth(lines[vy][i]);
-        if (px > lx) {
+        int vchar_sz = GetCharWidth(lines[vy][i]);
+        next_px += vchar_sz;
+        // [px, px+vchar_sz]
+        if (lx >= px && lx < next_px) {
             vx = i;
             break;
         }
+        //
+        px += vchar_sz;
     }
     return Point(vx, vy);
 }
 //
-Point SerialConnVT::LogicToVirtual(int lx, int ly)
+Point SerialConnVT::LogicToVirtual(int lx, int ly, int& px, int& next_px,
+                                                   int& py, int& next_py)
 {
-    int vy = -1, py = 0;
+    int vy = -1; py = 0; next_py = 0;
     for (int i = 0; i < (int)mLinesBuffer.size(); ++i) {
-        py += mLinesBuffer[i].GetHeight();
-        if (py > ly) {
+        int line_sz = mLinesBuffer[i].GetHeight();
+        next_py += line_sz;
+        if (ly >= py && ly < next_py) {
             vy = i;
             break;
         }
+        py += line_sz;
     }
     if (vy < 0) {
+        vy = (int)(mLinesBuffer.size()+mLines.size())-1;
         for (int i = 0; i < (int)mLines.size(); ++i) {
-            py += mLines[i].GetHeight();
-            if (py > ly) {
+            int line_sz = mLines[i].GetHeight();
+            next_py += line_sz;
+            if (ly >= py && ly < next_py) {
                 vy = (int)mLinesBuffer.size() + i;
                 break;
             }
+            py += line_sz;
         }
     }
-    if (vy < 0)
-        vy = (int)(mLinesBuffer.size() + mLines.size()) - 1;
-    if (vy < 0) return Point(-1, -1); // error
+    if (vy < 0) return Point(-1, -1); // Error, what's wrong? Because lines and linesbuffer all all empty.
+    //
     const VTLine* vline = nullptr;
     if (vy < (int)mLinesBuffer.size()) {
         vline = &mLinesBuffer[vy];
     } else {
         vline = &mLines[vy - (int)mLinesBuffer.size()];
     }
-    int px = 0, vx = (int)vline->size()-1;
+    int vx = (int)vline->size() - 1; px = 0; next_px = 0;
     for (int k = 0; k < (int)vline->size(); ++k) {
-        px += GetCharWidth(vline->at(k));
-        if (px > lx) {
+        int vchar_sz = GetCharWidth(vline->at(k));
+        next_px += vchar_sz;
+        // [px, px+vchar_sz]
+        if (lx >= px && lx < next_px) {
             vx = k;
             break;
         }
+        //
+        px += vchar_sz;
     }
     return Point(vx, vy);
 }
 //
-int SerialConnVT::LogicToVirtual(const VTLine& vline, int lx)
+int SerialConnVT::LogicToVirtual(const VTLine& vline, int lx, int& px, int& next_px)
 {
-    int px = 0, vx = (int)vline.size()-1;
+    int vx = (int)vline.size() - 1; px = 0; next_px = 0;
     for (int i = 0; i < (int)vline.size(); ++i) {
-        px += GetCharWidth(vline[i]);
-        if (px > lx) {
+        int vchar_sz = GetCharWidth(vline[i]);
+        next_px += vchar_sz;
+        // [px, px+vchar_sz]
+        if (lx >= px && lx < next_px) {
             vx = i;
             break;
         }
+        //
+        px += vchar_sz;
     }
     return vx;
 }
@@ -531,9 +561,6 @@ int SerialConnVT::GetLineHeight(int vy) const
 void SerialConnVT::MouseMove(Point p, dword)
 {
     if (mPressed) {
-        if (p.x - mSelectionSpan.x0 == 0 && p.y - mSelectionSpan.y0 == 0) {
-            return; // No movement
-        }
         // scroll over
         if (p.y < 0) {
             mSbV.PrevLine();
@@ -545,10 +572,13 @@ void SerialConnVT::MouseMove(Point p, dword)
         } else if (p.x > GetSize().cx) {
             mSbH.NextLine();
         }
-        Point vpos = LogicToVirtual(mSbH.Get() + p.x, mSbV.Get() + p.y);
-        mSelectionSpan.X1 = vpos.x;
+        int lx = mSbH.Get() + p.x, ly = mSbV.Get() + p.y;
+        int px, next_px, py, next_py;
+        Point vpos = LogicToVirtual(lx, ly, px, next_px, py, next_py);
+        mSelectionSpan.X1 = (lx - px) > (next_px - px) / 2 ? vpos.x+1 : vpos.x;
         mSelectionSpan.Y1 = vpos.y;
-        mSelectionSpan.Valid = true;
+        mSelectionSpan.Valid = mSelectionSpan.X0 != mSelectionSpan.X1 ||
+                               mSelectionSpan.Y0 != mSelectionSpan.Y1;
         //
         Refresh();
     }
@@ -557,13 +587,13 @@ void SerialConnVT::MouseMove(Point p, dword)
 void SerialConnVT::LeftDown(Point p, dword)
 {
     mPressed = true;
-    Point vpos = this->LogicToVirtual(mSbH.Get() + p.x, mSbV.Get() + p.y);
-    mSelectionSpan.X0 = vpos.x;
-    mSelectionSpan.X1 = vpos.x;
+    int lx = mSbH.Get() + p.x, ly = mSbV.Get() + p.y;
+    int px, next_px, py, next_py;
+    Point vpos = LogicToVirtual(lx, ly, px, next_px, py, next_py);
+    mSelectionSpan.X0 = (lx - px) > (next_px - px) / 2 ? vpos.x+1 : vpos.x;
     mSelectionSpan.Y0 = vpos.y;
+    mSelectionSpan.X1 = vpos.x;
     mSelectionSpan.Y1 = vpos.y;
-    mSelectionSpan.x0 = p.x;
-    mSelectionSpan.y0 = p.y;
     mSelectionSpan.Valid = false;
     // capture, event the cursor move out of the client region.
     SetFocus();
@@ -573,7 +603,9 @@ void SerialConnVT::LeftDown(Point p, dword)
 void SerialConnVT::LeftDouble(Point p, dword)
 {
     // Select the word under the caret
-    Point vpos = this->LogicToVirtual(mSbH.Get() + p.x, mSbV.Get() + p.y);
+    int lx = mSbH.Get() + p.x, ly = mSbV.Get() + p.y;
+    int px, next_px, py, next_py;
+    Point vpos = LogicToVirtual(lx, ly, px, next_px, py, next_py);
     VTLine* vline = nullptr;
     if (vpos.y < 0 || vpos.x < 0) return;
     if (vpos.y < (int)mLinesBuffer.size()) {
@@ -984,12 +1016,12 @@ bool SerialConnVT::IsCharInSelectionSpan(int vx, int vy) const
     }
     if (vy == span.Y0) { // head line
         if (span.Y1-span.Y0 == 0) {
-            return vx >= span.X0 && vx <= span.X1;
+            return vx >= span.X0 && vx < span.X1;
         } else {
             return vx >= span.X0;
         }
     } else if (vy == span.Y1) { // tail.
-        return vx <= span.X1;
+        return vx < span.X1;
     } else {
         if (vy > span.Y0 && vy < span.Y1) {
             return true;
@@ -1081,15 +1113,17 @@ void SerialConnVT::UpdateVScrollbar()
 
 void SerialConnVT::UpdateHScrollbar()
 {
-    Point vpos = LogicToVirtual(0, mSbV.Get());
-    if (vpos.x < 0 || vpos.y < 0) return;
+    int lx = 0, ly = mSbV.Get();
+    int px, next_px, py, next_py;
+    Point vpos = LogicToVirtual(lx, ly, px, next_px, py, next_py);
+    int lyoff = py - ly;
     // let's begin
     Size usz = GetSize(); int vy = vpos.y;
-    int longest_linesz = 0, lyoff = 0;
+    int longest_linesz = 0;
     for (int i = vpos.y; i < (int)mLinesBuffer.size() && lyoff < usz.cy; ++i) {
         const VTLine& vline = mLinesBuffer[i];
         lyoff += vline.GetHeight();
-        int linesz = this->GetLogicWidth(vline, -1); //(int)vline.size() - this->CalculateNumberOfBlankCharsFromEnd(vline));
+        int linesz = this->GetLogicWidth(vline, -1);
         if (linesz > longest_linesz) {
             longest_linesz = linesz;
         }
@@ -1097,7 +1131,7 @@ void SerialConnVT::UpdateHScrollbar()
     for (int i = std::max(0, vpos.y - (int)mLinesBuffer.size()); i < (int)mLines.size() && lyoff < usz.cy; ++i) {
         const VTLine& vline = mLines[i];
         lyoff += vline.GetHeight();
-        int linesz = this->GetLogicWidth(vline, -1); //(int)vline.size() - this->CalculateNumberOfBlankCharsFromEnd(vline));
+        int linesz = this->GetLogicWidth(vline, -1);
         if (linesz > longest_linesz) {
             longest_linesz = linesz;
         }
@@ -1117,11 +1151,10 @@ void SerialConnVT::UpdatePresentation()
 void SerialConnVT::DrawVT(Draw& draw)
 {
     // calculate offset
-    int sbh = mSbH.Get(), sbv = mSbV.Get();
-    Point vpos = LogicToVirtual(sbh, sbv);
-    if (vpos.x < 0 || vpos.y < 0) return;
-    Point lpos = VirtualToLogic(vpos.x, vpos.y);
-    int lyoff = lpos.y - mSbV.Get();
+    int lx = mSbH.Get(), ly = mSbV.Get();
+    int px, next_px, py, next_py;
+    Point vpos = LogicToVirtual(lx, ly, px, next_px, py, next_py);
+    int lyoff = py - ly;
     // use bot
     int bot = mScrollingRegion.Bottom;
     if (bot < 0) {
@@ -1132,17 +1165,15 @@ void SerialConnVT::DrawVT(Draw& draw)
     Size usz = GetSize(); int vy = vpos.y;
     for (int i = vpos.y; i < (int)mLinesBuffer.size() && lyoff < usz.cy; ++i) {
         const VTLine& vline = mLinesBuffer[i];
-        int vx = this->LogicToVirtual(vline, sbh);
-        int lx = this->VirtualToLogic(vline, vx);
-        int lxoff = lx - sbh;
+        int vx = this->LogicToVirtual(vline, lx, px, next_px);
+        int lxoff = px - lx;
         DrawVTLine(draw, vline, vx, vy++, lxoff, lyoff);
         lyoff += vline.GetHeight();
     }
     for (int i = std::max(0, vpos.y - (int)mLinesBuffer.size()); i < (int)mLines.size() && lyoff < usz.cy; ++i) {
         const VTLine& vline = mLines[i];
-        int vx = this->LogicToVirtual(vline, sbh);
-        int lx = this->VirtualToLogic(vline, vx);
-        int lxoff = lx - sbh;
+        int vx = this->LogicToVirtual(vline, lx, px, next_px);
+        int lxoff = px - lx;
         DrawVTLine(draw, vline, vx, vy++, lxoff, lyoff);
         lyoff += vline.GetHeight();
     }

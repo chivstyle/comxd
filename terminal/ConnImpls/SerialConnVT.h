@@ -297,8 +297,6 @@ protected:
             , Y0(0)
             , X1(0)
             , Y1(0)
-            , x0(0)
-            , y0(0)
             , Valid(false)
         {
         }
@@ -308,13 +306,19 @@ protected:
     std::vector<std::string> GetSelection() const;
     Upp::String GetSelectedText() const;
     // lx, ly - Absolute position
-    Upp::Point LogicToVirtual(int lx, int ly);
+    //        cN       cN+1   cN+2
+    // lx     |____lx___|______|
+    Upp::Point LogicToVirtual(int lx, int ly, int& px, int& next_px, int& py, int& next_py);
     Upp::Point VirtualToLogic(int vx, int vy);
     // lx, ly - lines is virtual screen
-    Upp::Point LogicToVirtual(const std::vector<VTLine>& lines, int lx, int ly);
+    //        cN       cN+1   cN+2
+    // lx     |____lx___|______|
+    Upp::Point LogicToVirtual(const std::vector<VTLine>& lines, int lx, int ly, int& px, int& next_px,
+                                                                                int& py, int& next_py);
     Upp::Point VirtualToLogic(const std::vector<VTLine>& lines, int vx, int vy);
-    // x
-    int LogicToVirtual(const VTLine& vline, int lx);
+    //        cN       cN+1   cN+2
+    // lx     |____lx___|______|
+    int LogicToVirtual(const VTLine& vline, int lx, int& px, int& next_px);
     int VirtualToLogic(const VTLine& vline, int vx);
     // return logic width of vline, unit: pixels
     int GetLogicWidth(const VTLine& vline, int count = -1);
