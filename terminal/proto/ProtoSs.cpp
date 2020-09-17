@@ -121,7 +121,11 @@ static inline std::string GenerateReport(const ss::ss_command_t& rslt)
     report += "    \"Action\":\"" + rslt.action + "\",\n";
     report += "    \"Parameters\":[\n";
     for (size_t k = 0; k < rslt.params.size(); ++k) {
-        report += "        \"" + rslt.params[k] + "\",\n";
+        report += "        \"" + rslt.params[k] + "\"";
+        if (k + 1 != rslt.params.size()) {
+            report += ",";
+        }
+        report += "\n";
     }
     report += "    ],\n    \"Error\":";
     switch (rslt.error) {

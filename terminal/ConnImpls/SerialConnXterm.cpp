@@ -36,6 +36,7 @@ void SerialConnXterm::SaveScr(ScreenData& sd)
     sd.AttrFuncs = mCurrAttrFuncs;
     sd.LinesBuffer = mLinesBuffer;
     sd.Lines = mLines;
+    sd.SelSpan = mSelectionSpan;
 }
 
 void SerialConnXterm::LoadScr(const ScreenData& sd)
@@ -49,9 +50,11 @@ void SerialConnXterm::LoadScr(const ScreenData& sd)
     mBgColor = sd.BgColor;
     mBlink = sd.Blink;
     mFont = sd.Font;
+    mSelectionSpan = sd.SelSpan;
+    // restore font w/h
     mFontW = mFont.GetAveWidth();
     mFontH = mFont.GetLineHeight();
-    //
+    // reset layout
     DoLayout();
     UpdatePresentation();
 }

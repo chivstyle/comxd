@@ -213,8 +213,7 @@ void SerialConnVT::RxProc()
 int SerialConnVT::GetCharWidth(const VTChar& c)
 {
     switch (c) {
-    case '\t':
-        return mFontW * atoi(c.Var("CellSize").c_str());
+    case '\t': return c.Cx();
     case ' ': return mFontW;
     default: if (1) {
         // Save
@@ -269,11 +268,11 @@ Point SerialConnVT::VirtualToLogic(const std::vector<VTLine>& lines, int vx, int
     if (vy < 0 || vy >= (int)lines.size())
         return Size(-1, -1);
     int ly = 0;
-    for (size_t k = 0; k < vy; ++k) {
+    for (size_t k = 0; k < vy && k < lines.size(); ++k) {
         ly += lines[k].GetHeight();
     }
     int lx = 0;
-    for (size_t k = 0; k < vx; ++k) {
+    for (size_t k = 0; k < vx && k < lines[vy].size(); ++k) {
         lx += GetCharWidth(lines[vy][k]);
     }
     return Point(lx, ly);
@@ -298,7 +297,7 @@ Point SerialConnVT::VirtualToLogic(int vx, int vy)
     }
     //
     int lx = 0;
-    for (size_t k = 0; k < vx; ++k) {
+    for (size_t k = 0; k < vx && k < vline->size(); ++k) {
         lx += GetCharWidth(vline->at(k));
     }
     return Point(lx, ly);
@@ -307,7 +306,7 @@ Point SerialConnVT::VirtualToLogic(int vx, int vy)
 int SerialConnVT::VirtualToLogic(const VTLine& vline, int vx)
 {
     int lx = 0;
-    for (int i = 0; i < vx; ++i) {
+    for (size_t i = 0; i < vx && i < vline.size(); ++i) {
         lx += GetCharWidth(vline[i]);
     }
     return lx;
@@ -327,7 +326,7 @@ int SerialConnVT::GetLogicWidth(const VTLine& vline, int count)
 Point SerialConnVT::LogicToVirtual(const std::vector<VTLine>& lines, int lx, int ly, int& px, int& next_px,
                                                                                      int& py, int& next_py)
 {
-    // find vy
+    if (lx < 0) lx = 0; if (ly < 0) ly = 0; // 0~
     int vy = (int)lines.size()-1; py = 0; next_py = 0;
     for (int i = 0; i < (int)lines.size(); ++i) {
         int line_sz = lines[i].GetHeight();
@@ -357,6 +356,7 @@ Point SerialConnVT::LogicToVirtual(const std::vector<VTLine>& lines, int lx, int
 Point SerialConnVT::LogicToVirtual(int lx, int ly, int& px, int& next_px,
                                                    int& py, int& next_py)
 {
+    if (lx < 0) lx = 0; if (ly < 0) ly = 0; // 0~
     int vy = -1; py = 0; next_py = 0;
     for (int i = 0; i < (int)mLinesBuffer.size(); ++i) {
         int line_sz = mLinesBuffer[i].GetHeight();
@@ -387,7 +387,7 @@ Point SerialConnVT::LogicToVirtual(int lx, int ly, int& px, int& next_px,
     } else {
         vline = &mLines[vy - (int)mLinesBuffer.size()];
     }
-    int vx = (int)vline->size() - 1; px = 0; next_px = 0;
+    int vx = (int)vline->size()-1; px = 0; next_px = 0;
     for (int k = 0; k < (int)vline->size(); ++k) {
         int vchar_sz = GetCharWidth(vline->at(k));
         next_px += vchar_sz;
@@ -396,7 +396,7 @@ Point SerialConnVT::LogicToVirtual(int lx, int ly, int& px, int& next_px,
             vx = k;
             break;
         }
-        //
+        // next
         px += vchar_sz;
     }
     return Point(vx, vy);
@@ -404,6 +404,7 @@ Point SerialConnVT::LogicToVirtual(int lx, int ly, int& px, int& next_px,
 //
 int SerialConnVT::LogicToVirtual(const VTLine& vline, int lx, int& px, int& next_px)
 {
+    if (lx < 0) lx = 0; // 0~
     int vx = (int)vline.size() - 1; px = 0; next_px = 0;
     for (int i = 0; i < (int)vline.size(); ++i) {
         int vchar_sz = GetCharWidth(vline[i]);
@@ -448,7 +449,7 @@ bool SerialConnVT::ProcessAsciiControlChar(char cc)
     case '\t': if (1) {
         int cellsz = mVx/4*4 + 4 - mVx;
         mLines[mVy][mVx] = '\t';
-        mLines[mVy][mVx].SetVar("CellSize", std::to_string(cellsz));
+        mLines[mVy][mVx].SetCx(cellsz*mFontW);
         mVx++;
     } break;
     }
@@ -1088,7 +1089,8 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
             std::swap(mBgColor, mFgColor);
         }
     }
-    if (IsCharInSelectionSpan(0, vy+1) && tail_selected) { // we need to pad the blank
+    // should we padding line with blanks?
+    if (tail_selected && vx < std::max(mSelectionSpan.Y0, mSelectionSpan.Y1)) {
         if (usz.cx - x > 0) {
             // Use black to tell the user it's the end of the normal text.
             draw.DrawRect(x, y, usz.cx-x, vline.GetHeight(), mFgColor);
@@ -1116,6 +1118,7 @@ void SerialConnVT::UpdateHScrollbar()
     int lx = 0, ly = mSbV.Get();
     int px, next_px, py, next_py;
     Point vpos = LogicToVirtual(lx, ly, px, next_px, py, next_py);
+    if (vpos.x < 0 || vpos.y < 0) return;
     int lyoff = py - ly;
     // let's begin
     Size usz = GetSize(); int vy = vpos.y;
@@ -1154,6 +1157,7 @@ void SerialConnVT::DrawVT(Draw& draw)
     int lx = mSbH.Get(), ly = mSbV.Get();
     int px, next_px, py, next_py;
     Point vpos = LogicToVirtual(lx, ly, px, next_px, py, next_py);
+    if (vpos.x < 0 || vpos.y < 0) return;
     int lyoff = py - ly;
     // use bot
     int bot = mScrollingRegion.Bottom;

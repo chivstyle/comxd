@@ -32,11 +32,6 @@ SerialConnRaw::SerialConnRaw(std::shared_ptr<SerialIo> serial)
     this->mLineBreaks.Add(LineBreak_::LF, "LF");
     this->mLineBreaks.Add(LineBreak_::CRLF, "CRLF");
     this->mLineBreaks.SetIndex(1); //<! default: LF
-    this->mTxHex.WhenAction = [=]() {
-        mEnableEscape.SetEditable(mTxHex.Get() == 0);
-        mProtos.SetEditable(mTxHex.Get() == 0);
-    };
-    this->mEnableEscape.Tip(t_("Hex mode does not support this feature"));
     //------------------------------------------------------------------------
     mProtos.Add(t_("None"));mProtos.SetIndex(0);
     std::vector<std::string> protos = ProtoFactory::Inst()->GetSupportedProtos();
@@ -186,6 +181,75 @@ static inline std::string ToHexString_(const std::vector<unsigned char>& b)
     }
     return out;
 }
+static inline std::string ToHexString_(const std::string& b)
+{
+    std::string out;
+    for (size_t k = 0; k < b.length(); ++k) {
+        char hex_[8];
+        if (k+1 == b.size()) {
+            sprintf(hex_, "%02x", (unsigned char)b[k]);
+        } else {
+            sprintf(hex_, "%02x ", (unsigned char)b[k]);
+        }
+        out += hex_;
+    }
+    return out;
+}
+// return length of UTF-8 string, if seq[0] is not the UTF-8 prefix, return 0.
+static inline int UTF8SeqLen_(const unsigned char* seq, size_t sz)
+{
+    size_t p = 0, seqsz = 0;
+    int flag = seq[p] & 0xf0;
+    if (flag == 0xf0) { // 4 bytes
+        // check and check
+        if (sz - p < 4 &&
+            (seq[p+1] & 0xc0) != 0x80 &&
+            (seq[p+2] & 0xc0) != 0x80 &&
+            (seq[p+3] & 0xc0) != 0x80)
+        {
+            seqsz = 4;
+        }
+    } else if ((flag & 0xe0) == 0xe0) { // 3 bytes, 4+6+6=16bits
+        if (sz - p < 3 &&
+            (seq[p+1] & 0xc0) != 0x80 &&
+            (seq[p+2] & 0xc0) != 0x80)
+        {
+            seqsz = 3;
+        }
+    } else if ((flag & 0xc0) == 0xc0) { // 2 bytes, 5+6 = 11bits
+        if (sz - p < 2 &&
+            (seq[p+1] & 0xc0) != 0x80)
+        {
+            seqsz = 2;
+        }
+    } else if (flag & 0x80) {
+        seqsz = 0;
+    } else {
+        seqsz = 1;
+    }
+    return seqsz;
+}
+// make a UTF-8 string from data
+static inline std::string FromHex_(const std::vector<byte>& b)
+{
+    std::string out;
+    size_t p = 0;
+    while (p < b.size()) {
+        int len = UTF8SeqLen_(&b[p], b.size()-p);
+        if (len == 0) { // It's a isolate byte
+            char hex[8];
+            sprintf(hex, "\\x%02x", b[p]);
+            out += hex;
+            p += 1;
+        } else {
+            for (int i = 0; i < len; i++) {
+                out.push_back((char)b[p + i]);
+            }
+            p += len;
+        }
+    }
+    return out;
+}
 
 static inline bool IsCharInHex(const char cc)
 {
@@ -261,7 +325,7 @@ static std::string TranslateEscapeChars(const std::string& text)
     return out;
 }
 
-static std::string ReplaceLineBreak_(const std::string& text, int lb)
+static inline std::string ReplaceLineBreak_(const std::string& text, int lb)
 {
     std::string lb_ = "\r\n";
     switch (lb) {
@@ -287,34 +351,41 @@ static std::string ReplaceLineBreak_(const std::string& text, int lb)
     }
     return out;
 }
-
+//----------------------------------------------------------------------------------------------
 void SerialConnRaw::Set_TxInHex()
 {
+    std::string errmsg;
+    std::string tx = mTx.GetData().ToString().ToStd();
     if (mTxProto) {
-        std::string tx = mTx.GetData().ToString().ToStd();
-        std::string errmsg;
         auto out = mTxProto->Pack(tx, errmsg);
         if (!out.empty()) {
             mTx.Set(ToHexString_(out));
         }
-        this->mTmpStatus.SetText(errmsg.c_str());
-        mTx.MoveEnd();
+    } else {
+        if (this->mEnableEscape.Get()) {
+            tx = TranslateEscapeChars(tx);
+        }
+        mTx.Set(ToHexString_(tx));
     }
+    this->mTmpStatus.SetText(errmsg.c_str());
+    mTx.MoveEnd();
 }
 
 void SerialConnRaw::Set_TxInTxt()
 {
+    std::string errmsg;
+    std::string tx = mTx.GetData().ToString().ToStd();
+    std::vector<unsigned char> out = ToHex_(tx);
     if (mTxProto) {
-        std::string tx = mTx.GetData().ToString().ToStd();
-        std::vector<unsigned char> out = ToHex_(tx);
-        std::string errmsg;
         std::string json = mTxProto->Unpack(out, errmsg);
         if (!json.empty()) {
             mTx.Set(json);
         }
-        this->mTmpStatus.SetText(errmsg.c_str());
-        mTx.MoveEnd();
+    } else {
+        mTx.Set(FromHex_(out));
     }
+    this->mTmpStatus.SetText(errmsg.c_str());
+    mTx.MoveEnd();
 }
 
 void SerialConnRaw::OnSend()
@@ -358,13 +429,34 @@ void SerialConnRaw::UpdateAsTxt()
     mRxBufferLock.lock();
     const auto& buf = mRxBuffer;
     if (mShowInvisibleChars.Get()) {
-        for (size_t k = 0; k < buf.size(); ++k) {
-            if (buf[k] == 0x7f || buf[k] >= 0 && buf[k] < 0x20 &&
-                buf[k] != 0x09 && buf[k] != 0x0a && buf[k] != 0x0d)
-            {
+        size_t k = 0;
+        while (k < buf.size()) {
+            if (buf[k] == 0x7f || buf[k] >= 0 && buf[k] < 0x20) {
                 text += buf[k] == 0x7f ? "<DEL>" : kC0_Names[buf[k]];
+                switch (buf[k]) {
+                case 0x09:
+                case 0x0a:
+                case 0x0d:
+                    text << (char)buf[k];
+                default:break;
+                }
+                k += 1;
+            } else if (buf[k] >= 0x80) {
+                int len = UTF8SeqLen_(&buf[k], buf.size() - k);
+                if (len == 0) {
+                    char hex[8];
+                    sprintf(hex, "\\x%02x", buf[k]);
+                    text << hex;
+                    k += 1;
+                } else {
+                    for (int i = 0; i < len; ++i) {
+                        text << (char)buf[k + i];
+                    }
+                    k += len;
+                }
             } else {
                 text << (char)buf[k];
+                k += 1;
             }
         }
     } else {

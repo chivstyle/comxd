@@ -20,6 +20,7 @@ public:
         Upp::Font Font;
         Upp::Color FgColor, BgColor;
         bool Blink;
+        struct SelectionSpan SelSpan;
     };
     void SaveScr(ScreenData& sd);
     void LoadScr(const ScreenData& sd);

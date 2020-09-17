@@ -37,7 +37,7 @@ static inline std::string Utf32ToUtf8(const uint32_t& cp)
     }
     return out;
 }
-
+// UTF-8 to UTF-32, use ? for invalid UTF-8 seq.
 static inline std::vector<uint32_t> Utf8ToUtf32(const std::string& seq, size_t& ep)
 {
     std::vector<uint32_t> out;
@@ -48,24 +48,45 @@ static inline std::vector<uint32_t> Utf8ToUtf32(const std::string& seq, size_t& 
         if (flag == 0xf0) { // 4 bytes
             if (seq.size() - p < 4) break;
             uint32_t bits = (seq[p] & 0x07) << 18; // 3+6+6+6=21bits
-            bits |= (seq[p+1] & 0x3f) << 12;
-            bits |= (seq[p+2] & 0x3f) << 6;
-            bits |= (seq[p+3] & 0x3f);
-            out.push_back(bits);
-            p += 4;
+            // check and check
+            if ((seq[p+1] & 0xc0) != 0x80 ||
+                (seq[p+2] & 0xc0) != 0x80 ||
+                (seq[p+3] & 0xc0) != 0x80)
+            {
+                out.push_back('?');
+                p++;
+            } else {
+                bits |= (seq[p+1] & 0x3f) << 12;
+                bits |= (seq[p+2] & 0x3f) << 6;
+                bits |= (seq[p+3] & 0x3f);
+                out.push_back(bits);
+                p += 4;
+            }
         } else if ((flag & 0xe0) == 0xe0) { // 3 bytes, 4+6+6=16bits
             if (seq.size() - p < 3) break;
-            uint32_t bits = (seq[p] & 0x0f) << 12;
-            bits |= (seq[p+1] & 0x3f) << 6;
-            bits |= (seq[p+2] & 0x3f);
-            out.push_back(bits);
-            p += 3;
+            if ((seq[p+1] & 0xc0) != 0x80 ||
+                (seq[p+2] & 0xc0) != 0x80)
+            {
+                out.push_back('?');
+                p++;
+            } else {
+                uint32_t bits = (seq[p] & 0x0f) << 12;
+                bits |= (seq[p+1] & 0x3f) << 6;
+                bits |= (seq[p+2] & 0x3f);
+                out.push_back(bits);
+                p += 3;
+            }
         } else if ((flag & 0xc0) == 0xc0) { // 2 bytes, 5+6 = 11bits
             if (seq.size() - p < 2) break;
-            uint32_t bits = (seq[p] & 0x1f) << 6;
-            bits |= (seq[p+1] & 0x3f);
-            out.push_back(bits);
-            p += 2;
+            if ((seq[p+1] & 0xc0) != 0x80) {
+                out.push_back('?');
+                p++;
+            } else {
+                uint32_t bits = (seq[p] & 0x1f) << 6;
+                bits |= (seq[p+1] & 0x3f);
+                out.push_back(bits);
+                p += 2;
+            }
         } else if ((flag & 0x80) == 0x80) { // invalid
             out.push_back('?');
             p++;
@@ -144,11 +165,13 @@ public:
     {
     }
     VTChar(const uint32_t& c)
-        : mChar(c)
+        : VTChar(c, std::vector<std::function<void()> >())
     {
     }
     VTChar(const uint32_t& c, const std::vector<std::function<void()> >& attr_funs)
         : mChar(c)
+        , mCx(0)
+        , mCy(0)
         , mAttrFuns(attr_funs)
     {
     }
@@ -175,29 +198,17 @@ public:
             mAttrFuns[k]();
         }
     }
+    // cx, cy
+    void SetCx(int cx) { mCx = cx; }
+    void SetCy(int cy) { mCy = cy; }
+    int Cx() const { return mCx; }
+    int Cy() const { return mCy; }
     //
-    void SetVar(const std::string& name, const std::string& value)
-    {
-        mVars[name] = value;
-    }
-    void RemoveVar(const std::string& name)
-    {
-        mVars.erase(name);
-    }
-    //
-    std::string Var(const std::string& name) const
-    {
-        auto it = mVars.find(name);
-        if (it != mVars.end()) {
-            return it->second;
-        }
-        return "";
-    }
 private:
     uint32_t mChar; // UTF-32 LE
+    int mCx;
+    int mCy;
     std::vector<std::function<void()> > mAttrFuns;
-    //
-    std::map<std::string, std::string> mVars;
 };
 /// warning: You should set height manually.
 class VTLine : public std::vector<VTChar> {
@@ -215,25 +226,9 @@ public:
     }
     VTLine& SetHeight(int height) { mHeight = height; return *this; }
     int GetHeight() const { return mHeight; };
-    // vars, for user.
-    std::string Var(const std::string& name)
-    {
-        auto it = mVars.find(name);
-        if (it != mVars.end()) return it->second;
-        else return "";
-    }
-    void SetVar(const std::string& name, std::string& value)
-    {
-        mVars[name] = value;
-    }
-    void RemoveVar(const std::string& name)
-    {
-        mVars.erase(name);
-    }
     
 private:
     int mHeight;
-    std::map<std::string, std::string> mVars;
 };
 
 class SerialConnVT : public SerialConn {
