@@ -15,6 +15,10 @@ using namespace Upp;
 SerialConnECMA48::SerialConnECMA48(std::shared_ptr<SerialIo> serial)
     : Superclass(serial)
 {
+    // Set default color
+    this->mPaperColor = Color(0, 0, 0);
+    this->mDefaultBgColor = this->mPaperColor;
+    //
     InstallEcma48Functions();
 }
 //
@@ -140,12 +144,12 @@ void SerialConnECMA48::ProcessSGR(int attr_code)
         break;
     case 34: // blue
         mCurrAttrFuncs.push_back([=]() {
-            mFgColor = Color(0, 0, 255);
+            mFgColor = Color(50, 50, 255);
         });
         break;
     case 35: // magenta
         mCurrAttrFuncs.push_back([=]() {
-            mFgColor = Color(255, 0, 255);
+            mFgColor = Color(255, 50, 255);
         });
         break;
     case 36: // cyan
