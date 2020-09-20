@@ -59,6 +59,17 @@ void SerialConnXterm::LoadScr(const ScreenData& sd)
     UpdatePresentation();
 }
 
+void SerialConnXterm::ProcessDA(const std::string& seq)
+{
+    int ps = atoi(seq.substr(1, seq.length()-2).c_str());
+    switch (ps) {
+    case 0:
+        // VT102.
+        GetSerial()->Write("\x1b?6c");
+        break;
+    }
+}
+
 void SerialConnXterm::ProcessXtermTrivial(const std::string& seq)
 {
     auto it = mXtermTrivialHandlers.find(seq);
@@ -72,7 +83,10 @@ void SerialConnXterm::ProcessControlSeq(const std::string& seq, int seq_type)
     if (seq_type == Xterm_Trivial) {
         ProcessXtermTrivial(seq);
     } else if (seq_type > Xterm_Trivial && seq_type < Xterm_SeqType_Endup) {
-        
+        auto it = mXtermFuncs.find(seq_type);
+        if (it != mXtermFuncs.end()) {
+            it->second(seq);
+        }
     } else {
         Superclass::ProcessControlSeq(seq, seq_type);
     }

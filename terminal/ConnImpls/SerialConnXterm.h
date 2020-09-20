@@ -28,11 +28,14 @@ protected:
     virtual int IsControlSeq(const std::string& seq);
     virtual void ProcessControlSeq(const std::string& seq, int seq_type);
     virtual void ProcessXtermTrivial(const std::string& seq);
+    //
+    virtual void ProcessDA(const std::string& seq);
     // with K_DELTA
     virtual bool ProcessKeyDown(Upp::dword key, Upp::dword flags);
 private:
     // ECMA48Trivial, includes C1
     std::map<std::string, std::function<void()> > mXtermTrivialHandlers;
+    std::map<int, std::function<void(const std::string& seq)> > mXtermFuncs;
     void InstallXtermFunctions();
     // support alternative screen
     ScreenData mAltScr;

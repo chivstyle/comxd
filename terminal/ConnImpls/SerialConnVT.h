@@ -251,6 +251,7 @@ protected:
     virtual void LeftUp(Upp::Point p, Upp::dword keyflags);
     virtual void LeftDown(Upp::Point p, Upp::dword keyflags);
     virtual void LeftDouble(Upp::Point p, Upp::dword keyflags);
+    virtual void LeftTriple(Upp::Point p, Upp::dword keyflags);
     virtual void MouseMove(Upp::Point p, Upp::dword keyflags);
     virtual void RightUp(Upp::Point p, Upp::dword keyflags);
     virtual Upp::Image CursorImage(Upp::Point p, Upp::dword keyflags);
@@ -334,7 +335,7 @@ protected:
     volatile bool mBlinkSignal; // 0,1,0,1,0,1, 2 Hz
     volatile bool mBlink;
     volatile bool mVisible;
-    const int kBlinkTimerId = 0;
+    Upp::TimeCallback mBlinkTimer;
     // before render character, use this attribute function
     std::vector<std::function<void()> > mCurrAttrFuncs;
     // scroll bar
@@ -347,8 +348,22 @@ protected:
     virtual int GetLineHeight(int vy) const;
     // calculate the size of console
     virtual Upp::Size GetConsoleSize() const;
-    // VTChar contains the codepoint
+    // VTChar contains the codepoint, UTF32->UTF8
+    // used by Drawing functions
     virtual std::string TranscodeToUTF8(const VTChar& cc) const;
+    // raw(default:UTF8, we'll support more later)->UTF32
+    // used by Rendering functions, NOTE: Not drawing
+    // --------------------Working flow---------------------------------
+    //   auto recv_buf = receive_from_port()
+    //   control_seq, rest = split(recv_buf)
+    //   ProcessControlSeq(control_seq)
+    //
+    //   auto utf32_text = TranscodeToUTF32(rest)
+    //   RenderText(utf32_text)
+    //------------------------------------------------------------------
+    virtual std::vector<uint32_t> TranscodeToUTF32(const std::string& s, size_t& ep);
+    //
+    virtual bool IsSeqPrefix(unsigned char c);
     //
     virtual int IsControlSeq(const std::string& seq);
     virtual void ProcessControlSeq(const std::string& seq, int seq_type);

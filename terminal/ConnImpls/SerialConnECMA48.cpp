@@ -249,6 +249,22 @@ void SerialConnECMA48::ProcessSGR(const std::string& seq)
     });
 }
 
+void SerialConnECMA48::ProcessCBT(const std::string& seq)
+{
+    int cellsz = mVx - (mVx / 4 * 4);
+    std::string token = seq.substr(1, seq.length() - 2);
+    int p = 1;
+    if (!token.empty()) {
+        p = atoi(token.c_str());
+    }
+    if (cellsz != 0) p--;
+    while (p--) {
+        cellsz += 4;
+    }
+    mVx = mVx - cellsz;
+    if (mVx < 0) mVx = 0;
+}
+
 void SerialConnECMA48::ProcessCHA(const std::string& seq)
 {
     ASSERT(seq.size() > 2);
@@ -264,12 +280,19 @@ void SerialConnECMA48::ProcessCHT(const std::string& seq)
 {
     ASSERT(seq.size() > 2);
     // [ Pn 0x49
-    int p1 = atoi(seq.substr(1, seq.size()-2).c_str());
-    if (mVy >= 0 && mVy < mLines.size()) {
-        mVx = mVx / 4 * 4 + p1*4;
-        if (mVx >= (int)mLines[mVy].size()) {
-            mVx = (int)mLines[mVy].size()-1;
-        }
+    int cellsz = mVx - (mVx / 4 * 4);
+    std::string token = seq.substr(1, seq.length() - 2);
+    int p = 1;
+    if (!token.empty()) {
+        p = atoi(token.c_str());
+    }
+    if (cellsz != 0) p--;
+    while (p--) {
+        cellsz += 4;
+    }
+    mVx = mVx + cellsz;
+    if (mVx >= (int)mLines[mVy].size()) {
+        mVx = (int)mLines[mVy].size() - 1;
     }
 }
 
@@ -919,7 +942,9 @@ void SerialConnECMA48::ProcessVPR(const std::string& seq)
 
 void SerialConnECMA48::InstallEcma48Functions()
 {
+    mEcma48Funcs[ECMA48_CBT ] = [=](const std::string& seq) { ProcessCBT(seq); };
     mEcma48Funcs[ECMA48_CHA ] = [=](const std::string& seq) { ProcessCHA(seq); };
+    mEcma48Funcs[ECMA48_CHT ] = [=](const std::string& seq) { ProcessCHT(seq); };
     mEcma48Funcs[ECMA48_SGR ] = [=](const std::string& seq) { ProcessSGR(seq); };
     mEcma48Funcs[ECMA48_C1  ] = [=](const std::string& seq) { ProcessC1(seq[0]); };
     mEcma48Funcs[ECMA48_CTC ] = [=](const std::string& seq) { ProcessCTC(seq); };

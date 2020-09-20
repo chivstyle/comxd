@@ -24,6 +24,7 @@ protected:
     virtual void ProcessSGR(const std::string& seq);
     virtual void ProcessSGR(int attr_code);
     virtual void ProcessEcma48Trivial(const std::string& seq);
+    virtual void ProcessCBT(const std::string& seq);
     virtual void ProcessCHA(const std::string& seq);
     virtual void ProcessCHT(const std::string& seq);
     virtual void ProcessCNL(const std::string& seq);

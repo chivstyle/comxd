@@ -63,10 +63,10 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> serial)
         Refresh();
     };
     // blink timer
-    SetTimeCallback(-500, [&]() {
+    mBlinkTimer.Set(-500, [&]() {
         mBlinkSignal = !mBlinkSignal;
         this->Refresh();
-        }, kBlinkTimerId);
+        });
     //
     InstallUserActions();
     // finally start the rx-thread.
@@ -79,7 +79,6 @@ SerialConnVT::~SerialConnVT()
     if (mRxThr.joinable()) {
         mRxThr.join();
     }
-    KillTimeCallback(kBlinkTimerId);
 }
 //
 void SerialConnVT::InstallUserActions()
@@ -159,7 +158,7 @@ void SerialConnVT::Clear()
     mPx = 0;
     mPy = 0;
     //
-    Refresh();
+    UpdatePresentation();
 }
 // receiver
 void SerialConnVT::RxProc()
@@ -187,12 +186,14 @@ void SerialConnVT::RxProc()
                         pending = false;
                         pattern = "";
                     }
-                } else if (buff[k] == 0x1b) {
+                } else if (IsSeqPrefix(buff[k])) {
                     // come across a 0x1b, render the raw
                     if (!raw.empty()) {
-                        size_t ep; auto s = Utf8ToUtf32(raw, ep);
+                        size_t ep; auto s = this->TranscodeToUTF32(raw, ep);
                         raw = raw.substr(ep);
-                        PostCallback([=]() { RenderText(s); ProcessOverflowLines(); });
+                        if (!s.empty()) {
+                            PostCallback([=]() { RenderText(s); ProcessOverflowLines(); });
+                        }
                     }
                     pending = true; // continue
                 } else {
@@ -200,9 +201,11 @@ void SerialConnVT::RxProc()
                 }
             }
             if (!raw.empty()) {
-                size_t ep; auto s = Utf8ToUtf32(raw, ep);
+                size_t ep; auto s = this->TranscodeToUTF32(raw, ep);
                 raw = raw.substr(ep);
-                PostCallback([=]() { RenderText(s); ProcessOverflowLines(); });
+                if (!s.empty()) {
+                    PostCallback([=]() { RenderText(s); ProcessOverflowLines(); });
+                }
             }
             // callback is
             PostCallback([=]() { this->UpdatePresentation(); });
@@ -233,6 +236,11 @@ int SerialConnVT::GetCharWidth(const VTChar& c)
     } break;
     }
     return 0;
+}
+
+bool SerialConnVT::IsSeqPrefix(unsigned char c)
+{
+    return c == 0x1b;
 }
 
 int SerialConnVT::IsControlSeq(const std::string& seq)
@@ -431,22 +439,22 @@ void SerialConnVT::PushToLinesBufferAndCheck(const VTLine& vline)
 bool SerialConnVT::ProcessAsciiControlChar(char cc)
 {
     switch (cc) {
-    case '\v':
-        mLines[mVy][mVx++] = '\v';
+    case '\v': // VT
+        mLines[mVy][mVx] = '\v';
         mVy++;
         break;
-    case '\b':
+    case '\b': // BS
         if (mVx > 0) {
             mVx--;
         }
         break;
-    case '\r':
+    case '\r': // CR
         mVx = 0;
         break;
-    case '\n':
+    case '\n': // LF
         mVy += 1;
         break;
-    case '\t': if (1) {
+    case '\t': if (1) { // HT
         int cellsz = mVx/4*4 + 4 - mVx;
         mLines[mVy][mVx] = '\t';
         mLines[mVy][mVx].SetCx(cellsz*mFontW);
@@ -493,8 +501,9 @@ void SerialConnVT::RenderText(const std::vector<uint32_t>& s)
     for (size_t k = 0; k < s.size(); ++k) {
         VTChar chr = s[k];
         if (chr < 0x20 || chr == 0x7f) {
-            ProcessAsciiControlChar(chr);
-            ProcessOverflowLines();
+            if (ProcessAsciiControlChar(chr)) {
+                ProcessOverflowLines();
+            }
         } else {
             chr.SetAttrFuns(mCurrAttrFuncs);
             // Unfortunately, UPP does not support complete UNICODE, support UCS-16 instead. So
@@ -618,18 +627,42 @@ void SerialConnVT::LeftDouble(Point p, dword)
         // well, let's go
         mSelectionSpan.Y0 = mSelectionSpan.Y1 = vpos.y;
         // forward
-        int fx = vpos.x;
+        int fx = vpos.x; mSelectionSpan.X0 = fx;
         while (fx >= 0 && vline->at(fx) != ' ') {
             mSelectionSpan.X0 = fx--;
         }
         // backward
-        int bx = vpos.x;
-        while (bx < (int)vline->size() && vline->at(bx) != ' ') {
-            mSelectionSpan.X1 = bx++;
+        int bx = vpos.x + 1; // selection span is [vpos.x, vpos.x + N+1)
+        if (fx != vpos.x) { // If you have clicked blank, we do not extend the selection span
+            while (bx < (int)vline->size() && vline->at(bx) != ' ') {
+                bx++;
+            }
         }
+        mSelectionSpan.X1 = bx;
         // Create a condition
-        mSelectionSpan.Valid = true;
+        mSelectionSpan.Valid = mSelectionSpan.X1 != mSelectionSpan.X0;
         //
+        Refresh();
+    }
+}
+
+void SerialConnVT::LeftTriple(Point p, dword)
+{
+    int lx = mSbH.Get() + p.x, ly = mSbV.Get() + p.y;
+    int px, next_px, py, next_py;
+    Point vpos = LogicToVirtual(lx, ly, px, next_px, py, next_py);
+    VTLine* vline = nullptr;
+    if (vpos.y < 0 || vpos.x < 0) return;
+    if (vpos.y < (int)mLinesBuffer.size()) {
+        vline = &mLinesBuffer[vpos.y];
+    } else if (vpos.y - (int)mLinesBuffer.size() < (int)mLines.size()) {
+        vline = &mLines[vpos.y - (int)mLinesBuffer.size()];
+    }
+    if (vline) {
+        mSelectionSpan.Y0 = mSelectionSpan.Y1 = vpos.y;
+        mSelectionSpan.X0 = 0;
+        mSelectionSpan.X1 = (int)vline->size();
+        mSelectionSpan.Valid = true;
         Refresh();
     }
 }
@@ -661,6 +694,7 @@ void SerialConnVT::SelectAll()
         mSelectionSpan.X1 = 0;
         mSelectionSpan.Y0 = 0;
         mSelectionSpan.Y1 = (int)(mLinesBuffer.size() + mLines.size());
+        mSelectionSpan.Valid = true;
         //
         Refresh();
     }
@@ -1121,12 +1155,13 @@ void SerialConnVT::UpdateHScrollbar()
     if (vpos.x < 0 || vpos.y < 0) return;
     int lyoff = py - ly;
     // let's begin
-    Size usz = GetSize(); int vy = vpos.y;
+    Size usz = GetSize(); int vy = vpos.y; int cursor_vy =  (int)mLinesBuffer.size() + mVy;
     int longest_linesz = 0;
     for (int i = vpos.y; i < (int)mLinesBuffer.size() && lyoff < usz.cy; ++i) {
         const VTLine& vline = mLinesBuffer[i];
         lyoff += vline.GetHeight();
-        int linesz = this->GetLogicWidth(vline, -1);
+        int nchars = cursor_vy != i ? (int)vline.size() - this->CalculateNumberOfBlankCharsFromEnd(vline) : -1;
+        int linesz = this->GetLogicWidth(vline, nchars);
         if (linesz > longest_linesz) {
             longest_linesz = linesz;
         }
@@ -1134,7 +1169,8 @@ void SerialConnVT::UpdateHScrollbar()
     for (int i = std::max(0, vpos.y - (int)mLinesBuffer.size()); i < (int)mLines.size() && lyoff < usz.cy; ++i) {
         const VTLine& vline = mLines[i];
         lyoff += vline.GetHeight();
-        int linesz = this->GetLogicWidth(vline, -1);
+        int nchars = cursor_vy != i ? (int)vline.size() - this->CalculateNumberOfBlankCharsFromEnd(vline) : -1;
+        int linesz = this->GetLogicWidth(vline, nchars);
         if (linesz > longest_linesz) {
             longest_linesz = linesz;
         }
@@ -1196,6 +1232,11 @@ void SerialConnVT::Render(Draw& draw)
 std::string SerialConnVT::TranscodeToUTF8(const VTChar& cc) const
 {
     return Utf32ToUtf8(cc);
+}
+
+std::vector<uint32_t> SerialConnVT::TranscodeToUTF32(const std::string& s, size_t& ep)
+{
+    return Utf8ToUtf32(s, ep);
 }
 
 void SerialConnVT::DrawVTChar(Draw& draw, int x, int y, const VTChar& c,

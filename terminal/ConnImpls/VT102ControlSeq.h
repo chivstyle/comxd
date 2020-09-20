@@ -371,7 +371,7 @@ static const int kSpecialChars[] = { // From 5F to 7E
     0x19e, // ƞ
     0xb0, // °
     0xb1, // ±
-    0x19e,
+    0x19e, // ƞ
     0x2193, // ↓
     0x2518, // ┘
     0x2510, // ┐
