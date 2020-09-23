@@ -12,8 +12,14 @@ using namespace Upp;
 
 SerialConnXterm::SerialConnXterm(std::shared_ptr<SerialIo> serial)
     : Superclass(serial)
+    , SerialConnVT102(serial)
+    , SerialConnECMA48(serial)
     , mIsAltScr(false)
 {
+    //
+    this->mPaperColor = Color(10, 10, 10);
+    this->mTextsColor = Color(200, 200, 200);
+    //
     InstallXtermFunctions();
     // The default setting of alt screen is fixed, inherit from VT.
     // The user can change settings when the alt screen is active, but we do not store the
@@ -25,51 +31,6 @@ SerialConnXterm::~SerialConnXterm()
 {
 }
 
-void SerialConnXterm::SaveScr(ScreenData& sd)
-{
-    sd.Vx = mVx;
-    sd.Vy = mVy;
-    sd.Font = mFont;
-    sd.Blink = mBlink;
-    sd.BgColor = mBgColor;
-    sd.FgColor = mFgColor;
-    sd.AttrFuncs = mCurrAttrFuncs;
-    sd.LinesBuffer = mLinesBuffer;
-    sd.Lines = mLines;
-    sd.SelSpan = mSelectionSpan;
-}
-
-void SerialConnXterm::LoadScr(const ScreenData& sd)
-{
-    mLinesBuffer = sd.LinesBuffer;
-    mLines = sd.Lines;
-    mCurrAttrFuncs = sd.AttrFuncs;
-    mVx = sd.Vx;
-    mVy = sd.Vy;
-    mFgColor = sd.FgColor;
-    mBgColor = sd.BgColor;
-    mBlink = sd.Blink;
-    mFont = sd.Font;
-    mSelectionSpan = sd.SelSpan;
-    // restore font w/h
-    mFontW = mFont.GetAveWidth();
-    mFontH = mFont.GetLineHeight();
-    // reset layout
-    DoLayout();
-    UpdatePresentation();
-}
-
-void SerialConnXterm::ProcessDA(const std::string& seq)
-{
-    int ps = atoi(seq.substr(1, seq.length()-2).c_str());
-    switch (ps) {
-    case 0:
-        // VT102.
-        GetSerial()->Write("\x1b?6c");
-        break;
-    }
-}
-
 void SerialConnXterm::ProcessXtermTrivial(const std::string& seq)
 {
     auto it = mXtermTrivialHandlers.find(seq);
@@ -78,7 +39,22 @@ void SerialConnXterm::ProcessXtermTrivial(const std::string& seq)
     }
 }
 
-void SerialConnXterm::ProcessControlSeq(const std::string& seq, int seq_type)
+void SerialConnXterm::ProcessDA(const std::string& seq)
+{
+    int ps = atoi(seq.substr(1, seq.length()-2).c_str());
+    switch (ps) {
+    case 0:
+        GetSerial()->Write("\x1b[?6c"); // CSI ? 6 c, stands for VT102.
+        break;
+    }
+}
+
+bool SerialConnXterm::ProcessAsciiControlChar(char cc)
+{
+    return SerialConnECMA48::ProcessAsciiControlChar(cc);
+}
+
+bool SerialConnXterm::ProcessControlSeq(const std::string& seq, int seq_type)
 {
     if (seq_type == Xterm_Trivial) {
         ProcessXtermTrivial(seq);
@@ -88,17 +64,30 @@ void SerialConnXterm::ProcessControlSeq(const std::string& seq, int seq_type)
             it->second(seq);
         }
     } else {
-        Superclass::ProcessControlSeq(seq, seq_type);
+        bool processed = SerialConnECMA48::ProcessControlSeq(seq, seq_type);
+        if (!processed) {
+            processed = SerialConnVT102::ProcessControlSeq(seq, seq_type);
+            if (!processed) {
+                return Superclass::ProcessControlSeq(seq, seq_type);
+            }
+        }
     }
+    return true;
 }
 
 int SerialConnXterm::IsControlSeq(const std::string& seq)
 {
-    int ret = Superclass::IsControlSeq(seq);
-    if (ret == 0) {
-        return IsXtermControlSeq(seq);
+    auto seq_type = IsXtermControlSeq(seq);
+    if (seq_type == 0) {
+        seq_type = SerialConnECMA48::IsControlSeq(seq);
+        if (seq_type == 0) {
+            seq_type = SerialConnVT102::IsControlSeq(seq);
+            if (seq_type == 0) {
+                seq_type = Superclass::IsControlSeq(seq);
+            }
+        }
     }
-    return ret;
+    return seq_type;
 }
 
 bool SerialConnXterm::ProcessKeyDown(Upp::dword key, Upp::dword flags)
@@ -116,7 +105,12 @@ bool SerialConnXterm::ProcessKeyDown(Upp::dword key, Upp::dword flags)
         GetSerial()->Write(d);
         return true;
     }
-    return Superclass::ProcessKeyDown(key, flags);
+    return SerialConnECMA48::ProcessKeyDown(key, flags);
+}
+
+bool SerialConnXterm::ProcessKeyUp(dword key, dword flags)
+{
+    return SerialConnECMA48::ProcessKeyUp(key, flags);
 }
 
 void SerialConnXterm::InstallXtermFunctions()
@@ -133,5 +127,13 @@ void SerialConnXterm::InstallXtermFunctions()
             LoadScr(mBkgScr);
             mIsAltScr = false;
         }
+    };
+    mXtermTrivialHandlers["[m"] = [=]() {
+        mCurrAttrFuncs.clear();
+        mCurrAttrFuncs.push_back([=]() { SetDefaultStyle(); });
+    };
+    mXtermTrivialHandlers["[H"] = [=]() {
+        mVx = 0;
+        mVy = 0;
     };
 }

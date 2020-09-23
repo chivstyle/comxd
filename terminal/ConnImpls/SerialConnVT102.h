@@ -6,45 +6,17 @@
 
 #include "SerialConnVT.h"
 
-class SerialConnVT102 : public SerialConnVT {
+class SerialConnVT102 : public virtual SerialConnVT {
 public:
     using Superclass = SerialConnVT;
     SerialConnVT102(std::shared_ptr<SerialIo> serial);
     virtual ~SerialConnVT102();
-    // public methods
-    //-------------------------------------------------------------------------------------
-    struct CursorData {
-        // position
-        int Vx, Vy;
-        bool Blink;
-        Upp::Font Font;
-        Upp::Color BgColor, FgColor;
-        CursorData()
-            : Vx(0)
-            , Vy(0)
-            , Blink(false)
-        {
-        }
-    };
-    void SaveCursor(CursorData& cd); // ESC 7
-    void LoadCursor(const CursorData& cd); // ESC 8
 protected:
-    /// workflow
-    ///
-    /// rx_buffer, check byte one by one, then
-    ///    seq_type = IsControlSeq(seq)
-    ///    seq_type == 0, can't recognize the control seq, treat it as normal text
-    ///    seq_type == 1, pending, need more bytes to confirm
-    ///    seq_type == 2, trivial control seq, it's in the table 'kVT102ControlSeqs'
-    ///    seq_type > 2, other kinds of control seq
-    /// then, RenderText(seq, seq_type)
-    ///    ProcessAsciiControlChar(cc), cc is 8, 9, 0xd, 0xa, .etc
-    ///    ProcessControlSeq(seq), seq matches control seq pattern
-    ///
+    //
     virtual int IsControlSeq(const std::string& seq);
     //-------------------------------------------------------------------------------------
     // you can override these two routines to modify all functions.
-    virtual void ProcessControlSeq(const std::string& seq, int seq_type);
+    virtual bool ProcessControlSeq(const std::string& seq, int seq_type);
     // C0 set.
     virtual bool ProcessAsciiControlChar(char cc);
     //-------------------------------------------------------------------------------------

@@ -15,10 +15,6 @@ using namespace Upp;
 SerialConnECMA48::SerialConnECMA48(std::shared_ptr<SerialIo> serial)
     : Superclass(serial)
 {
-    // Set default color
-    this->mPaperColor = Color(0, 0, 0);
-    this->mDefaultBgColor = this->mPaperColor;
-    //
     InstallEcma48Functions();
 }
 //
@@ -91,7 +87,7 @@ void SerialConnECMA48::ProcessSGR(int attr_code)
     case 22: // normal color, normal intensity
         mCurrAttrFuncs.push_back([=]() {
             mFont.NoBold();
-            mFgColor = mDefaultFgColor;
+            mFgColor = mTextsColor;
         });
         break;
     case 23: // Not italicized, not fraktur
@@ -167,7 +163,7 @@ void SerialConnECMA48::ProcessSGR(int attr_code)
         break;
     case 39: // default color
         mCurrAttrFuncs.push_back([=]() {
-            mFgColor = mDefaultFgColor;
+            mFgColor = mTextsColor;
         });
         break;
     case 40: // black background
@@ -215,7 +211,7 @@ void SerialConnECMA48::ProcessSGR(int attr_code)
         break;
     case 49: // default color bg
         mCurrAttrFuncs.push_back([=]() {
-            mBgColor = mDefaultBgColor;
+            mBgColor = mTextsColor;
         });
         break;
     case 50: // (reserved for cancelling the effect of the rendering aspect established by parameter value 26)
@@ -759,6 +755,7 @@ void SerialConnECMA48::ProcessICH(const std::string& seq)
     if (!pn_s.empty()) {
         pn = atoi(pn_s.c_str());
     }
+    if (pn < 1) return;
     // erase, not remove.
     if (mModes.HEM == Ecma48Modes::HemFollowing) {
         int cnt = 0;
@@ -782,12 +779,32 @@ void SerialConnECMA48::ProcessIDCS(const std::string& seq)
 void SerialConnECMA48::ProcessIGS(const std::string& seq)
 {
 }
+
 void SerialConnECMA48::ProcessIL(const std::string& seq)
 {
+    int pn = 1;
+    std::string pn_s = seq.substr(1, seq.length()-2);
+    if (!pn_s.empty()) {
+        pn = atoi(pn_s.c_str());
+    }
+    if (pn < 1) return;
+    Size csz = GetConsoleSize();
+    VTLine vline(csz.cx, mBlankChar); vline.SetHeight(mFontH);
+    if (mModes.HEM == Ecma48Modes::HemFollowing) {
+        mLines.insert(mLines.begin() + mVy + 1, pn, vline);
+    } else {
+        mLines.insert(mLines.begin() + mVy, pn, vline);
+    }
+    for (int i = 0; i < pn; ++i) {
+        mLinesBuffer.push_back(mLines[i]);
+    }
+    mLines.erase(mLines.begin(), mLines.begin() + pn);
 }
+
 void SerialConnECMA48::ProcessJFY(const std::string& seq)
 {
 }
+
 void SerialConnECMA48::ProcessMC(const std::string& seq)
 {
 }
@@ -809,14 +826,32 @@ void SerialConnECMA48::ProcessPPA(const std::string& seq)
 void SerialConnECMA48::ProcessPPB(const std::string& seq)
 {
 }
+
 void SerialConnECMA48::ProcessPTX(const std::string& seq)
 {
 }
+
 void SerialConnECMA48::ProcessQUAD(const std::string& seq)
 {
 }
 void SerialConnECMA48::ProcessREP(const std::string& seq)
 {
+    int pn = 1;
+    std::string pn_s = seq.substr(1, seq.length()-2);
+    if (!pn_s.empty()) {
+        pn = atoi(pn_s.c_str());
+    }
+    if (pn < 1) return;
+    // repeat preceding char N times
+    int cn = 0;
+    for (int k = 1; k <= pn && k < (int)mLines[mVy].size(); ++k) {
+        mLines[mVy][mVx+k] = mLines[mVy][mVx];
+        cn++;
+    }
+    for (int k = 0; k < pn - cn; ++k) {
+        mLines[mVy].push_back(mLines[mVy][mVx]);
+    }
+    mVx += pn;
 }
 void SerialConnECMA48::ProcessRM(const std::string& seq)
 {
@@ -836,9 +871,22 @@ void SerialConnECMA48::ProcessSCP(const std::string& seq)
 void SerialConnECMA48::ProcessSCS(const std::string& seq)
 {
 }
+
 void SerialConnECMA48::ProcessSD(const std::string& seq)
 {
+    int pn = 1;
+    std::string pn_s = seq.substr(1, seq.length()-2);
+    if (!pn_s.empty()) {
+        pn = atoi(pn_s.c_str());
+    }
+    if (pn < 1) return;
+    Size csz = GetConsoleSize();
+    mLines.insert(mLines.begin(), pn, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
+    for (int i = 0; i < pn; ++i) {
+        mLines.pop_back();
+    }
 }
+
 void SerialConnECMA48::ProcessSDS(const std::string& seq)
 {
 }
@@ -904,6 +952,13 @@ void SerialConnECMA48::ProcessSTAB(const std::string& seq)
 }
 void SerialConnECMA48::ProcessSU(const std::string& seq)
 {
+    int pn = 1;
+    std::string pn_s = seq.substr(1, seq.length()-2);
+    if (!pn_s.empty()) {
+        pn = atoi(pn_s.c_str());
+    }
+    if (pn < 1) return;
+    mVy += pn;
 }
 void SerialConnECMA48::ProcessSVS(const std::string& seq)
 {
@@ -1029,14 +1084,6 @@ void SerialConnECMA48::InstallEcma48Functions()
     mEcma48Funcs[ECMA48_VPA ] = [=](const std::string& seq) { ProcessVPA(seq); };
     mEcma48Funcs[ECMA48_VPB ] = [=](const std::string& seq) { ProcessVPB(seq); };
     mEcma48Funcs[ECMA48_VPR ] = [=](const std::string& seq) { ProcessVPR(seq); };
-    // Trivial handlers
-    mEcma48TrivialHandlers["[H"] = [=]() {
-        mVx = 0;
-        mVy = 0;
-    };
-    mEcma48TrivialHandlers["[m"] = [=]() {
-        ProcessSGR(0);
-    };
 }
 
 void SerialConnECMA48::ProcessEcma48Trivial(const std::string& seq)
@@ -1056,7 +1103,7 @@ int SerialConnECMA48::IsControlSeq(const std::string& seq)
     return ret;
 }
 
-void SerialConnECMA48::ProcessControlSeq(const std::string& seq, int seq_type)
+bool SerialConnECMA48::ProcessControlSeq(const std::string& seq, int seq_type)
 {
     // for faster, we forward the seq_type as accurately as we could
     if (seq_type == ECMA48_Trivial) ProcessEcma48Trivial(seq); else {
@@ -1066,9 +1113,10 @@ void SerialConnECMA48::ProcessControlSeq(const std::string& seq, int seq_type)
                 it->second(seq);
             }
         } else {
-            Superclass::ProcessControlSeq(seq, seq_type);
+            return Superclass::ProcessControlSeq(seq, seq_type);
         }
     }
+    return true;
 }
 
 bool SerialConnECMA48::ProcessC0(char cc)

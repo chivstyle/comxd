@@ -22,8 +22,7 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> serial)
     , mFgColor(Color(255, 255, 255))
     , mBgColor(Color(110, 110, 0))
     , mPaperColor(Color(110, 110, 0))
-    , mDefaultBgColor(Color(110, 110, 0))
-    , mDefaultFgColor(Color(255, 255, 255))
+    , mTextsColor(Color(255, 255, 255))
     , mBlinkSignal(true)
     , mBlink(false)
     , mVisible(true)
@@ -92,7 +91,7 @@ void SerialConnVT::InstallUserActions()
             options.Font = mFont;
             options.LinesBufferSize = this->mMaxLinesBufferSize;
             options.PaperColor = mPaperColor;
-            options.FontColor = mDefaultFgColor;
+            options.FontColor = mTextsColor;
             options.TrackCaret = mTrackCaret;
             VTOptionsDialog opt; opt.SetOptions(options);
             int ret = opt.Run();
@@ -100,8 +99,7 @@ void SerialConnVT::InstallUserActions()
                 options = opt.GetOptions();
                 this->mTrackCaret = options.TrackCaret;
                 this->mPaperColor = options.PaperColor;
-                this->mDefaultFgColor = options.FontColor;
-                this->mDefaultBgColor = options.PaperColor;
+                this->mTextsColor = options.FontColor;
                 this->mFont = options.Font;
                 this->mMaxLinesBufferSize = options.LinesBufferSize;
                 //
@@ -138,11 +136,76 @@ void SerialConnVT::InstallUserActions()
         });
 }
 //
+void SerialConnVT::SaveCursor(CursorData& cd)
+{
+    cd.Vx = mVx;
+    cd.Vy = mVy;
+    cd.FgColor = mFgColor;
+    cd.BgColor = mBgColor;
+    cd.Strikeout = mFont.IsStrikeout();
+    cd.Bold = mFont.IsBold();
+    cd.Underline = mFont.IsUnderline();
+    cd.Italic = mFont.IsItalic();
+    cd.Blink = mBlink;
+    cd.AttrFuncs = mCurrAttrFuncs;
+}
+
+void SerialConnVT::LoadCursor(const CursorData& cd)
+{
+    mVx = cd.Vx;
+    mVy = cd.Vy;
+    mFgColor = cd.FgColor;
+    mBgColor = cd.BgColor;
+    mBlink = cd.Blink;
+    mCurrAttrFuncs = cd.AttrFuncs;
+    mFont.Bold(cd.Bold).Italic(cd.Italic).Underline(cd.Underline).Strikeout(cd.Strikeout);
+    // layout again.
+    mFontW = mFont.GetAveWidth();
+    mFontH = mFont.GetLineHeight();
+    DoLayout();
+    //
+    UpdatePresentation();
+}
+//
+void SerialConnVT::SaveScr(ScreenData& sd)
+{
+    sd.Vx = mVx;
+    sd.Vy = mVy;
+    sd.Font = mFont;
+    sd.Blink = mBlink;
+    sd.BgColor = mBgColor;
+    sd.FgColor = mFgColor;
+    sd.AttrFuncs = mCurrAttrFuncs;
+    sd.LinesBuffer = mLinesBuffer;
+    sd.Lines = mLines;
+    sd.SelSpan = mSelectionSpan;
+}
+
+void SerialConnVT::LoadScr(const ScreenData& sd)
+{
+    mLinesBuffer = sd.LinesBuffer;
+    mLines = sd.Lines;
+    mCurrAttrFuncs = sd.AttrFuncs;
+    mVx = sd.Vx;
+    mVy = sd.Vy;
+    mFgColor = sd.FgColor;
+    mBgColor = sd.BgColor;
+    mBlink = sd.Blink;
+    mFont = sd.Font;
+    mSelectionSpan = sd.SelSpan;
+    // restore font w/h
+    mFontW = mFont.GetAveWidth();
+    mFontH = mFont.GetLineHeight();
+    // reset layout
+    DoLayout();
+    UpdatePresentation();
+}
+//
 void SerialConnVT::SetDefaultStyle()
 {
     mFont.NoBold().NoItalic().NoUnderline().NoStrikeout();
-    mBgColor = mDefaultBgColor;
-    mFgColor = mDefaultFgColor;
+    mFgColor = mTextsColor;
+    mBgColor = mPaperColor;
     mBlink = false;
 }
 //
@@ -464,11 +527,13 @@ bool SerialConnVT::ProcessAsciiControlChar(char cc)
     return true;
 }
 //
-void SerialConnVT::ProcessControlSeq(const std::string& seq, int seq_type)
+bool SerialConnVT::ProcessControlSeq(const std::string& seq, int seq_type)
 {
     if (seq_type == SEQ_NONE) { // can't recognize the seq, display it
         size_t ep;RenderText(Utf8ToUtf32(seq, ep));
+        return true;
     }
+    return false;
 }
 // If the scrolling region was set, we should ignore those lines out of region
 void SerialConnVT::ProcessOverflowLines()
@@ -479,14 +544,26 @@ void SerialConnVT::ProcessOverflowLines()
     if (bottom < 0 || bottom >= csz.cy)
         bottom = csz.cy-1;
     ASSERT(span.Top < (int)mLines.size());
-    // padding lines
-    if (mVy == bottom+1) {
-        PushToLinesBufferAndCheck(mLines[span.Top]);
-        mLines.erase(mLines.begin() + span.Top);
-        mLines.insert(mLines.begin() + bottom, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
-        mVy = bottom;
-    } else if (mVy >= csz.cy) { // wrap lines, override the last line of virtual screen.
-        mVy = csz.cy - 1;
+    // scrolling region.
+    if (bottom+1 < csz.cy) {
+        if (mVy == bottom+1) {
+            PushToLinesBufferAndCheck(mLines[span.Top]);
+            mLines.erase(mLines.begin() + span.Top);
+            mLines.insert(mLines.begin() + bottom, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
+            mVy = bottom;
+        } else if (mVy >= csz.cy) { // wrap lines, override the last line of virtual screen.
+            mVy = csz.cy - 1;
+        }
+    } else {
+        int vcn = mVy - csz.cy + 1;
+        if (vcn > 0) {
+            mLines.insert(mLines.end(), vcn, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
+            for (int i = 0; i < vcn; ++i) {
+                mLinesBuffer.push_back(mLines[i]);
+                mLines.erase(mLines.begin());
+            }
+            mVy = csz.cy - 1;
+        }
     }
     int cnt = mVx - (int)mLines[mVy].size();
     for (int i = 0; i < cnt; ++i) {
@@ -508,7 +585,7 @@ void SerialConnVT::RenderText(const std::vector<uint32_t>& s)
             chr.SetAttrFuns(mCurrAttrFuncs);
             // Unfortunately, UPP does not support complete UNICODE, support UCS-16 instead. So
             // we should ignore those out of range
-            if (chr > 0xffff) chr = 0x25A1; // replace chr with U+25A1 ( □ )
+            if (chr > 0xffff) chr = '?'; // replace chr with ?
             VTLine& vline = mLines[mVy];
             if (mVx < vline.size()) {
                 vline[mVx] = chr;
@@ -1099,7 +1176,7 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
             if (mBlinkSignal) {
                 draw.DrawRect(x, y, vchar_cx, vline.GetHeight(), mPaperColor);
             } else {
-                if (mBgColor != mDefaultBgColor) {
+                if (mBgColor != mPaperColor) {
                     draw.DrawRect(x, y, vchar_cx, vline.GetHeight(), mBgColor);
                 }
                 if (mFgColor != mBgColor) {
@@ -1109,7 +1186,7 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
                 }
             }
         } else {
-            if (mBgColor != mDefaultBgColor) {
+            if (mBgColor != mPaperColor) {
                 draw.DrawRect(x, y, vchar_cx, vline.GetHeight(), mBgColor);
             }
             if (mFgColor != mBgColor) {
@@ -1228,10 +1305,12 @@ void SerialConnVT::Render(Draw& draw)
     //
     DrawCursor(draw);
 }
-
-std::string SerialConnVT::TranscodeToUTF8(const VTChar& cc) const
+// To UTF16
+WString SerialConnVT::TranscodeToUTF16(const VTChar& cc) const
 {
-    return Utf32ToUtf8(cc);
+    // Because the UPP only support UCS-16, so we replace the unsupported chars with ?
+    WString out; out << (int)cc;
+    return out;
 }
 
 std::vector<uint32_t> SerialConnVT::TranscodeToUTF32(const std::string& s, size_t& ep)
@@ -1243,7 +1322,7 @@ void SerialConnVT::DrawVTChar(Draw& draw, int x, int y, const VTChar& c,
                               const Font& font, const Color& cr)
 {
     // To UTF8
-    std::string text = TranscodeToUTF8(c);
+    WString text = TranscodeToUTF16(c);
     draw.DrawText(x, y, text, font, cr);
 }
 

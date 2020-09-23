@@ -170,6 +170,9 @@ static const char* kXtermCtrlSeqs[] = {
     // TODO:
     //-----------------------------------------------------------------
     // Functions using CSI, most of them are compatible with ecma-48
+    // VT102
+    "[m",
+    "[H"
 };
 
 enum XtermSeqType {

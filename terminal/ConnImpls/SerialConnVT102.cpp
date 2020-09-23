@@ -34,28 +34,6 @@ int SerialConnVT102::IsControlSeq(const std::string& seq)
     return ret;
 }
 //----------------------------------------------------------------------------------------------
-void SerialConnVT102::SaveCursor(CursorData& cd)
-{
-    cd.Vx = mVx;
-    cd.Vy = mVy;
-    cd.FgColor = mFgColor;
-    cd.BgColor = mBgColor;
-    cd.Font = mFont;
-    cd.Blink = mBlink;
-}
-
-void SerialConnVT102::LoadCursor(const CursorData& cd)
-{
-    mVx = cd.Vx;
-    mVy = cd.Vy;
-    mFont = cd.Font;
-    mFgColor = cd.FgColor;
-    mBgColor = cd.BgColor;
-    mBlink = cd.Blink;
-    //
-    DoLayout();
-}
-//----------------------------------------------------------------------------------------------
 std::string SerialConnVT102::TranscodeToUTF8(const VTChar& cc) const
 {
     return Utf32ToUtf8(VT102_Transcode(cc, mCharset, mSS));
@@ -88,7 +66,7 @@ void SerialConnVT102::InstallVT102Functions()
     };
     mVT102TrivialHandlers["[?5h"] = [=]() {
         if (mModes.Screen == VT102Modes::Normal) {
-            mPaperColor = Color(~mPaperColor.GetR(), ~mPaperColor.GetG(), ~mPaperColor.GetB());
+            std::swap(mPaperColor, mTextsColor);
             mModes.Screen = VT102Modes::Reverse;
         }
     };
@@ -133,7 +111,7 @@ void SerialConnVT102::InstallVT102Functions()
     };
     mVT102TrivialHandlers["[?5l"] = [=]() {
         if (mModes.Screen == VT102Modes::Reverse) {
-            mPaperColor = Color(~mPaperColor.GetR(), ~mPaperColor.GetG(), ~mPaperColor.GetB());
+            std::swap(mPaperColor, mTextsColor);
             mModes.Screen = VT102Modes::Normal;
         }
     };
@@ -482,7 +460,7 @@ void SerialConnVT102::ProcessVT102Trivial(const std::string& seq)
     }
 }
 //
-void SerialConnVT102::ProcessControlSeq(const std::string& seq, int seq_type)
+bool SerialConnVT102::ProcessControlSeq(const std::string& seq, int seq_type)
 {
     if (seq_type == VT102_Trivial) {
         ProcessVT102Trivial(seq);
@@ -501,8 +479,9 @@ void SerialConnVT102::ProcessControlSeq(const std::string& seq, int seq_type)
         default:break;
         }
     } else {
-        Superclass::ProcessControlSeq(seq, seq_type);
+        return Superclass::ProcessControlSeq(seq, seq_type);
     }
+    return true;
 }
 //
 bool SerialConnVT102::ProcessAsciiControlChar(char cc)

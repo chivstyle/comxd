@@ -6,7 +6,7 @@
 
 #include "SerialConnVT.h"
 // SerialConnECMA48 is a 8-bit vt, so we use \x1b<Fe> in C1
-class SerialConnECMA48 : public SerialConnVT {
+class SerialConnECMA48 : public virtual SerialConnVT {
 public:
     using Superclass = SerialConnVT;
     SerialConnECMA48(std::shared_ptr<SerialIo> serial);
@@ -14,7 +14,7 @@ public:
 protected:
     virtual int IsControlSeq(const std::string& seq);
     virtual bool ProcessAsciiControlChar(char cc);
-    virtual void ProcessControlSeq(const std::string& seq, int seq_type);
+    virtual bool ProcessControlSeq(const std::string& seq, int seq_type);
     //------------------------------------------------------------------------------------------
     // 00~0x1f
     virtual bool ProcessC0(char cc);

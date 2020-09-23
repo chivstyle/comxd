@@ -240,8 +240,44 @@ public:
     virtual void Clear();
     // Editing commands
     virtual void SelectAll();
-    virtual void Copy();
-    virtual void Paste();
+    //
+    struct SelectionSpan {
+        int X0, Y0; // virtual screen, unit: char [fixed width]
+        int X1, Y1; // virtual screen, unit: char [fixed height]
+        int x0, y0; // reserved for define the whether the span is valid.
+        bool Valid;
+        SelectionSpan()
+            : X0(0)
+            , Y0(0)
+            , X1(0)
+            , Y1(0)
+            , Valid(false)
+        {
+        }
+    };
+    // public methods
+    struct ScreenData {
+        std::vector<VTLine> LinesBuffer; // buffer
+        std::vector<VTLine> Lines;       // virtual screen
+        std::vector<std::function<void()> > AttrFuncs;
+        int Vx, Vy;
+        Upp::Font Font;
+        Upp::Color FgColor, BgColor;
+        bool Blink;
+        struct SelectionSpan SelSpan;
+    };
+    void SaveScr(ScreenData& sd);
+    void LoadScr(const ScreenData& sd);
+    //
+    struct CursorData {
+        int Vx, Vy;
+        bool Blink;
+        bool Strikeout, Bold, Italic, Underline;
+        Upp::Color BgColor, FgColor;
+        std::vector<std::function<void()> > AttrFuncs;
+    };
+    void SaveCursor(CursorData& cd);
+    void LoadCursor(const CursorData& cd);
 protected:
     // Font
     virtual void Paint(Upp::Draw& draw);
@@ -282,25 +318,15 @@ protected:
     int CalculateNumberOfBlankCharsFromEnd(const VTLine& vline) const;
     //
     bool mScrollToEnd;
-    // selection
-    struct SelectionSpan {
-        int X0, Y0; // virtual screen, unit: char [fixed width]
-        int X1, Y1; // virtual screen, unit: char [fixed height]
-        int x0, y0; // reserved for define the whether the span is valid.
-        bool Valid;
-        SelectionSpan()
-            : X0(0)
-            , Y0(0)
-            , X1(0)
-            , Y1(0)
-            , Valid(false)
-        {
-        }
-    };
     bool mPressed;
+    //
     SelectionSpan mSelectionSpan;
     std::vector<std::string> GetSelection() const;
     Upp::String GetSelectedText() const;
+    //---------------------------------------------------------------------------------------
+    virtual void Copy();
+    virtual void Paste();
+    //---------------------------------------------------------------------------------------
     // lx, ly - Absolute position
     //        cN       cN+1   cN+2
     // lx     |____lx___|______|
@@ -329,8 +355,7 @@ protected:
     Upp::Color mFgColor; // font color
     Upp::Color mBgColor; // font background color
     Upp::Color mPaperColor; // paper color, \033[0m
-    Upp::Color mDefaultFgColor;
-    Upp::Color mDefaultBgColor;
+    Upp::Color mTextsColor; // default texts color
     //
     volatile bool mBlinkSignal; // 0,1,0,1,0,1, 2 Hz
     volatile bool mBlink;
@@ -350,23 +375,27 @@ protected:
     virtual Upp::Size GetConsoleSize() const;
     // VTChar contains the codepoint, UTF32->UTF8
     // used by Drawing functions
-    virtual std::string TranscodeToUTF8(const VTChar& cc) const;
-    // raw(default:UTF8, we'll support more later)->UTF32
-    // used by Rendering functions, NOTE: Not drawing
-    // --------------------Working flow---------------------------------
-    //   auto recv_buf = receive_from_port()
-    //   control_seq, rest = split(recv_buf)
-    //   ProcessControlSeq(control_seq)
-    //
-    //   auto utf32_text = TranscodeToUTF32(rest)
-    //   RenderText(utf32_text)
-    //------------------------------------------------------------------
+    virtual Upp::WString TranscodeToUTF16(const VTChar& cc) const;
+    /// raw(default:UTF8, we'll support more later)->UTF32
+    /// used by Rendering functions, NOTE: Not drawing
+    /// --------------------Working flow---------------------------------
+    ///   auto recv_buf = receive_from_port()
+    ///   control_seq, rest = split(recv_buf)
+    ///   ProcessControlSeq(control_seq)
+    ///
+    ///   size_t ep;
+    ///   auto utf32_text = TranscodeToUTF32(rest, ep)
+    ///   RenderText(utf32_text)
+    ///------------------------------------------------------------------
+    /// \param s
+    /// \param ep End position of raw string. From ep To end of s, the data could not be
+    ///           recognized.
     virtual std::vector<uint32_t> TranscodeToUTF32(const std::string& s, size_t& ep);
     //
     virtual bool IsSeqPrefix(unsigned char c);
     //
     virtual int IsControlSeq(const std::string& seq);
-    virtual void ProcessControlSeq(const std::string& seq, int seq_type);
+    virtual bool ProcessControlSeq(const std::string& seq, int seq_type);
     // 00~0x1f
     // VT will process following chars
     // 0x0b VT
