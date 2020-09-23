@@ -13,8 +13,10 @@ public:
     Proto();
     virtual ~Proto();
     //
-    virtual std::string GetName() const;
-    virtual std::string GetDescription() const;
+    const std::string& GetName() const { return mName; }
+    void SetName(const char* name) { mName = name; }
+    //
+    virtual std::string GetDescription() const { return ""; }
     // use this proto to pack the data
     // A = Pack(input)
     // B = Unpack(A)
@@ -31,6 +33,7 @@ public:
     //
 protected:
     std::list<UsrAction> mUsrActions;
+    std::string mName;
 };
 
 #endif

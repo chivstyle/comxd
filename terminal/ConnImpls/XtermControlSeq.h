@@ -10,7 +10,7 @@
 static const char* kXtermCtrlSeqs[] = {
     // save, restore alternative screen
     "[?1049h",
-    "[?1049l"
+    "[?1049l",
     // controls beginning with ESC
     " F", // 7-bit controls C1
     " G", // 8-bit controls C1

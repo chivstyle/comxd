@@ -44,7 +44,7 @@ public:
         return name;
     }
     //
-    serial::Serial* nativeDevice() const { return mSerial.get(); }
+    serial::Serial* GetNativeDevice() const { return mSerial.get(); }
     //
 private:
     std::shared_ptr<serial::Serial> mSerial;

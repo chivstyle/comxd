@@ -34,9 +34,9 @@ int SerialConnVT102::IsControlSeq(const std::string& seq)
     return ret;
 }
 //----------------------------------------------------------------------------------------------
-std::string SerialConnVT102::TranscodeToUTF8(const VTChar& cc) const
+WString SerialConnVT102::TranscodeToUTF16(const VTChar& cc) const
 {
-    return Utf32ToUtf8(VT102_Transcode(cc, mCharset, mSS));
+    return Superclass::TranscodeToUTF16(VT102_Transcode(cc, mCharset, mSS));
 }
 //----------------------------------------------------------------------------------------------
 void SerialConnVT102::InstallVT102Functions()
@@ -474,7 +474,8 @@ bool SerialConnVT102::ProcessControlSeq(const std::string& seq, int seq_type)
         case VT102_ScrollingRegion: ProcessVT102ScrollingRegion(seq); break;
         // ▒ stands for a canceled control seq.
         case VT102_CanceledSeq: if (1) {
-            size_t ep;RenderText(Utf8ToUtf32("▒", ep));
+            std::string tmp = "▒"; // UTF-8
+            size_t ep;RenderText(UTF8ToUTF32_((const unsigned char*)tmp.c_str(), tmp.length(), ep));
         } break;
         default:break;
         }

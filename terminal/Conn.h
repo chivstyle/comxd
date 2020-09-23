@@ -7,18 +7,16 @@
 #include <list>
 
 #include "SerialIo.h"
+#include "Codec.h"
 #include "Action.h"
-
 
 class SerialConn : public Upp::TopWindow {
 public:
-    explicit SerialConn(std::shared_ptr<SerialIo> serial)
-        : mSerial(serial)
-    {
-    }
-    SerialConn()
-    {
-    }
+    explicit SerialConn(std::shared_ptr<SerialIo> serial);
+    SerialConn() {}
+    virtual ~SerialConn() {}
+    //
+    void SetCodec(const char* codec_name);
     //
     Upp::String ConnName() const
     {
@@ -31,9 +29,11 @@ public:
     }
     //
     SerialIo* GetSerial() const { return mSerial.get(); }
+    Codec* GetCodec() const { return mCodec.get(); }
     
 protected:
     std::shared_ptr<SerialIo> mSerial;
+    std::shared_ptr<Codec> mCodec;
     std::list<UsrAction> mUsrActions;
 };
 

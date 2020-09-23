@@ -41,3 +41,10 @@ LAYOUT(VTOptions, 456, 120)
 	ITEM(Option, mTrackCaret, SetLabel(t_("Track Caret")).Tip(t_("Track the caret when you input valid chars")).LeftPosZ(8, 152).TopPosZ(100, 16))
 END_LAYOUT
 
+LAYOUT(TextCodecs, 264, 60)
+	ITEM(Label, dv___0, SetLabel(t_("Text Codecs")).LeftPosZ(8, 68).TopPosZ(8, 19))
+	ITEM(DropList, mCodecs, LeftPosZ(84, 172).TopPosZ(8, 19))
+	ITEM(Button, mCancel, SetLabel(t_("Cancel")).LeftPosZ(200, 56).TopPosZ(32, 20))
+	ITEM(Button, mOk, SetLabel(t_("Ok")).LeftPosZ(136, 56).TopPosZ(32, 20))
+END_LAYOUT
+

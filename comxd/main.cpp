@@ -16,14 +16,19 @@ public:
 		this->CenterScreen();
 		this->Sizeable();
 		this->Icon(comxd::app_icon()).MaximizeBox().MinimizeBox();
-		// initialize widgets
+		// status bar
 		InitStatusbar();
-		//
+		// welcome to comxd.
+		mAbout.SetQTF(Upp::GetTopicLNG("comxd/comxd/welcome"));
+		// frame
 		AddFrame(mToolbar);
 		AddFrame(mStatusbar);
+		// Toolbar
 		mToolbar.Set(THISBACK(MainToolbar));
+		// conn tabs.
 		mDevsTab.WhenSet = THISBACK(OnDevsTabSet);
-		//
+		mDevsTab.Add(mAbout);
+		// layout
 		Upp::CtrlLayout(*this);
 	}
 	~MainWindow()
@@ -97,6 +102,7 @@ protected:
 	// widgets
 	ToolBar mToolbar;
 	StatusBar mStatusbar;
+	RichTextCtrl mAbout;
 	// Add a toolbar for window
 	void MainToolbar(Bar& bar)
 	{
@@ -107,7 +113,7 @@ protected:
 		//
 		bar.ToolGapRight();
 	    bar.Add(t_("About"), comxd::about(), [=](){
-	        PromptOK(Upp::GetTopicLNG("comxd/comxd/welcome"));
+	        PromptOK(Upp::GetTopicLNG("comxd/comxd/about"));
 	    });
 	}
 	
@@ -117,11 +123,11 @@ protected:
 	        auto conn = dynamic_cast<SerialConn*>(mDevsTab.GetItem(mDevsTab.Get()).GetSlave());
 	        if (conn) {
 	            // Actions of serial device
-	            auto actions_io = conn->GetSerial()->GetActions();
-	            for (auto it = actions_io.begin(); it != actions_io.end(); ++it) {
+	            auto io_actions = conn->GetSerial()->GetActions();
+	            for (auto it = io_actions.begin(); it != io_actions.end(); ++it) {
 	                bar.Add(it->Text, it->Icon, it->Func).Help(it->Help);
 	            }
-	            if (!actions_io.empty()) {
+	            if (!io_actions.empty()) {
 	                bar.ToolSeparator();
 	            }
 	            // Actions of conn

@@ -5,6 +5,7 @@
 #include "SerialConnRaw.h"
 #include "ConnFactory.h"
 #include "ProtoFactory.h"
+#include "TextCodecsDialog.h"
 #include <functional>
 #include <stdio.h>
 
@@ -40,6 +41,7 @@ SerialConnRaw::SerialConnRaw(std::shared_ptr<SerialIo> serial)
     }
     //------------------------------------------------------------------------
     InstallActions();
+    InstallUsrActions();
     //------------------------------------------------------------------------
     // start receiving thread
     mRxThr = std::thread([=] { RxProc(); });
@@ -56,6 +58,22 @@ SerialConnRaw::~SerialConnRaw()
     }
     KillTimeCallback(kPeriodicTimerId);
     delete mTxProto;
+}
+
+void SerialConnRaw::InstallUsrActions()
+{
+    mUsrActions.emplace_back(terminal::text_codec(),
+        t_("Text Codec"), t_("Select a text codec"), [=]() {
+            TextCodecsDialog d(GetCodec()->GetName().c_str());
+            int ret = d.Run();
+            if (ret == IDOK) {
+                this->SetCodec(d.GetCodecName());
+                // refresh rx.
+                if (!mRxHex.Get()) {
+                    UpdateAsTxt();
+                }
+            }
+        });
 }
 
 void SerialConnRaw::InstallActions()
@@ -202,23 +220,23 @@ static inline int UTF8SeqLen_(const unsigned char* seq, size_t sz)
     int flag = seq[p] & 0xf0;
     if (flag == 0xf0) { // 4 bytes
         // check and check
-        if (sz - p < 4 &&
-            (seq[p+1] & 0xc0) != 0x80 &&
-            (seq[p+2] & 0xc0) != 0x80 &&
-            (seq[p+3] & 0xc0) != 0x80)
+        if (sz - p >= 4 &&
+            (seq[p+1] & 0xc0) == 0x80 &&
+            (seq[p+2] & 0xc0) == 0x80 &&
+            (seq[p+3] & 0xc0) == 0x80)
         {
             seqsz = 4;
         }
     } else if ((flag & 0xe0) == 0xe0) { // 3 bytes, 4+6+6=16bits
-        if (sz - p < 3 &&
-            (seq[p+1] & 0xc0) != 0x80 &&
-            (seq[p+2] & 0xc0) != 0x80)
+        if (sz - p >= 3 &&
+            (seq[p+1] & 0xc0) == 0x80 &&
+            (seq[p+2] & 0xc0) == 0x80)
         {
             seqsz = 3;
         }
     } else if ((flag & 0xc0) == 0xc0) { // 2 bytes, 5+6 = 11bits
-        if (sz - p < 2 &&
-            (seq[p+1] & 0xc0) != 0x80)
+        if (sz - p >= 2 &&
+            (seq[p+1] & 0xc0) == 0x80)
         {
             seqsz = 2;
         }
@@ -408,7 +426,8 @@ void SerialConnRaw::OnSend()
                 mSerial->Write(out);
             }
         } else {
-            mSerial->Write(ReplaceLineBreak_(text, mLineBreaks.GetKey(mLineBreaks.GetIndex()).To<int>()));
+            auto tmp = ReplaceLineBreak_(text, mLineBreaks.GetKey(mLineBreaks.GetIndex()).To<int>());
+            mSerial->Write(GetCodec()->TranscodeFromUTF8((const unsigned char*)tmp.c_str(), tmp.length()));
         }
     }
 }
@@ -459,8 +478,9 @@ void SerialConnRaw::UpdateAsTxt()
                 k += 1;
             }
         }
+        text = GetCodec()->TranscodeToUTF8((const unsigned char*)text.Begin(), text.GetLength());
     } else {
-        text = String(buf.data(), buf.size());
+        text = GetCodec()->TranscodeToUTF8(buf.data(), buf.size());
     }
     mRxBufferLock.unlock();
     //

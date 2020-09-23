@@ -1,10 +1,10 @@
 //
 // (c) 2020 chiv
 //
-#ifndef _proto_proto_factory_h
-#define _proto_proto_factory_h
+#ifndef _terminal_CodecFactory_h_
+#define _terminal_CodecFactory_h_
 
-#include "Proto.h"
+#include "Codec.h"
 #include <map>
 
 #ifndef DELETE_CA_FUNCTIONS
@@ -14,23 +14,23 @@
     class_name& operator=(class_name&&) = delete
 #endif
 
-class ProtoFactory {
+class CodecFactory {
 public:
-    static ProtoFactory* Inst();
+    static CodecFactory* Inst();
     // create instance
     // type_name - Type name of conn, such as VT102, Xterm, Modbus RTU, .etc
-    Proto* CreateInst(const char* proto_name);
+    Codec* CreateInst(const char* codec_name);
     //
-    bool RegisterCreateInstFunc(const char* proto_name,
-                                std::function<Proto*()> func)
+    bool RegisterCreateInstFunc(const char* codec_name,
+                                std::function<Codec*()> func)
     {
-        if (mInstFuncs.find(proto_name) == mInstFuncs.end()) {
-            mInstFuncs[proto_name] = func;
+        if (mInstFuncs.find(codec_name) == mInstFuncs.end()) {
+            mInstFuncs[codec_name] = func;
             return true;
         } else return false; // There's already a function in the map
     }
     //
-    std::vector<std::string> GetSupportedProtos() const
+    std::vector<std::string> GetSupportedCodecs() const
     {
         std::vector<std::string> list;
         for (auto it = mInstFuncs.begin(); it != mInstFuncs.end(); ++it) {
@@ -41,23 +41,23 @@ public:
     //
 protected:
     // functions to create instance(s)
-    std::map<std::string, std::function<Proto*()> > mInstFuncs;
+    std::map<std::string, std::function<Codec*()> > mInstFuncs;
     
-    DELETE_CA_FUNCTIONS(ProtoFactory);
-    ProtoFactory();
-    virtual ~ProtoFactory();
+    DELETE_CA_FUNCTIONS(CodecFactory);
+    CodecFactory();
+    virtual ~CodecFactory();
 };
 
 // Help macros
-#define REGISTER_PROTO_INSTANCE(proto_name, class_name) \
+#define REGISTER_CODEC_INSTANCE(codec_name, class_name) \
 class class_name##_ { \
 public: \
     class_name##_() \
     { \
-        ProtoFactory::Inst()->RegisterCreateInstFunc(proto_name, \
-        [=]()->Proto* { \
+        CodecFactory::Inst()->RegisterCreateInstFunc(codec_name, \
+        [=]()->Codec* { \
             auto inst_ = new class_name(); \
-            inst_->SetName(proto_name); \
+            inst_->SetName(codec_name); \
             return inst_; \
         }); \
     } \

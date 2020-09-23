@@ -18,6 +18,7 @@ file
 	Action.h,
 	SerialIo.h,
 	SerialIo.cpp,
+	Conn.cpp,
 	Conn.h,
 	ConnFactory.h,
 	ConnFactory.cpp,
@@ -44,5 +45,15 @@ file
 	proto/ss.h,
 	proto/ss.cpp,
 	proto\ProtoSs.cpp,
-	proto\ProtoSs.h;
+	proto\ProtoSs.h,
+	CodecFactory.h,
+	Codec.h,
+	codec\CodecLatin1.cpp,
+	codec\CodecLatin1.h,
+	codec\CodecUTF8.cpp,
+	codec\CodecUTF8.h,
+	Codec.cpp,
+	CodecFactory.cpp,
+	ConnImpls\TextCodecsDialog.h,
+	ConnImpls\TextCodecsDialog.cpp;
 

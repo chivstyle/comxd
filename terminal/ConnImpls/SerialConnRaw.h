@@ -35,6 +35,7 @@ protected:
     //
 private:
     Proto* mTxProto;
+    void InstallUsrActions();
 };
 
 

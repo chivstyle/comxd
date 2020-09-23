@@ -4,8 +4,9 @@
 #include "terminal_rc.h"
 #include "SerialConnVT.h"
 #include "VTOptionsDialog.h"
-#include "ControlSeq.h"
+#include "TextCodecsDialog.h"
 #include "ConnFactory.h"
+#include "ControlSeq.h"
 #include <algorithm>
 
 REGISTER_CONN_INSTANCE("Original VT", SerialConnVT);
@@ -82,6 +83,15 @@ SerialConnVT::~SerialConnVT()
 //
 void SerialConnVT::InstallUserActions()
 {
+    mUsrActions.emplace_back(terminal::text_codec(),
+        t_("Text Codec"), t_("Select a text codec"), [=]() {
+            TextCodecsDialog d(GetCodec()->GetName().c_str());
+            int ret = d.Run();
+            if (ret == IDOK) {
+                this->SetCodec(d.GetCodecName());
+                Refresh();
+            }
+        });
     mUsrActions.emplace_back(terminal::clear_buffer(),
         t_("Clear Buffer"), t_("Clear the line buffers"), [=]() { Clear(); }
     );
@@ -530,7 +540,7 @@ bool SerialConnVT::ProcessAsciiControlChar(char cc)
 bool SerialConnVT::ProcessControlSeq(const std::string& seq, int seq_type)
 {
     if (seq_type == SEQ_NONE) { // can't recognize the seq, display it
-        size_t ep;RenderText(Utf8ToUtf32(seq, ep));
+        size_t ep;RenderText(GetCodec()->TranscodeToUTF32((const unsigned char*)seq.c_str(), seq.length(), ep));
         return true;
     }
     return false;
@@ -869,7 +879,7 @@ bool SerialConnVT::ProcessKeyUp(dword key, dword flags)
 
 bool SerialConnVT::ProcessChar(dword cc)
 {
-    GetSerial()->Write(Utf32ToUtf8(cc));
+    GetSerial()->Write(GetCodec()->TranscodeFromUTF32(cc));
     //
     return true;
 }
@@ -1061,7 +1071,7 @@ std::vector<std::string> SerialConnVT::GetSelection() const
         for (size_t i = vx; i < nchars; ++i) {
             bool is_selected = IsCharInSelectionSpan(i, span.Y0);
             if (is_selected) {
-                sel += Utf32ToUtf8(vline[i]);
+                sel += GetCodec()->TranscodeFromUTF32(vline[i]);
             }
         }
         out[out_p++] = sel;
@@ -1073,7 +1083,7 @@ std::vector<std::string> SerialConnVT::GetSelection() const
         std::string sel;
         int nchars = (int)vline.size() - this->CalculateNumberOfBlankCharsFromEnd(vline);
         for (size_t i = 0; i < nchars; ++i) {
-            sel += Utf32ToUtf8(vline[i]);
+            sel += GetCodec()->TranscodeFromUTF32(vline[i]);
         }
         out[out_p++] = sel;
     }
@@ -1086,7 +1096,7 @@ std::vector<std::string> SerialConnVT::GetSelection() const
         for (size_t i = 0; i < nchars && i < vx; ++i) {
             bool is_selected = IsCharInSelectionSpan(i, span.Y1);
             if (is_selected) {
-                sel += Utf32ToUtf8(vline[i]);
+                sel += GetCodec()->TranscodeFromUTF32(vline[i]);
             }
         }
         out[out_p++] = sel;
@@ -1315,7 +1325,7 @@ WString SerialConnVT::TranscodeToUTF16(const VTChar& cc) const
 
 std::vector<uint32_t> SerialConnVT::TranscodeToUTF32(const std::string& s, size_t& ep)
 {
-    return Utf8ToUtf32(s, ep);
+    return GetCodec()->TranscodeToUTF32((const unsigned char*)s.c_str(), s.length(), ep);
 }
 
 void SerialConnVT::DrawVTChar(Draw& draw, int x, int y, const VTChar& c,

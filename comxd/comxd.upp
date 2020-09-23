@@ -3,7 +3,9 @@ description "Another serialbus tool\377";
 uses
 	CtrlLib,
 	serial,
-	terminal;
+	terminal,
+	Painter,
+	Painter;
 
 options
 	;

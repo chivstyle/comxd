@@ -14,7 +14,7 @@ public:
     // create a serialconn from current settings.
     SerialConn* RequestConn();
     //
-    void ChangeSettings(SerialPort* serial);
+    void ChangeSettings(SerialPort* port);
     //
 private:
     // open serial from current settings.

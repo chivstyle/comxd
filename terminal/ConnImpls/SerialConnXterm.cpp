@@ -78,11 +78,11 @@ bool SerialConnXterm::ProcessControlSeq(const std::string& seq, int seq_type)
 int SerialConnXterm::IsControlSeq(const std::string& seq)
 {
     auto seq_type = IsXtermControlSeq(seq);
-    if (seq_type == 0) {
+    if (seq_type == SEQ_NONE) {
         seq_type = SerialConnECMA48::IsControlSeq(seq);
-        if (seq_type == 0) {
+        if (seq_type == SEQ_NONE) {
             seq_type = SerialConnVT102::IsControlSeq(seq);
-            if (seq_type == 0) {
+            if (seq_type == SEQ_NONE) {
                 seq_type = Superclass::IsControlSeq(seq);
             }
         }

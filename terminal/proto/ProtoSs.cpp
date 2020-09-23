@@ -22,11 +22,6 @@ ProtoSs::~ProtoSs()
 {
 }
 
-std::string ProtoSs::GetName() const
-{
-    return "Simple Stupid";
-}
-
 std::string ProtoSs::GetDescription() const
 {
     return t_("This proto was designed by chivstyle acording to KISS principal");

@@ -1,12 +1,12 @@
 LAYOUT(MainWindow, 736, 440)
-	ITEM(TabCtrl, mDevsTab, HSizePosZ(4, 4).VSizePosZ(4, 4))
+	ITEM(TabCtrl, mDevsTab, AcceptCurrent(true).HSizePosZ(4, 4).VSizePosZ(4, 4))
 END_LAYOUT
 
 LAYOUT(SerialDevs, 348, 160)
 	ITEM(Label, dv___0, SetLabel(t_("Devices")).LeftPosZ(8, 52).VSizePosZ(12, 129))
 	ITEM(WithDropChoice<EditString>, mDevsList, LeftPosZ(68, 116).TopPosZ(12, 19))
-	ITEM(Button, mBtnOk, SetLabel(t_("\aOK")).LeftPosZ(276, 68).TopPosZ(12, 19))
-	ITEM(Button, mBtnCancel, SetLabel(t_("Cancel")).LeftPosZ(276, 68).TopPosZ(36, 19))
+	ITEM(Button, mBtnOk, SetLabel(t_("\aOK")).LeftPosZ(276, 68).TopPosZ(112, 19))
+	ITEM(Button, mBtnCancel, SetLabel(t_("Cancel")).LeftPosZ(276, 68).TopPosZ(136, 19))
 	ITEM(Label, dv___4, SetLabel(t_("DataBits")).LeftPosZ(8, 52).VSizePosZ(36, 104))
 	ITEM(Label, dv___5, SetLabel(t_("StopBits")).LeftPosZ(8, 52).TopPosZ(84, 19))
 	ITEM(Label, dv___6, SetLabel(t_("Flow Ctrl")).LeftPosZ(8, 52).TopPosZ(132, 19))
@@ -17,6 +17,9 @@ LAYOUT(SerialDevs, 348, 160)
 	ITEM(DropList, mParity, LeftPosZ(68, 116).TopPosZ(108, 19))
 	ITEM(Label, dv___12, SetLabel(t_("Baudrate")).LeftPosZ(8, 52).TopPosZ(60, 20))
 	ITEM(DropList, mBaudrate, LeftPosZ(68, 116).TopPosZ(60, 19))
-	ITEM(DropList, mTypes, LeftPosZ(192, 76).TopPosZ(12, 19))
+	ITEM(DropList, mCodecs, LeftPosZ(244, 96).TopPosZ(12, 19))
+	ITEM(Label, mCodecsLabel, SetLabel(t_("Encoding")).LeftPosZ(192, 48).TopPosZ(12, 19))
+	ITEM(DropList, mTypes, LeftPosZ(244, 96).TopPosZ(36, 19))
+	ITEM(Label, mTypesLabel, SetLabel(t_("Type")).LeftPosZ(192, 48).TopPosZ(36, 19))
 END_LAYOUT
 

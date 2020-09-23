@@ -38,7 +38,7 @@ protected:
     virtual void ProcessVT102ScrollingRegion(const std::string& seq);
     // VT102 subroutines
     virtual void ProcessVT102CharAttribute(int attr_code);
-    std::string TranscodeToUTF8(const VTChar& cc) const;
+    virtual Upp::WString TranscodeToUTF16(const VTChar& cc) const;
 private:
     //
     std::map<std::string, std::function<void()> > mVT102TrivialHandlers;

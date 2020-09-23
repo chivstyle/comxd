@@ -4,6 +4,7 @@
 #include "resource.h"
 #include "SerialDevsDialog.h"
 #include "ConnFactory.h"
+#include "CodecFactory.h"
 
 static int kBaudrates[] = {921600, 460800, 256000, 230400, 153600,
         128000, 115200, 38400, 76800, 57600, 28800, 19200, 14400,
@@ -13,7 +14,7 @@ SerialDevsDialog::SerialDevsDialog()
 {
     CtrlLayout(*this);
     //
-    Icon(comxd::settings());
+    Icon(comxd::settings()).Title(t_("Serial Port"));
     // list all ports
     std::vector<serial::PortInfo> ports = serial::list_ports();
     for (size_t k = 0; k < ports.size(); ++k) {
@@ -58,14 +59,19 @@ SerialDevsDialog::SerialDevsDialog()
     if (!types.empty()) {
         mTypes.SetIndex(0);
     }
+    auto codecs = CodecFactory::Inst()->GetSupportedCodecs();
+    for (size_t k = 0; k < codecs.size(); ++k) {
+        mCodecs.Add(codecs[k].c_str());
+    }
+    mCodecs.SetIndex(0);
     //
     Acceptor(mBtnOk, IDOK).Acceptor(mBtnCancel, IDCANCEL);
 }
 
-void SerialDevsDialog::ChangeSettings(SerialPort* serial_port)
+void SerialDevsDialog::ChangeSettings(SerialPort* port)
 {
     // load settings of serial
-    auto serial = serial_port->nativeDevice();
+    auto serial = port->GetNativeDevice();
     // name
     mDevsList.SetData(serial->getPort().c_str());
     mDevsList.SetEditable(false);
@@ -80,7 +86,8 @@ void SerialDevsDialog::ChangeSettings(SerialPort* serial_port)
     // flow control
     mFlowCtrl.SetData(serial->getFlowcontrol());
     // only change the settings of serial, type could not be modified on running time.
-    mTypes.Hide();
+    mTypesLabel.Hide(); mTypes.Hide();
+    mCodecsLabel.Hide(); mCodecs.Hide();
     //
     int ret = Run(true);
     if (ret == IDOK) {
@@ -126,7 +133,10 @@ SerialConn* SerialDevsDialog::RequestConn()
             auto conn = ConnFactory::Inst()->CreateInst(type_name, std::make_shared<SerialPort>(serial));
             if (!conn) {
                 Upp::PromptOK(t_("Dose not support:") + type_name);
-            } else return conn;
+            } else {
+                conn->SetCodec(mCodecs.Get().ToString());
+                return conn;
+            }
         }
     }
     //
