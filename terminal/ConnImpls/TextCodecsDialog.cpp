@@ -9,7 +9,7 @@ TextCodecsDialog::TextCodecsDialog(const char* name)
 {
     CtrlLayout(*this);
     //
-    this->Title(t_("Text Codec"));
+    this->Title(t_("Select a text codec"));
     this->Icon(terminal::text_codec());
     //
     auto codecs = CodecFactory::Inst()->GetSupportedCodecs();

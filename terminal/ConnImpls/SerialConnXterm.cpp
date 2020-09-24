@@ -93,13 +93,126 @@ int SerialConnXterm::IsControlSeq(const std::string& seq)
 bool SerialConnXterm::ProcessKeyDown(Upp::dword key, Upp::dword flags)
 {
     std::string d;
-    switch (key) {
-    case K_HOME:
-        d = "\033[H";
-        break;
-    case K_END:
-        d = "\033[F";
-        break;
+    if (flags == 0) {
+        switch (key) {
+        //--------------------------------------------------------------------------------------
+        // VT220 style
+        case K_INSERT:
+            d = "\033[2~";
+            break;
+        case K_DELETE:
+            d = "\033[3~";
+            break;
+        case K_HOME:
+            d = "\033[1~";
+            break;
+        case K_END:
+            d = "\033[4~";
+            break;
+        case K_PAGEUP:
+            d = "\033[5~";
+            break;
+        case K_PAGEDOWN:
+            d = "\033[6~";
+            break;
+        //--------------------------------------------------------------------------------------
+        // PC Style
+        case K_F1:
+            d = "\033OP";
+            break;
+        case K_F2:
+            d = "\033OQ";
+            break;
+        case K_F3:
+            d = "\033OR";
+            break;
+        case K_F4:
+            d = "\033OS";
+            break;
+        case K_F5:
+            d = "\033[15~";
+            break;
+        case K_F6:
+            d = "\033[17~";
+            break;
+        case K_F7:
+            d = "\033[18~";
+            break;
+        case K_F8:
+            d = "\033[19~";
+            break;
+        case K_F9:
+            d = "\033[20~";
+            break;
+        case K_F10:
+            d = "\033[21~";
+            break;
+        case K_F11:
+            d = "\033[23~";
+            break;
+        case K_F12:
+            d = "\033[24~";
+            break;
+        default:break;
+        }
+    } else {
+        int code = 0;
+        if ((flags & (K_CTRL | K_SHIFT | K_ALT)) == (K_CTRL | K_SHIFT | K_ALT)) {
+            code = 8; // ctrl + alt + shift
+        } else if ((flags & (K_CTRL | K_SHIFT | K_ALT)) == K_SHIFT) {
+            code = 2;
+        } else if ((flags & (K_CTRL | K_SHIFT | K_ALT)) == K_ALT) {
+            code = 3;
+        } else if ((flags & (K_CTRL | K_SHIFT | K_ALT)) == (K_SHIFT | K_ALT)) {
+            code = 4;
+        } else if ((flags & (K_CTRL | K_SHIFT | K_ALT)) == K_CTRL) {
+            code = 5;
+        } else if ((flags & (K_CTRL | K_SHIFT | K_ALT)) == (K_SHIFT | K_CTRL)) {
+            code = 6;
+        } else if ((flags & (K_CTRL | K_SHIFT | K_ALT)) == (K_ALT | K_CTRL)) {
+            code = 7;
+        }
+        if (code != 0) {
+            switch (key) {
+            case K_F1:
+                d = "\033O;" + std::to_string(code) + "P";
+                break;
+            case K_F2:
+                d = "\033O;" + std::to_string(code) + "Q";
+                break;
+            case K_F3:
+                d = "\033O;" + std::to_string(code) + "R";
+                break;
+            case K_F4:
+                d = "\033O;" + std::to_string(code) + "S";
+                break;
+            case K_F5:
+                d = "\033[15;" + std::to_string(code) + "~";
+                break;
+            case K_F6:
+                d = "\033[17;" + std::to_string(code) + "~";
+                break;
+            case K_F7:
+                d = "\033[18;" + std::to_string(code) + "~";
+                break;
+            case K_F8:
+                d = "\033[19;" + std::to_string(code) + "~";
+                break;
+            case K_F9:
+                d = "\033[20;" + std::to_string(code) + "~";
+                break;
+            case K_F10:
+                d = "\033[21;" + std::to_string(code) + "~";
+                break;
+            case K_F11:
+                d = "\033[23;" + std::to_string(code) + "~";
+                break;
+            case K_F12:
+                d = "\033[24;" + std::to_string(code) + "~";
+                break;
+            default:break;
+            }
+        }
     }
     if (!d.empty()) {
         GetSerial()->Write(d);

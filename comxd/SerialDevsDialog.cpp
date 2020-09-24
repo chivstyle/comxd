@@ -59,11 +59,14 @@ SerialDevsDialog::SerialDevsDialog()
     if (!types.empty()) {
         mTypes.SetIndex(0);
     }
+    // CodecFactory MUST have a UTF-8 codec.
     auto codecs = CodecFactory::Inst()->GetSupportedCodecs();
     for (size_t k = 0; k < codecs.size(); ++k) {
         mCodecs.Add(codecs[k].c_str());
+        if (codecs[k] == "UTF-8" || codecs[k] == "UTF8") {
+            mCodecs.SetIndex((int)k);
+        }
     }
-    mCodecs.SetIndex(0);
     //
     Acceptor(mBtnOk, IDOK).Acceptor(mBtnCancel, IDCANCEL);
 }
