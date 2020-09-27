@@ -181,6 +181,8 @@ public:
     };
     void SaveScr(ScreenData& sd);
     void LoadScr(const ScreenData& sd);
+    // swap current scr and sd
+    void SwapScr(ScreenData& sd);
     //
     struct CursorData {
         int Vx, Vy;
@@ -191,6 +193,7 @@ public:
     };
     void SaveCursor(CursorData& cd);
     void LoadCursor(const CursorData& cd);
+    void SwapCursor(CursorData& cd);
 protected:
     // Font
     virtual void Paint(Upp::Draw& draw);
@@ -271,7 +274,7 @@ protected:
     Upp::Color mTextsColor; // default texts color
     //
     volatile bool mBlinkSignal; // 0,1,0,1,0,1, 2 Hz
-    volatile bool mBlink;
+    bool mBlink;
     volatile bool mVisible;
     Upp::TimeCallback mBlinkTimer;
     // before render character, use this attribute function

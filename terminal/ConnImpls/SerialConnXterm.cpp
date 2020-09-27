@@ -228,25 +228,21 @@ bool SerialConnXterm::ProcessKeyUp(dword key, dword flags)
 
 void SerialConnXterm::InstallXtermFunctions()
 {
+#if 1
     mXtermTrivialHandlers["[?1049h"] = [=]() { // switch to alternative screen
         if (mIsAltScr == false) {
-            SaveScr(mBkgScr); // backup current screen
-            LoadScr(mAltScr); // load alternative screen.
+            //SaveScr(mBkgScr); // backup current screen
+            //LoadScr(mAltScr); // load alternative screen.
+            SwapScr(mAltScr);
             mIsAltScr = true;
         }
     };
     mXtermTrivialHandlers["[?1049l"] = [=]() { // switch to main screen
         if (mIsAltScr) {
-            LoadScr(mBkgScr);
+            //LoadScr(mBkgScr);
+            SwapScr(mAltScr);
             mIsAltScr = false;
         }
     };
-    mXtermTrivialHandlers["[m"] = [=]() {
-        mCurrAttrFuncs.clear();
-        mCurrAttrFuncs.push_back([=]() { SetDefaultStyle(); });
-    };
-    mXtermTrivialHandlers["[H"] = [=]() {
-        mVx = 0;
-        mVy = 0;
-    };
+#endif
 }

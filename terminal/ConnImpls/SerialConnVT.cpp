@@ -9,7 +9,7 @@
 #include "ControlSeq.h"
 #include <algorithm>
 
-REGISTER_CONN_INSTANCE("Original VT", SerialConnVT);
+// REGISTER_CONN_INSTANCE("Original VT", SerialConnVT);
 // register
 using namespace Upp;
 //
@@ -159,6 +159,34 @@ void SerialConnVT::SaveCursor(CursorData& cd)
     cd.Blink = mBlink;
     cd.AttrFuncs = mCurrAttrFuncs;
 }
+//
+void SerialConnVT::SwapCursor(CursorData& cd)
+{
+    std::swap(cd.Vx, mVx);
+    std::swap(cd.Vy, mVy);
+    std::swap(cd.FgColor, mFgColor);
+    std::swap(cd.BgColor, mBgColor);
+    bool strikeout = mFont.IsStrikeout();
+    std::swap(cd.Strikeout, strikeout);
+    mFont.Strikeout(strikeout);
+    bool underline = mFont.IsUnderline();
+    std::swap(cd.Underline, underline);
+    mFont.Underline(underline);
+    bool bold = mFont.IsBold();
+    std::swap(cd.Bold, bold);
+    mFont.Bold(bold);
+    bool italic = mFont.IsItalic();
+    std::swap(cd.Italic, italic);
+    mFont.Italic(italic);
+    std::swap(cd.Blink, mBlink);
+    std::swap(cd.AttrFuncs, mCurrAttrFuncs);
+    // layout again.
+    mFontW = mFont.GetAveWidth();
+    mFontH = mFont.GetLineHeight();
+    DoLayout();
+    //
+    UpdatePresentation();
+}
 
 void SerialConnVT::LoadCursor(const CursorData& cd)
 {
@@ -189,6 +217,26 @@ void SerialConnVT::SaveScr(ScreenData& sd)
     sd.LinesBuffer = mLinesBuffer;
     sd.Lines = mLines;
     sd.SelSpan = mSelectionSpan;
+}
+
+void SerialConnVT::SwapScr(ScreenData& sd)
+{
+    std::swap(sd.Vx, mVx);
+    std::swap(sd.Vy, mVy);
+    std::swap(sd.Font, mFont);
+    std::swap(sd.Blink, mBlink);
+    std::swap(sd.BgColor, mBgColor);
+    std::swap(sd.FgColor, mFgColor);
+    std::swap(sd.AttrFuncs, mCurrAttrFuncs);
+    std::swap(sd.LinesBuffer, mLinesBuffer);
+    std::swap(sd.Lines, mLines);
+    std::swap(sd.SelSpan, mSelectionSpan);
+    // layout again.
+    mFontW = mFont.GetAveWidth();
+    mFontH = mFont.GetLineHeight();
+    DoLayout();
+    //
+    UpdatePresentation();
 }
 
 void SerialConnVT::LoadScr(const ScreenData& sd)
@@ -540,7 +588,7 @@ bool SerialConnVT::ProcessAsciiControlChar(char cc)
 bool SerialConnVT::ProcessControlSeq(const std::string& seq, int seq_type)
 {
     if (seq_type == SEQ_NONE) { // can't recognize the seq, display it
-        size_t ep;RenderText(GetCodec()->TranscodeToUTF32((const unsigned char*)seq.c_str(), seq.length(), ep));
+        size_t ep; RenderText(this->TranscodeToUTF32(seq, ep));
         return true;
     }
     return false;
@@ -553,7 +601,7 @@ void SerialConnVT::ProcessOverflowLines()
     int bottom = span.Bottom;
     if (bottom < 0 || bottom >= csz.cy)
         bottom = csz.cy-1;
-    ASSERT(span.Top < (int)mLines.size());
+    ASSERT(span.Top <= (int)mLines.size());
     // scrolling region.
     if (bottom+1 < csz.cy) {
         if (mVy == bottom+1) {
@@ -592,7 +640,7 @@ void SerialConnVT::RenderText(const std::vector<uint32_t>& s)
                 ProcessOverflowLines();
             }
         } else {
-            chr.SetAttrFuns(mCurrAttrFuncs);
+            chr.SetAttrFuns(mCurrAttrFuncs); mCurrAttrFuncs.clear();
             // Unfortunately, UPP does not support complete UNICODE, support UCS-16 instead. So
             // we should ignore those out of range
             if (chr > 0xffff) chr = '?'; // replace chr with ?
@@ -619,7 +667,11 @@ void SerialConnVT::RenderText(const std::vector<uint32_t>& s)
             if (mPx < 0) { // scroll back
                 int scr = -mPx + mFontW;
                 int sbh = mSbH.Get();
-                mSbH.Set(sbh - scr);
+                if (-mPx < usz.cx) {
+                    mSbH.Set(0);
+                } else {
+                    mSbH.Set(sbh - scr);
+                }
             } else if (mPx >= usz.cx) {
                 int scr = mPx - usz.cx + mFontW;
                 int sbh = mSbH.Get();
@@ -1071,7 +1123,7 @@ std::vector<std::string> SerialConnVT::GetSelection() const
         for (size_t i = vx; i < nchars; ++i) {
             bool is_selected = IsCharInSelectionSpan(i, span.Y0);
             if (is_selected) {
-                sel += GetCodec()->TranscodeFromUTF32(vline[i]);
+                sel += UTF32ToUTF8_(vline[i]);
             }
         }
         out[out_p++] = sel;
@@ -1083,7 +1135,7 @@ std::vector<std::string> SerialConnVT::GetSelection() const
         std::string sel;
         int nchars = (int)vline.size() - this->CalculateNumberOfBlankCharsFromEnd(vline);
         for (size_t i = 0; i < nchars; ++i) {
-            sel += GetCodec()->TranscodeFromUTF32(vline[i]);
+            sel += UTF32ToUTF8_(vline[i]);
         }
         out[out_p++] = sel;
     }
@@ -1096,7 +1148,7 @@ std::vector<std::string> SerialConnVT::GetSelection() const
         for (size_t i = 0; i < nchars && i < vx; ++i) {
             bool is_selected = IsCharInSelectionSpan(i, span.Y1);
             if (is_selected) {
-                sel += GetCodec()->TranscodeFromUTF32(vline[i]);
+                sel += UTF32ToUTF8_(vline[i]);
             }
         }
         out[out_p++] = sel;
@@ -1154,7 +1206,11 @@ bool SerialConnVT::IsCharInSelectionSpan(int vx, int vy) const
 
 void SerialConnVT::DrawCursor(Draw& draw)
 {
-    draw.DrawRect(mPx, mPy, 2, mFontH, Color(0, 255, 0));
+    draw.DrawRect(mPx, mPy, mFontW, mFontH, Color(0, 255, 0));
+    // a visible char.
+    if (mVx < (int)mLines[mVy].size() && mLines[mVy][mVx] != ' ' || mLines[mVy][mVx] != '\t') {
+        this->DrawVTChar(draw, mPx, mPy, mLines[mVy][mVx], mFont, mPaperColor);
+    }
 }
 
 int SerialConnVT::GetVTLinesHeight(const std::vector<VTLine>& lines) const

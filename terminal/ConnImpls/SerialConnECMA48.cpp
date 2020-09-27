@@ -240,9 +240,14 @@ void SerialConnECMA48::ProcessSGR(int attr_code)
 void SerialConnECMA48::ProcessSGR(const std::string& seq)
 {
     // ECMA48 SGR, [Ps...]<m>
-    SplitString(seq.substr(1, seq.size()-2), ';', [=](const char* token) {
-        ProcessSGR(atoi(token));
-    });
+    std::string ps = seq.substr(1, seq.size()-2);
+    if (ps.empty()) {
+        ProcessSGR(0);
+    } else {
+        SplitString(std::move(ps), ';', [=](const char* token) {
+            ProcessSGR(atoi(token));
+        });
+    }
 }
 
 void SerialConnECMA48::ProcessCBT(const std::string& seq)
@@ -486,8 +491,13 @@ void SerialConnECMA48::ProcessCTC(int ps)
 
 void SerialConnECMA48::ProcessCTC(const std::string& seq)
 {
-    SplitString(seq.substr(1, seq.size()-2), ';',
-        [=](const char* token) { ProcessCTC(atoi(token)); });
+    std::string ps = seq.substr(1, seq.size()-2);
+    if (!ps.empty()) {
+        ProcessCTC(0);
+    } else {
+        SplitString(std::move(ps), ';',
+            [=](const char* token) { ProcessCTC(atoi(token)); });
+    }
 }
 
 void SerialConnECMA48::ProcessCVT(const std::string& seq)
@@ -575,8 +585,10 @@ void SerialConnECMA48::ProcessDSR(const std::string& seq)
         // ACTIVE POSITION REPORT (CPR) is requested.
         // The presentation position is the logical position, in pixels. We return data
         // position.
-        GetSerial()->Write(std::string("\x1b[") + std::to_string(mVy+1) + ";" +
-                           std::to_string(mVx+1) + "R");
+        std::string rsp = "\033["
+                          + std::to_string(mVy+1) + ";"
+                          + std::to_string(mVx+1) + "R";
+        GetSerial()->Write(rsp);
         break;
     }
 }

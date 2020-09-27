@@ -41,7 +41,6 @@ private:
     void InstallXtermFunctions();
     // support alternative screen
     ScreenData mAltScr;
-    ScreenData mBkgScr;
     bool mIsAltScr;
 };
 

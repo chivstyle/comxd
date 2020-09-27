@@ -2,11 +2,13 @@
 // (c) 2020 chiv
 //
 #include "Conn.h"
+#include "codec/CodecUTF8.h"
 #include "CodecFactory.h"
 
 SerialConn::SerialConn(std::shared_ptr<SerialIo> serial)
     : mSerial(serial)
 {
+    mCodec = std::make_shared<CodecUTF8>();
 }
 
 void SerialConn::SetCodec(const char* codec_name)
