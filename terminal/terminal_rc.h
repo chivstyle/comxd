@@ -17,4 +17,8 @@ using namespace Upp;
 #define IMAGEFILE  <terminal/terminal.iml>
 #include <Draw/iml_header.h>
 
+#ifndef ARRAYSIZE
+#define ARRAYSIZE(a)   (sizeof(a)/sizeof(a[0]))
+#endif
+
 #endif

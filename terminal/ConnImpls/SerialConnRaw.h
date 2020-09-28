@@ -5,6 +5,7 @@
 // c++11 thread
 #include <thread>
 #include <vector>
+#include <mutex>
 
 class Proto;
 

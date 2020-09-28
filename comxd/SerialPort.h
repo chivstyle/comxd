@@ -3,6 +3,7 @@
 
 #include "SerialIo.h"
 #include "serial/serial.h"
+#include <memory>
 
 class SerialPort : public SerialIo {
 public:
