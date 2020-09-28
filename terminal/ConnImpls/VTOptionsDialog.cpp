@@ -29,17 +29,15 @@ VTOptionsDialog::VTOptionsDialog()
     Upp::CtrlLayout(*this);
     // set icon
     this->Icon(terminal::vt_options());
-    // list fonts.
+    // list fixed-width fonts
     mFontList.SetDisplay(Single<FontFaceDisplay>());
-    int sel = -1;
 	for(int i = 0; i < Font::GetFaceCount(); i++) {
-		mFontList.Add(i);
 		// set a fixed-pitch font as default
-		if (sel == -1 && Font(i, 7).IsFixedPitch()) {
-		    sel = i;
+		if (Font::GetFaceInfo(i) & Font::FIXEDPITCH) {
+		    mFontList.Add(i);
 		}
 	}
-	mFontList.SetIndex(sel);
+	mFontList.SetIndex(0);
 	for (int i = 0; i < ARRAYSIZE(kFontSizes); ++i) {
         mFontSize.AddList(kFontSizes[i]);
     }
@@ -61,12 +59,12 @@ VTOptionsDialog::~VTOptionsDialog()
 void VTOptionsDialog::InstallActions()
 {
     mFontList.WhenAction = [=]() {
-        int sel_value = 11;
+        int sel_value = 12;
         if (mFontSize.GetCount()) {
             sel_value = mFontSize.GetData().To<int>();
         }
         mFontSize.ClearList();
-        Font font(mFontList.GetIndex(), sel_value);
+        Font font(mFontList.Get(), sel_value);
         if (font.IsScaleable()) {
             for (int i = 0; i < ARRAYSIZE(kFontSizes); ++i) {
                 mFontSize.AddList(kFontSizes[i]);
@@ -87,7 +85,7 @@ Font VTOptionsDialog::DefaultFont()
     int sel = -1;
     for(int i = 0; i < Font::GetFaceCount(); i++) {
 		// set a fixed-pitch font as default
-		if (sel == -1 && Font(i, 12).IsFixedPitch()) {
+		if (sel == -1 && (Font::GetFaceInfo(i) & Font::FIXEDPITCH)) {
 		    sel = i;
 		}
 	}
@@ -97,14 +95,14 @@ Font VTOptionsDialog::DefaultFont()
 
 void VTOptionsDialog::PreviewFont()
 {
-    Font font(mFontList.GetIndex(), mFontSize.GetData().To<int>());
+    Font font(mFontList.Get(), mFontSize.GetData().To<int>());
     mFontPreview.SetFont(font).SetText("Hello,世界!");
 }
 
 void VTOptionsDialog::SetOptions(const Options& options)
 {
     int face = options.Font.GetFace();
-    mFontList.SetIndex(face);
+    mFontList.Set(face);
     mFontSize.SetData(options.Font.GetHeight());
     mPaperColor.SetData(options.PaperColor);
     mFontColor.SetData(options.FontColor);
@@ -117,7 +115,7 @@ void VTOptionsDialog::SetOptions(const Options& options)
 VTOptionsDialog::Options VTOptionsDialog::GetOptions() const
 {
     Options options;
-    options.Font = Font(mFontList.GetIndex(), mFontSize.GetData().To<int>());
+    options.Font = Font(mFontList.Get(), mFontSize.GetData().To<int>());
     options.PaperColor = mPaperColor.GetData();
     options.FontColor = mFontColor.GetData();
     options.LinesBufferSize = mLinesBufferSize.GetData();

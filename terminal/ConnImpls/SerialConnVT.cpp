@@ -336,27 +336,25 @@ void SerialConnVT::RxProc()
 
 int SerialConnVT::GetCharWidth(const VTChar& c)
 {
+    int cx = mFontW;
     switch (c) {
-    case '\t': return c.Cx();
-    case ' ': return mFontW;
+    case '\t': cx = c.Cx();
+    case '\v':
+    case ' ': break;
     default: if (1) {
-        // Save
-        Color bg_color = mBgColor;
-        Color fg_color = mFgColor;
-        bool blink = mBlink;
+        // save rendering tool
         Font font = mFont;
-        // we should use apply the attrs, so the GetWidth could return a correct value.
-        c.ApplyAttrs();
-        int cx = mFont.GetWidth((int)c);
-        // Restore
-        mBgColor = bg_color;
-        mFgColor = fg_color;
+        Color bgcolor = mBgColor;
+        Color fgcolor = mFgColor;
+        // get width of char
+        cx = mFont.GetWidth((int)c);
+        // restore rendering tool
         mFont = font;
-        mBlink = blink;
-        return cx <= 0 ? mFontW : cx;
+        mBgColor = bgcolor;
+        mFgColor = fgcolor;
     } break;
     }
-    return 0;
+    return cx;
 }
 
 bool SerialConnVT::IsSeqPrefix(unsigned char c)
