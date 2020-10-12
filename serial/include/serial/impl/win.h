@@ -183,6 +183,9 @@ protected:
 private:
   wstring port_;               // Path to the file descriptor
   HANDLE fd_;
+  //
+  HANDLE read_event_;
+  HANDLE write_event_;
 
   bool is_open_;
 

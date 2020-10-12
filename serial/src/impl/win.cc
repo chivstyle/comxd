@@ -43,6 +43,8 @@ Serial::SerialImpl::SerialImpl (const string &port, unsigned long baudrate,
     open ();
   read_mutex = CreateMutex(NULL, false, NULL);
   write_mutex = CreateMutex(NULL, false, NULL);
+  read_event_ = CreateEvent(NULL, TRUE, TRUE, NULL);
+  write_event_ = CreateEvent(NULL, TRUE, TRUE, NULL);
 }
 
 Serial::SerialImpl::~SerialImpl ()
@@ -50,6 +52,8 @@ Serial::SerialImpl::~SerialImpl ()
   this->close();
   CloseHandle(read_mutex);
   CloseHandle(write_mutex);
+  CloseHandle(read_event_);
+  CloseHandle(write_event_);
 }
 
 void
@@ -70,7 +74,7 @@ Serial::SerialImpl::open ()
                     0,
                     0,
                     OPEN_EXISTING,
-                    FILE_ATTRIBUTE_NORMAL,
+                    FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED,
                     0);
 
   if (fd_ == INVALID_HANDLE_VALUE) {
@@ -333,11 +337,27 @@ Serial::SerialImpl::read (uint8_t *buf, size_t size)
   if (!is_open_) {
     throw PortNotOpenedException ("Serial::read");
   }
-  DWORD bytes_read;
-  if (!ReadFile(fd_, buf, static_cast<DWORD>(size), &bytes_read, NULL)) {
-    stringstream ss;
-    ss << "Error while reading from the serial port: " << GetLastError();
-    THROW (IOException, ss.str().c_str());
+  DWORD bytes_read = 0;
+  OVERLAPPED overlapped; overlapped.hEvent = read_event_;
+  DWORD ret = WaitForSingleObject(read_event_, 100);
+  if (ret == WAIT_OBJECT_0) {
+    BOOL ok = ReadFile(fd_, buf, static_cast<DWORD>(size), &bytes_read, &overlapped);
+    if (!ok) {
+      if (GetLastError() == ERROR_IO_PENDING) {
+        int timeout = 500;
+        while (timeout--) {
+            BOOL fs = GetOverlappedResult(fd_, &overlapped, &bytes_read, FALSE);
+            if (fs) {
+                if (bytes_read == size) break;
+            } else break;
+            Sleep(1);
+        }
+      } else {
+        stringstream ss;
+        ss << "Error while reading from the serial port: " << GetLastError();
+        THROW (IOException, ss.str().c_str());
+      }
+    }
   }
   return (size_t) (bytes_read);
 }
@@ -348,11 +368,27 @@ Serial::SerialImpl::write (const uint8_t *data, size_t length)
   if (is_open_ == false) {
     throw PortNotOpenedException ("Serial::write");
   }
-  DWORD bytes_written;
-  if (!WriteFile(fd_, data, static_cast<DWORD>(length), &bytes_written, NULL)) {
-    stringstream ss;
-    ss << "Error while writing to the serial port: " << GetLastError();
-    THROW (IOException, ss.str().c_str());
+  DWORD bytes_written = 0;
+  OVERLAPPED overlapped; overlapped.hEvent = write_event_;
+  DWORD ret = WaitForSingleObject(write_event_, 100);
+  if (ret == WAIT_OBJECT_0) {
+    BOOL ok = WriteFile(fd_, data, static_cast<DWORD>(length), &bytes_written, &overlapped);
+    if (!ok) {
+      if (GetLastError() == ERROR_IO_PENDING) {
+        int timeout = 500;
+        while (timeout--) {
+            BOOL fs = GetOverlappedResult(fd_, &overlapped, &bytes_written, FALSE);
+            if (fs) {
+                if (bytes_written == length) break; // transfer completed.
+            } else break;
+            Sleep(1);
+        }
+      } else {
+        stringstream ss;
+        ss << "Error while writing to the serial port: " << GetLastError();
+        THROW (IOException, ss.str().c_str());
+      }
+    }
   }
   return (size_t) (bytes_written);
 }
