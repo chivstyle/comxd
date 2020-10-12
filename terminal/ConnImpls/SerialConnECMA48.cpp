@@ -37,7 +37,8 @@ void SerialConnECMA48::ProcessSGR(int attr_code)
         break;
     case 2:
         mCurrAttrFuncs.push_back([=]() {
-            mFont.NoBold();
+            if (mFont.IsScaleable())
+                mFont.NoBold();
         });
         break;
     case 3:

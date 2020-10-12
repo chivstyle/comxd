@@ -291,7 +291,8 @@ void SerialConnVT::RxProc()
     while (!mRxShouldStop) {
         size_t sz = mSerial->Available();
         if (sz) {
-            std::string buff = GetSerial()->Read(sz);
+            // read raw, not string, so, we could read NUL from the device.
+            std::vector<byte> buff = GetSerial()->ReadRaw(sz);
             for (size_t k = 0; k < sz; ++k) {
                 if (pending) {
                     pattern.push_back((char)buff[k]);
@@ -313,7 +314,7 @@ void SerialConnVT::RxProc()
                         size_t ep; auto s = this->TranscodeToUTF32(raw, ep);
                         raw = raw.substr(ep);
                         if (!s.empty()) {
-                            PostCallback([=]() { RenderText(s); ProcessOverflowLines(); });
+                            PostCallback([=]() { RenderText(s); });
                         }
                     }
                     pending = true; // continue
@@ -325,7 +326,7 @@ void SerialConnVT::RxProc()
                 size_t ep; auto s = this->TranscodeToUTF32(raw, ep);
                 raw = raw.substr(ep);
                 if (!s.empty()) {
-                    PostCallback([=]() { RenderText(s); ProcessOverflowLines(); });
+                    PostCallback([=]() { RenderText(s); });
                 }
             }
             // callback is
@@ -346,6 +347,8 @@ int SerialConnVT::GetCharWidth(const VTChar& c)
         Font font = mFont;
         Color bgcolor = mBgColor;
         Color fgcolor = mFgColor;
+        // apply
+        c.ApplyAttrs();
         // get width of char
         cx = mFont.GetWidth((int)c);
         // restore rendering tool
@@ -574,9 +577,12 @@ bool SerialConnVT::ProcessAsciiControlChar(char cc)
         mVy += 1;
         break;
     case '\t': if (1) { // HT
-        int cellsz = mVx/4*4 + 4 - mVx;
+        Point ppos = VirtualToLogic(mVx, (int)mLinesBuffer.size() + mVy);
+        mPx = ppos.x - mSbH.Get();
+        mPy = ppos.y - mSbV.Get();
+        int cellsz = 8 - (mPx/mFontW % 8);
         mLines[mVy][mVx] = '\t';
-        mLines[mVy][mVx].SetCx(cellsz*mFontW);
+        mLines[mVy][mVx].SetCx(mFontW*cellsz);
         mVx++;
     } break;
     }
@@ -656,9 +662,10 @@ void SerialConnVT::RenderText(const std::vector<uint32_t>& s)
             mVx++;
         }
     }
-    //
+    UpdateVScrollbar();
+    UpdateHScrollbar();
+    UpdatePresentationPos();
     if (mTrackCaret) {
-        UpdatePresentation();
         Size usz = GetSize();
         // If px is out of range, py is in range
         if (mPy >= 0 || mPy < usz.cy) {
@@ -739,9 +746,20 @@ void SerialConnVT::LeftDown(Point p, dword)
     Point vpos = LogicToVirtual(lx, ly, px, next_px, py, next_py);
     mSelectionSpan.X0 = (lx - px) > (next_px - px) / 2 ? vpos.x+1 : vpos.x;
     mSelectionSpan.Y0 = vpos.y;
-    mSelectionSpan.X1 = vpos.x;
-    mSelectionSpan.Y1 = vpos.y;
+    mSelectionSpan.X1 = mSelectionSpan.X0;
+    mSelectionSpan.Y1 = mSelectionSpan.Y0;
     mSelectionSpan.Valid = false;
+    // show the caret
+    VTLine* vline = nullptr;
+    if (vpos.y < (int)mLinesBuffer.size()) {
+        vline = &mLinesBuffer[vpos.y];
+    } else if (vpos.y - (int)mLinesBuffer.size() < (int)mLines.size()) {
+        vline = &mLines[vpos.y - (int)mLinesBuffer.size()];
+    }
+    if (vline) {
+        Point lpos = VirtualToLogic(mSelectionSpan.X0, mSelectionSpan.Y0);
+        this->SetCaret(lpos.x - mSbH.Get(), lpos.y - mSbV.Get(), 1, vline->GetHeight());
+    }
     // capture, event the cursor move out of the client region.
     SetFocus();
     SetCapture();
@@ -808,6 +826,7 @@ void SerialConnVT::LeftUp(Point p, dword)
 {
     (void)p;
     if (mPressed) {
+        this->KillCaret();
         mPressed = false;
         Refresh();
     }
@@ -1204,10 +1223,14 @@ bool SerialConnVT::IsCharInSelectionSpan(int vx, int vy) const
 
 void SerialConnVT::DrawCursor(Draw& draw)
 {
-    draw.DrawRect(mPx, mPy, mFontW, mFontH, Color(0, 255, 0));
-    // a visible char.
-    if (mVx < (int)mLines[mVy].size() && mLines[mVy][mVx] != ' ' || mLines[mVy][mVx] != '\t') {
-        this->DrawVTChar(draw, mPx, mPy, mLines[mVy][mVx], mFont, mPaperColor);
+    Size usz = GetSize();
+    if (mPx >= 0 && mPx < usz.cx && mPy >= 0 && mPy < usz.cy) {
+        draw.DrawRect(mPx, mPy, mFontW, mFontH, Color(0, 255, 0));
+        // a visible char.
+        if (mVx < (int)mLines[mVy].size() && mVy < (int)mLines.size()
+            && mLines[mVy][mVx] != ' ' && mLines[mVy][mVx] != '\t') {
+            this->DrawVTChar(draw, mPx, mPy, mLines[mVy][mVx], mFont, mPaperColor);
+        }
     }
 }
 

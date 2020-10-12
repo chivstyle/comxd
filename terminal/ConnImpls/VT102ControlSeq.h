@@ -19,7 +19,7 @@ static const char* kVT102CtrlSeqs[] = {
     "[12h",
     "[20h",
     "[?1h",
-    "[?3h", // 180 columns
+    "[?3h", // 132 columns
     "[?4h",
     "[?5h",
     "[?6h",
