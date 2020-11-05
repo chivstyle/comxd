@@ -183,6 +183,7 @@ private:
             , ERM(ErmAll)
             , FEAM(FeamExecute)
             , FETM(FetmInsert)
+            , GATM(GatmAll)
             , GRCM(GrcmCumulative)
             , HEM(HemFollowing)
             , IRM(IrmReplace)

@@ -44,7 +44,7 @@ void SerialConnXterm::ProcessDA(const std::string& seq)
     int ps = atoi(seq.substr(1, seq.length()-2).c_str());
     switch (ps) {
     case 0:
-        GetSerial()->Write("\x1b[?6c"); // CSI ? 6 c, stands for VT102.
+        GetSerial()->Write("\x1b[?62;22c"); // VT-220, support ANSI COLORS
         break;
     }
 }

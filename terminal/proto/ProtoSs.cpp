@@ -74,6 +74,9 @@ std::vector<unsigned char> ProtoSs::Pack(const std::string& json_, std::string& 
                         for (int i = 0; i < pn.GetLength(); ++i) {
                             out.push_back(pn[i]);
                         }
+                        if (n != count-1) {
+                            out.push_back(ss::US);
+                        }
                     }
                 } else {
                     String p0 = params.ToString();

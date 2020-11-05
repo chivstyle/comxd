@@ -253,7 +253,7 @@ void SerialConnECMA48::ProcessSGR(const std::string& seq)
 
 void SerialConnECMA48::ProcessCBT(const std::string& seq)
 {
-    int cellsz = mVx - (mVx / 4 * 4);
+    int cellsz = mVx - (mVx / 8 * 8);
     std::string token = seq.substr(1, seq.length() - 2);
     int p = 1;
     if (!token.empty()) {
@@ -261,7 +261,7 @@ void SerialConnECMA48::ProcessCBT(const std::string& seq)
     }
     if (cellsz != 0) p--;
     while (p--) {
-        cellsz += 4;
+        cellsz += 8;
     }
     mVx = mVx - cellsz;
     if (mVx < 0) mVx = 0;
@@ -282,7 +282,7 @@ void SerialConnECMA48::ProcessCHT(const std::string& seq)
 {
     ASSERT(seq.size() > 2);
     // [ Pn 0x49
-    int cellsz = mVx - (mVx / 4 * 4);
+    int cellsz = mVx - (mVx / 8 * 8);
     std::string token = seq.substr(1, seq.length() - 2);
     int p = 1;
     if (!token.empty()) {
@@ -290,7 +290,7 @@ void SerialConnECMA48::ProcessCHT(const std::string& seq)
     }
     if (cellsz != 0) p--;
     while (p--) {
-        cellsz += 4;
+        cellsz += 8;
     }
     mVx = mVx + cellsz;
     if (mVx >= (int)mLines[mVy].size()) {
@@ -533,11 +533,11 @@ void SerialConnECMA48::ProcessDCH(const std::string& seq)
         if (p_ >= (int)mLines[mVy].size()) {
             p_ = (int)mLines[mVy].size()-1;
         }
-        mLines[mVy].erase(mLines[mVy].begin() + mVx, mLines[mVy].begin() + p_ + 1);
+        mLines[mVy].erase(mLines[mVy].begin() + mVx, mLines[mVy].begin() + p_);
     } else { // Preceding
         int p_ = mVx - pn;
         if (p_ < 0) p_ = 0;
-        mLines[mVy].erase(mLines[mVy].begin() + p_, mLines[mVy].begin() + mVx + 1);
+        mLines[mVy].erase(mLines[mVy].begin() + p_, mLines[mVy].begin() + mVx);
     }
     // Why we do not pad the current line ?
     // Actually, we do not need to do this. After every control function, or C0,C1
@@ -551,16 +551,24 @@ void SerialConnECMA48::ProcessDL(const std::string& seq)
     if (!pn_s.empty()) {
         pn = atoi(pn_s.c_str());
     }
+    Size csz = GetConsoleSize();
+    VTLine vline(csz.cx, mBlankChar); vline.SetHeight(mFontH);
     if (mModes.VEM == Ecma48Modes::VemFollowing) {
         int p_ = mVy + pn;
         if (p_ >= (int)mLines.size()) {
             p_ = (int)mLines.size() - 1;
         }
-        mLines.erase(mLines.begin() + mVy, mLines.begin() + p_ + 1);
+        int bot = mScrollingRegion.Bottom; if (bot < 0) bot = csz.cy - 1;
+        mLines.erase(mLines.begin() + mVy, mLines.begin() + p_);
+        bot -= pn; if (bot < 0) bot = 0;
+        mLines.insert(mLines.begin() + bot, pn, vline);
     } else {
         int p_ = mVy - pn;
-        if (p_ < 0) p_ = 0;
-        mLines.erase(mLines.begin() + p_, mLines.begin() + mVx + 1);
+        if (p_ < 0)
+            p_ = 0;
+        int top = mScrollingRegion.Top;
+        mLines.erase(mLines.begin() + mVy, mLines.begin() + p_);
+        mLines.insert(mLines.begin() + top, pn, vline);
     }
 }
 
@@ -608,6 +616,8 @@ void SerialConnECMA48::ProcessDTA(const std::string& seq)
     // update subsequent page span.
     mScrollingRegion.Top = p[0]-1;
     mScrollingRegion.Bottom = p[1]-1;
+    // check
+    CheckAndFix(mScrollingRegion);
 }
 
 void SerialConnECMA48::ProcessEA(const std::string& seq)
@@ -642,11 +652,9 @@ void SerialConnECMA48::ProcessED(const std::string& seq)
         }
     } break;
     case 1: if (1) { // beginning of the page to current position
+        mLines.erase(mLines.begin(), mLines.begin() + mVy);
         for (int i = 0; i < mVy-1; ++i) {
             mLines[i] = VTLine(csz.cx, mBlankChar).SetHeight(mFontH);
-        }
-        for (int i = 0; i <= mVx; ++i) {
-            mLines[mVy][i] = mBlankChar;
         }
     } break;
     case 2: if (1) { // all
@@ -773,13 +781,15 @@ void SerialConnECMA48::ProcessICH(const std::string& seq)
     if (mModes.HEM == Ecma48Modes::HemFollowing) {
         int cnt = 0;
         for (int i = mVx; i < (int)mLines[mVy].size(); ++i) {
-            mLines[mVy][i] = mBlankChar;
+            //mLines[mVy][i] = mBlankChar;
+            mLines[mVy].insert(mLines[mVy].begin() + i, mBlankChar);
             if (++cnt >= pn) break;
         }
     } else {
         int cnt = 0;
         for (int i = mVx; i >= 0; --i) {
-            mLines[mVy][i] = mBlankChar;
+            //mLines[mVy][i] = mBlankChar;
+            mLines[mVy].insert(mLines[mVy].begin() + i, mBlankChar);
             if (++cnt >= pn) break;
         }
     }
@@ -792,7 +802,7 @@ void SerialConnECMA48::ProcessIDCS(const std::string& seq)
 void SerialConnECMA48::ProcessIGS(const std::string& seq)
 {
 }
-
+//
 void SerialConnECMA48::ProcessIL(const std::string& seq)
 {
     int pn = 1;
@@ -803,15 +813,16 @@ void SerialConnECMA48::ProcessIL(const std::string& seq)
     if (pn < 1) return;
     Size csz = GetConsoleSize();
     VTLine vline(csz.cx, mBlankChar); vline.SetHeight(mFontH);
+    mLines.insert(mLines.begin() + mVy, pn, vline);
     if (mModes.HEM == Ecma48Modes::HemFollowing) {
-        mLines.insert(mLines.begin() + mVy + 1, pn, vline);
+        int bot = mScrollingRegion.Bottom;
+        if (bot < 0) bot = csz.cy -1; bot += 1;
+        mLines.erase(mLines.begin() + bot, mLines.begin() + bot + pn);
     } else {
-        mLines.insert(mLines.begin() + mVy, pn, vline);
+        int top = mScrollingRegion.Top;
+        mLines.erase(mLines.begin() + top, mLines.begin() + top + pn);
     }
-    for (int i = 0; i < pn; ++i) {
-        mLinesBuffer.push_back(mLines[i]);
-    }
-    mLines.erase(mLines.begin(), mLines.begin() + pn);
+    mVx = 0;
 }
 
 void SerialConnECMA48::ProcessJFY(const std::string& seq)
@@ -847,6 +858,7 @@ void SerialConnECMA48::ProcessPTX(const std::string& seq)
 void SerialConnECMA48::ProcessQUAD(const std::string& seq)
 {
 }
+//
 void SerialConnECMA48::ProcessREP(const std::string& seq)
 {
     int pn = 1;
@@ -866,12 +878,83 @@ void SerialConnECMA48::ProcessREP(const std::string& seq)
     }
     mVx += pn;
 }
+//
 void SerialConnECMA48::ProcessRM(const std::string& seq)
 {
+	// CSI Ps... 6/12
+	SplitString(seq.substr(1, seq.length()-1), ';', [=](const char* token) {
+		int ps = atoi(token);
+		switch (ps) {
+		case 1: // GATM
+			mModes.GATM = ~mModes.GATM;
+			break;
+		case 2: // KAM
+			mModes.KAM = ~mModes.KAM;
+			break;
+		case 3:
+			mModes.CRM = ~mModes.CRM;
+			break;
+		case 4:
+			mModes.IRM = ~mModes.IRM;
+			break;
+		case 5:
+			mModes.SRTM = ~mModes.SRTM;
+			break;
+		case 6:
+			mModes.ERM = ~mModes.ERM;
+			break;
+		case 7:
+			mModes.VEM = ~mModes.VEM;
+			break;
+		case 8:
+			mModes.BDSM = ~mModes.BDSM;
+			break;
+		case 9:
+			mModes.DCSM = ~mModes.DCSM;
+			break;
+		case 10:
+			mModes.HEM = ~mModes.HEM;
+			break;
+		case 11: // deprecated
+			break;
+		case 12:
+			mModes.SRM = ~mModes.SRM;
+			break;
+		case 13:
+			mModes.FEAM = ~mModes.FEAM;
+			break;
+		case 14:
+			mModes.FETM = ~mModes.FETM;
+			break;
+		case 15:
+			mModes.MATM = ~mModes.MATM;
+			break;
+		case 16:
+			mModes.TIM = ~mModes.TIM;
+			break;
+		case 17:
+			mModes.SATM = ~mModes.SATM;
+			break;
+		case 18:
+			mModes.TSM = ~mModes.TSM;
+			break;
+		case 19:
+		case 20:
+			break;
+		case 21:
+			mModes.GRCM = ~mModes.GRCM;
+			break;
+		case 22: // deprecated
+			break;
+		default:break;
+		}
+	});
 }
+//
 void SerialConnECMA48::ProcessSACS(const std::string& seq)
 {
 }
+//
 void SerialConnECMA48::ProcessSAPV(const std::string& seq)
 {
 }
@@ -1159,6 +1242,19 @@ bool SerialConnECMA48::ProcessC0(char cc)
 
 bool SerialConnECMA48::ProcessC1(char cc)
 {
+	switch (cc) {
+	case 0x4d: if (1) { // ESC M, RI
+		int top = mScrollingRegion.Top, bot = mScrollingRegion.Bottom;
+		if (bot < 0) bot = (int)mLines.size() - 1;
+		if (mVy > top) mVy--; else {
+			Size csz = GetConsoleSize();
+			int dy = mVy - top + 1;
+			mLines.insert(mLines.begin() + top, dy, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
+			mLines.erase(mLines.begin() + bot+1, mLines.begin() + bot+1+dy);
+			mVy = top;
+		}
+	} break;
+	}
     return true;
 }
 

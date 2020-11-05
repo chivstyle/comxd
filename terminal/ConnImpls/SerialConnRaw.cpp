@@ -24,6 +24,11 @@ SerialConnRaw::SerialConnRaw(std::shared_ptr<SerialIo> serial)
     , mTxProto(nullptr)
 {
     this->mSerial = serial;
+    this->mVsp.Vert(mRx.SetEditable(false), mTx);
+    this->mVsp.SetMin(0, 2000); // min is 2/10
+    this->mVsp.SetMin(1, 2000); // min is 2/10
+    // The total width of Vsp is 10000, we use 7000 as our default.
+    this->mVsp.SetPos(7000);
     // default settings
     this->mLineSz.SetData(16); this->mLineSz.SetEditable(false);
     this->mTxPeriod.SetData(100);
@@ -529,7 +534,9 @@ void SerialConnRaw::RxProc()
             }
             mRxBufferLock.unlock();
             //
-            Upp::PostCallback([=]() { mRxHex.Get() ? UpdateAsHex() : UpdateAsTxt(); });
+            PostCallback([=]() {
+                mRxHex.Get() ? UpdateAsHex() : UpdateAsTxt();
+            });
         } else std::this_thread::sleep_for(std::chrono::duration<double>(0.01));
     }
 }

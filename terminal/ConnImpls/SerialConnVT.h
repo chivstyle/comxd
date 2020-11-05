@@ -12,6 +12,7 @@
 #include <string>
 #include <functional>
 #include <map>
+#include <queue>
 #include <thread>
 
 // UPP provides Split to split string, but we do not want to get the splitted string actually,
@@ -170,7 +171,7 @@ public:
     };
     // public methods
     struct ScreenData {
-        std::vector<VTLine> LinesBuffer; // buffer
+        std::vector<VTLine> LinesBuffer;
         std::vector<VTLine> Lines;       // virtual screen
         std::vector<std::function<void()> > AttrFuncs;
         int Vx, Vy;
@@ -184,16 +185,6 @@ public:
     // swap current scr and sd
     void SwapScr(ScreenData& sd);
     //
-    struct CursorData {
-        int Vx, Vy;
-        bool Blink;
-        bool Strikeout, Bold, Italic, Underline;
-        Upp::Color BgColor, FgColor;
-        std::vector<std::function<void()> > AttrFuncs;
-    };
-    void SaveCursor(CursorData& cd);
-    void LoadCursor(const CursorData& cd);
-    void SwapCursor(CursorData& cd);
 protected:
     // Font
     virtual void Paint(Upp::Draw& draw);
@@ -209,13 +200,48 @@ protected:
     virtual Upp::Image CursorImage(Upp::Point p, Upp::dword keyflags);
     //
     VTChar mBlankChar;
-    // If the lines buffer is very very long, we should modify LogicToVirtual, VirtualToLogic
-    // to improve performance. For example, let's add position to VTLine, then you can use
-    // binary_search to find the position, i.e the logic position and virtual position pair.
-    // Now, the size of lines buffer is limited to 20000, it's a small number for modern computer, so
-    // we do nothing to keep the code simple and stupid.
-    std::vector<VTLine> mLinesBuffer; //<! All rendered text
+    std::vector<VTLine> mLinesBuffer;
     std::vector<VTLine> mLines; //<! Text on current screen, treat is as virtual screen
+    //-------------------------------------------------------------------------------------
+    std::mutex mLockSeqs;
+    struct Seq {
+        enum SeqType {
+            CTRL_SEQ,
+            TEXT_SEQ
+        };
+        int type;
+        std::pair<std::string, int> ctrl;
+        std::vector<uint32_t> text;
+        Seq(const std::string& seq, int seq_type)
+        {
+            type = CTRL_SEQ;
+            ctrl = std::make_pair(seq, seq_type);
+        }
+        Seq(std::vector<uint32_t>&& seq)
+        {
+            type = TEXT_SEQ;
+            text = std::move(seq);
+        }
+        Seq(const std::vector<uint32_t>& seq)
+        {
+            type = TEXT_SEQ;
+            text = seq;
+        }
+    };
+    std::queue<Seq> mSeqs;
+    template <class Type>
+    void AddSeq(Type&& seq)
+    {
+        std::lock_guard<std::mutex> _(mLockSeqs);
+        mSeqs.push(Seq(std::forward<Type>(seq)));
+    }
+    void AddSeq(const std::string& seq, int seq_type)
+    {
+        std::lock_guard<std::mutex> _(mLockSeqs);
+        mSeqs.push(Seq(seq, seq_type));
+    }
+    void RenderSeqs();
+    //-------------------------------------------------------------------------------------
     /// Active position
     int mVx, mVy;      //<! Active position of data component
     int mPx, mPy;      //<! Active position of presentation component
@@ -282,7 +308,6 @@ protected:
     // scroll bar
     Upp::VScrollBar mSbV;
     Upp::HScrollBar mSbH;
-    bool mTrackCaret;
     //
     virtual int GetCharWidth(const VTChar& c);
     // vy - absolute position
@@ -347,8 +372,9 @@ protected:
     virtual void UpdateHScrollbar();
     virtual void UpdateVScrollbar();
     virtual void UpdatePresentation();
-    //
+    // vy - global position of Y
     VTLine* GetVTLine(int vy);
+    const VTLine* GetVTLine(int vy) const;
     //------------------------------------------------------------------------------------------
     // Scrolling region defines a subsequent page
     struct ScrollingRegion {
@@ -360,13 +386,15 @@ protected:
         }
     };
     ScrollingRegion mScrollingRegion;
+    void CheckAndFix(ScrollingRegion& span);
     //------------------------------------------------------------------------------------------
 private:
-    void ExtendVirtualScreen(int cx, int cy);
-    void ShrinkVirtualScreen(int cx, int cy);
     // receiver
     volatile bool mRxShouldStop;
     void RxProc();
+    //
+    void ExtendVirtualScreen(int cx, int cy);
+    void ShrinkVirtualScreen(int cx, int cy);
     //
     std::thread mRxThr;
     size_t mMaxLinesBufferSize;

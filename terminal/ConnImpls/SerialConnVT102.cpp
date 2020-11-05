@@ -25,6 +25,73 @@ SerialConnVT102::~SerialConnVT102()
 {
 }
 
+void SerialConnVT102::SaveCursor(CursorData& cd)
+{
+    cd.Vx = mVx;
+    cd.Vy = mVy;
+    cd.OriginMode = mModes.Origin;
+    cd.Charset = mCharset;
+    cd.FgColor = mFgColor;
+    cd.BgColor = mBgColor;
+    cd.Strikeout = mFont.IsStrikeout();
+    cd.Bold = mFont.IsBold();
+    cd.Underline = mFont.IsUnderline();
+    cd.Italic = mFont.IsItalic();
+    cd.Blink = mBlink;
+    cd.AttrFuncs = mCurrAttrFuncs;
+}
+//
+void SerialConnVT102::SwapCursor(CursorData& cd)
+{
+    std::swap(cd.Vx, mVx);
+    std::swap(cd.Vy, mVy);
+    std::swap(cd.FgColor, mFgColor);
+    std::swap(cd.BgColor, mBgColor);
+    std::swap(cd.Charset, mCharset);
+    unsigned int origin_mode = cd.OriginMode;
+    cd.OriginMode = mModes.Origin;
+    mModes.Origin = origin_mode;
+    bool strikeout = mFont.IsStrikeout();
+    std::swap(cd.Strikeout, strikeout);
+    mFont.Strikeout(strikeout);
+    bool underline = mFont.IsUnderline();
+    std::swap(cd.Underline, underline);
+    mFont.Underline(underline);
+    bool bold = mFont.IsBold();
+    std::swap(cd.Bold, bold);
+    mFont.Bold(bold);
+    bool italic = mFont.IsItalic();
+    std::swap(cd.Italic, italic);
+    mFont.Italic(italic);
+    std::swap(cd.Blink, mBlink);
+    std::swap(cd.AttrFuncs, mCurrAttrFuncs);
+    // layout again.
+    mFontW = mFont.GetAveWidth();
+    mFontH = mFont.GetLineHeight();
+    DoLayout();
+    //
+    UpdatePresentation();
+}
+
+void SerialConnVT102::LoadCursor(const CursorData& cd)
+{
+    mVx = cd.Vx;
+    mVy = cd.Vy;
+    mFgColor = cd.FgColor;
+    mBgColor = cd.BgColor;
+    mBlink = cd.Blink;
+    mCharset = cd.Charset;
+    mModes.Origin = cd.OriginMode;
+    mCurrAttrFuncs = cd.AttrFuncs;
+    mFont.Bold(cd.Bold).Italic(cd.Italic).Underline(cd.Underline).Strikeout(cd.Strikeout);
+    // layout again.
+    mFontW = mFont.GetAveWidth();
+    mFontH = mFont.GetLineHeight();
+    DoLayout();
+    //
+    UpdatePresentation();
+}
+
 int SerialConnVT102::IsControlSeq(const std::string& seq)
 {
     int ret = IsVT102ControlSeq(seq);
@@ -209,8 +276,15 @@ void SerialConnVT102::InstallVT102Functions()
         mVy++;
     };
     mVT102TrivialHandlers["M"] = [=]() { // reverse index
-        mVy--;
-        if (mVy < 0) mVy = 0;
+        int top = mScrollingRegion.Top, bot = mScrollingRegion.Bottom;
+		if (bot < 0) bot = (int)mLines.size() - 1;
+		if (mVy > top) mVy--; else {
+			Size csz = GetConsoleSize();
+			int dy = mVy - top + 1;
+			mLines.insert(mLines.begin() + top, dy, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
+			mLines.erase(mLines.begin() + bot+1, mLines.begin() + bot+1+dy);
+			mVy = top;
+		}
     };
     mVT102TrivialHandlers["7"] = [=]() { SaveCursor(mCursorData); };
     mVT102TrivialHandlers["8"] = [=]() { LoadCursor(mCursorData); };

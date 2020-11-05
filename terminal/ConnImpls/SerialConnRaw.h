@@ -34,7 +34,11 @@ protected:
     void Set_TxInHex();
     void Set_TxInTxt();
     //
+    void Update();
+    //
 private:
+	Upp::LineEdit mRx;
+	Upp::LineEdit mTx;
     Proto* mTxProto;
     void InstallUsrActions();
 };

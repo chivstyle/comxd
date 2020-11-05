@@ -12,6 +12,18 @@ public:
     SerialConnVT102(std::shared_ptr<SerialIo> serial);
     virtual ~SerialConnVT102();
 protected:
+	struct CursorData {
+        int Vx, Vy;
+        bool Blink;
+        bool Strikeout, Bold, Italic, Underline;
+        int Charset;
+        unsigned int OriginMode;
+        Upp::Color BgColor, FgColor;
+        std::vector<std::function<void()> > AttrFuncs;
+    };
+    void SaveCursor(CursorData& cd);
+    void LoadCursor(const CursorData& cd);
+    void SwapCursor(CursorData& cd);
     //
     virtual int IsControlSeq(const std::string& seq);
     //-------------------------------------------------------------------------------------
