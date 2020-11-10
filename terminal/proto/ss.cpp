@@ -79,7 +79,7 @@ ss_command_t ss_parse_command(const std::string& ss)
             cmd.error = ss_command_t::error_format;
         } else {
             if (p_eot - p_etx == 2) {
-                if (ss[p_etx+1] != ss_chksum(ss.c_str()+2, p_etx-2)) {
+                if (ss[p_etx+1] != ss_chksum(ss.c_str()+2, (int)p_etx-2)) {
                     cmd.error = ss_command_t::error_chksum;
                 }
             } else if (p_eot - p_etx != 1) {
@@ -134,12 +134,12 @@ std::vector<ss_command_t> ss_parse(const std::string& ss_message)
     } else if (ss_message[0] == SOH && ss_message[ss_message.length()-1] == ETB) {
         size_t q = 1, p = ss_message.find(EOT, q);
         while (p != ss_message.npos) {
-            out.push_back(ss_parse_command(ss_message.substr(q, p-q)));
+            out.push_back(ss_parse_command(ss_message.substr(q, p-q+1)));
             q = p+1;
             p = ss_message.find(EOT, q);
         }
         if (q < ss_message.length()-1) {
-            out.push_back(ss_parse_command(ss_message.substr(q, ss_message.length()-1-q)));
+            out.push_back(ss_parse_command(ss_message.substr(q, ss_message.length()-q)));
         }
     }
     return out;

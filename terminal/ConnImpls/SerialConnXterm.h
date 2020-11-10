@@ -26,6 +26,8 @@ public:
     virtual ~SerialConnXterm();
     
 protected:
+	virtual Upp::WString TranscodeToUTF16(const VTChar& cc) const;
+	virtual bool ProcessChar(Upp::dword cc);
     virtual int IsControlSeq(const std::string& seq);
     virtual bool ProcessControlSeq(const std::string& seq, int seq_type);
     virtual void ProcessXtermTrivial(const std::string& seq);

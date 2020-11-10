@@ -17,14 +17,14 @@ std::vector<uint32_t> CodecLatin1::TranscodeToUTF32(const unsigned char* data, s
 
 std::string CodecLatin1::TranscodeToUTF8(const unsigned char* data, size_t sz)
 {
-    Upp::String raw(data, sz);
+    Upp::String raw(data, (int)sz);
     Upp::ToCharset(Upp::CHARSET_ISO8859_1, raw, CHARSET_UTF8);
     return raw.ToStd();
 }
 
 std::string CodecLatin1::TranscodeFromUTF8(const unsigned char* data, size_t sz)
 {
-    Upp::String raw(data, sz);
+    Upp::String raw(data, (int)sz);
     return Upp::ToCharset(Upp::CHARSET_ISO8859_1, raw, CHARSET_UTF8).ToStd();
 }
 

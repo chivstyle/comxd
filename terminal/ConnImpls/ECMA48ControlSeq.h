@@ -274,8 +274,7 @@ static const char kECMA48_C1[] = {
     0x7d,
     0x7e
 };
-
-static const char* kECMA48CtrlSeqs[] = {};
+static const char* kECMA48CtrlSeqs[] = {"\xff"};
 
 enum ECMA48FuncionType {
     ECMA48_Trivial = ECMA48_SEQ_BEGIN,

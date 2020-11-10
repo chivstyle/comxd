@@ -103,7 +103,7 @@ void SerialConnVT::InstallUserActions()
         t_("VT options"), t_("Virtual terminal options"), [=]() {
             VTOptionsDialog::Options options;
             options.Font = mFont;
-            options.LinesBufferSize = this->mMaxLinesBufferSize;
+            options.LinesBufferSize = (int)this->mMaxLinesBufferSize;
             options.PaperColor = mPaperColor;
             options.FontColor = mTextsColor;
             VTOptionsDialog opt;
@@ -625,7 +625,7 @@ void SerialConnVT::ProcessOverflowLines()
         // fixed
         mVy = bottom;
     }
-    int dx = mVx - mLines[mVy].size() + 1;
+    int dx = mVx - (int)mLines[mVy].size() + 1;
     if (dx > 0) {
         mLines[mVy].insert(mLines[mVy].end(), dx, mBlankChar);
     }
@@ -878,7 +878,7 @@ bool SerialConnVT::ProcessKeyDown(dword key, dword flags)
         }
     } else if ((flags & K_CTRL) == K_CTRL) {
         if (key >= K_A && key <= K_Z) {
-            d.push_back(1 + key - K_A);
+            d.push_back(1 + (uint8_t)(key - K_A));
         } else {
             switch (key) {
             case K_LBRACKET: // '[':
@@ -1116,7 +1116,7 @@ std::vector<std::string> SerialConnVT::GetSelection() const
         int nchars = (int)vline->size() - this->CalculateNumberOfBlankCharsFromEnd(*vline);
         int vx = span.X0;
         for (size_t i = vx; i < nchars; ++i) {
-            bool is_selected = IsCharInSelectionSpan(i, span.Y0);
+            bool is_selected = IsCharInSelectionSpan((int)i, span.Y0);
             if (is_selected) {
                 sel += UTF32ToUTF8_(vline->at(i));
             }
@@ -1141,7 +1141,7 @@ std::vector<std::string> SerialConnVT::GetSelection() const
         int nchars = (int)vline->size() - this->CalculateNumberOfBlankCharsFromEnd(*vline);
         int vx = span.X1;
         for (size_t i = 0; i < nchars && i < vx; ++i) {
-            bool is_selected = IsCharInSelectionSpan(i, span.Y1);
+            bool is_selected = IsCharInSelectionSpan((int)i, span.Y1);
             if (is_selected) {
                 sel += UTF32ToUTF8_(vline->at(i));
             }
@@ -1305,7 +1305,16 @@ void SerialConnVT::UpdateHScrollbar()
     int vy = vpos.y;
     int cursor_vy = mVy;
     int longest_linesz = 0;
-    for (int i = vpos.y; i < (int)mLines.size() && lyoff < usz.cy; ++i) {
+    for (int i = vpos.y; i < (int)mLinesBuffer.size() && lyoff < usz.cy; ++i) {
+        const VTLine& vline = mLinesBuffer[i];
+        lyoff += vline.GetHeight();
+        int nchars = cursor_vy != i ? (int)vline.size() - this->CalculateNumberOfBlankCharsFromEnd(vline) : -1;
+        int linesz = this->GetLogicWidth(vline, nchars);
+        if (linesz > longest_linesz) {
+            longest_linesz = linesz;
+        }
+    }
+    for (int i = std::max(0, vpos.y - (int)mLinesBuffer.size()); i < (int)mLines.size() && lyoff < usz.cy; ++i) {
         const VTLine& vline = mLines[i];
         lyoff += vline.GetHeight();
         int nchars = cursor_vy != i ? (int)vline.size() - this->CalculateNumberOfBlankCharsFromEnd(vline) : -1;
@@ -1335,11 +1344,6 @@ void SerialConnVT::DrawVT(Draw& draw)
     if (vpos.x < 0 || vpos.y < 0)
         return;
     int lyoff = py - ly;
-    // use bot
-    int bot = mScrollingRegion.Bottom;
-    if (bot < 0) {
-        bot = (int)mLines.size() - 1;
-    }
     //--------------------------------------------------------------
     // draw lines, and calculate the presentation information
     Size usz = GetSize();

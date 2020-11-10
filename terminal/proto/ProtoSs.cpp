@@ -26,6 +26,51 @@ std::string ProtoSs::GetDescription() const
 {
     return t_("This proto was designed by chivstyle acording to KISS principal");
 }
+//
+static inline std::vector<unsigned char> MakeCommand(const String& part,
+                                                     const String& action, const Value& params)
+{
+	std::vector<unsigned char> command;
+	command.push_back(ss::ENQ);
+	command.push_back(ss::STX);
+    // No check
+    for (int i = 0; i < part.GetLength(); ++i) {
+        command.push_back(part[i]);
+    }
+    command.push_back(ss::US);
+    for (int i = 0; i < action.GetLength(); ++i) {
+        command.push_back(action[i]);
+    }
+    if (params.GetType() == VALUEARRAY_V) {
+        int count = params.GetCount();
+        if (count > 0) command.push_back(ss::US);
+        for (int n = 0; n < count; ++n) {
+            String pn = params[n].ToString();
+            for (int i = 0; i < pn.GetLength(); ++i) {
+                command.push_back(pn[i]);
+            }
+            if (n != count-1) {
+                command.push_back(ss::US);
+            }
+        }
+    } else {
+        String p0 = params.ToString();
+        for (int i = 0; i < p0.GetLength(); ++i) {
+            command.push_back(p0[i]);
+        }
+    }
+    command.push_back(ss::ETX);
+    // calculate check sum of contents between STX and ETX
+    command.push_back(ss::ss_chksum((const char*)command.data()+2, (int)command.size()-3));
+    command.push_back(ss::EOT);
+    //
+    return std::move(command);
+}
+//
+static inline void operator += (std::vector<unsigned char>& out, const std::vector<unsigned char>& in)
+{
+	for (size_t k = 0; k < in.size(); ++k) out.push_back(in[k]);
+}
 // use this proto to pack the data
 std::vector<unsigned char> ProtoSs::Pack(const std::string& json_, std::string& errmsg)
 {
@@ -34,60 +79,45 @@ std::vector<unsigned char> ProtoSs::Pack(const std::string& json_, std::string& 
     if (json.IsError()) {
         errmsg = t_("Your input is not a valid JSON string");
     } else {
-        if (json.GetType() != VALUEMAP_V) {
-            // response ?
-            out.push_back(ss::ACK);
-            out.push_back(ss::STX);
-            out.insert(out.end(), json_.begin(), json_.end());
-            out.push_back(ss::ETX);
-            out.push_back(ss::ss_chksum(json_.c_str(), json_.length()));
-            out.push_back(ss::EOT);
-        } else {
+        if (json.GetType() == VALUEMAP_V) {
             if (json["Part"].IsError()) {
                 // No part, parse as response.
                 out.push_back(ss::ACK);
                 out.push_back(ss::STX);
                 out.insert(out.end(), json_.begin(), json_.end());
                 out.push_back(ss::ETX);
-                out.push_back(ss::ss_chksum(json_.c_str(), json_.length()));
+                out.push_back(ss::ss_chksum(json_.c_str(), (int)json_.length()));
                 out.push_back(ss::EOT);
                 errmsg = t_("There's no key \"Part\", pack as response.");
             } else {
                 String part = json["Part"].ToString();
                 String action = json["Action"].ToString();
                 const Value& params = json["Parameters"];
-                out.push_back(ss::ENQ);
-                out.push_back(ss::STX);
-                // No check
-                for (int i = 0; i < part.GetLength(); ++i) {
-                    out.push_back(part[i]);
-                }
-                out.push_back(ss::US);
-                for (int i = 0; i < action.GetLength(); ++i) {
-                    out.push_back(action[i]);
-                }
-                out.push_back(ss::US);
-                if (params.GetType() == VALUEARRAY_V) {
-                    int count = params.GetCount();
-                    for (int n = 0; n < count; ++n) {
-                        String pn = params[n].ToString();
-                        for (int i = 0; i < pn.GetLength(); ++i) {
-                            out.push_back(pn[i]);
-                        }
-                        if (n != count-1) {
-                            out.push_back(ss::US);
-                        }
-                    }
-                } else {
-                    String p0 = params.ToString();
-                    for (int i = 0; i < p0.GetLength(); ++i) {
-                        out.push_back(p0[i]);
-                    }
-                }
-                out.push_back(ss::ETX);
-                out.push_back(ss::ss_chksum((const char*)out.data() + 2, out.size()-3));
-                out.push_back(ss::EOT);
+                out = MakeCommand(part, action, params);
             }
+        } else if (json.GetType() == VALUEARRAY_V) {
+            int count = json.GetCount();
+            out.push_back(ss::SOH);
+            for (int i = 0; i < count; ++i) {
+                const Value& command = json[i];
+                if (command.GetType() != VALUEMAP_V) {
+                    errmsg = t_("Please pass a map-array");
+                    break;
+                }
+                String part = command["Part"].ToString();
+                String action = command["Action"].ToString();
+                const Value& params = command["Parameters"];
+                out += MakeCommand(part, action, params);
+            }
+            out.push_back(ss::ETB);
+        } else {
+            // response ?
+            out.push_back(ss::ACK);
+            out.push_back(ss::STX);
+            out.insert(out.end(), json_.begin(), json_.end());
+            out.push_back(ss::ETX);
+            out.push_back(ss::ss_chksum(json_.c_str(), (int)json_.length()));
+            out.push_back(ss::EOT);
         }
     }
     return out;
@@ -112,27 +142,28 @@ int ProtoSs::IsProto(const unsigned char* buf, size_t sz)
     return 0;
 }
 // JSON
-static inline std::string GenerateReport(const ss::ss_command_t& rslt)
+static inline std::string GenerateReport(const ss::ss_command_t& rslt, const std::string& indent = "")
 {
-    std::string report = "\{\n";
-    report += "    \"Part\":\"" + rslt.part + "\",\n";
-    report += "    \"Action\":\"" + rslt.action + "\",\n";
-    report += "    \"Parameters\":[\n";
+    std::string report = indent + "\{\n";
+    report += indent + "    \"Part\":\"" + rslt.part + "\",\n";
+    report += indent + "    \"Action\":\"" + rslt.action + "\",\n";
+    report += indent + "    \"Parameters\":[\n";
     for (size_t k = 0; k < rslt.params.size(); ++k) {
-        report += "        \"" + rslt.params[k] + "\"";
+        report += indent + "        \"" + rslt.params[k] + "\"";
         if (k + 1 != rslt.params.size()) {
             report += ",";
         }
         report += "\n";
     }
-    report += "    ],\n    \"Error\":";
+    report += indent + "    ],\n";
+    report += indent + "    \"Error\":";
     switch (rslt.error) {
     case ss::ss_command_t::error_none:   report += "\"No error\"\n"; break;
     case ss::ss_command_t::error_format: report += "\"format\"\n"; break;
     case ss::ss_command_t::error_chksum: report += "\"chksum\"\n"; break;
     default: report += "\"Unkown\""; break;
     }
-    report += "}"; // End of JSON Object
+    report += indent + "}"; // End of JSON Object
     
     return report;
 }
@@ -153,12 +184,24 @@ std::string ProtoSs::Unpack(const std::vector<unsigned char>& buf, std::string& 
             report = GenerateReport(ss::ss_parse_command((const char*)buf.data(), (int)buf.size()));
         } else if (buf[0] == ss::SOH) {
             auto eqns = ss::ss_parse((const char*)buf.data(), (int)buf.size());
-            for (size_t k = 0; k < eqns.size(); ++k) {
-                if (k+1 == eqns.size()) {
-                    report += GenerateReport(eqns[k]);
-                } else {
-                    report += GenerateReport(eqns[k]) + "\n";
-                }
+            if (eqns.size() > 1) {
+                report += "[\n";
+                for (size_t k = 0; k < eqns.size(); ++k) {
+	                if (k+1 == eqns.size()) {
+	                    report += GenerateReport(eqns[k], "    ");
+	                } else {
+	                    report += GenerateReport(eqns[k], "    ") + ",\n";
+	                }
+	            }
+	            report += "\n]";
+            } else {
+	            for (size_t k = 0; k < eqns.size(); ++k) {
+	                if (k+1 == eqns.size()) {
+	                    report += GenerateReport(eqns[k]);
+	                } else {
+	                    report += GenerateReport(eqns[k]) + "\n";
+	                }
+	            }
             }
         }
     }

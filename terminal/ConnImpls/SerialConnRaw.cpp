@@ -23,7 +23,10 @@ SerialConnRaw::SerialConnRaw(std::shared_ptr<SerialIo> serial)
     : mRxShouldStop(false)
     , mTxProto(nullptr)
 {
-    this->mSerial = serial;
+	this->mSerial = serial; //!< Important, let this as the first sentence.
+	//
+	this->mRx.SetFrame(FieldFrame());
+	this->mTx.SetFrame(FieldFrame());
     this->mVsp.Vert(mRx.SetEditable(false), mTx);
     this->mVsp.SetMin(0, 2000); // min is 2/10
     this->mVsp.SetMin(1, 2000); // min is 2/10
@@ -250,7 +253,7 @@ static inline int UTF8SeqLen_(const unsigned char* seq, size_t sz)
     } else {
         seqsz = 1;
     }
-    return seqsz;
+    return (int)seqsz;
 }
 // make a UTF-8 string from data
 static inline std::string FromHex_(const std::vector<byte>& b)
@@ -450,7 +453,6 @@ static const char* kC0_Names[] = {
 void SerialConnRaw::UpdateAsTxt()
 {
     String text;
-    mRxBufferLock.lock();
     const auto& buf = mRxBuffer;
     if (mShowInvisibleChars.Get()) {
         size_t k = 0;
@@ -487,8 +489,6 @@ void SerialConnRaw::UpdateAsTxt()
     } else {
         text = GetCodec()->TranscodeToUTF8(buf.data(), buf.size());
     }
-    mRxBufferLock.unlock();
-    //
     mRx.Set(text);
     mRx.MoveEnd();
     mRx.ScrollEnd();
@@ -497,7 +497,6 @@ void SerialConnRaw::UpdateAsTxt()
 void SerialConnRaw::UpdateAsHex()
 {
     String text;
-    mRxBufferLock.lock();
     {
         auto& buf = mRxBuffer;
         int linesz = mLineSz;
@@ -510,11 +509,16 @@ void SerialConnRaw::UpdateAsHex()
             }
         }
     }
-    mRxBufferLock.unlock();
     //
     mRx.SetData(text);
     mRx.MoveEnd();
     mRx.ScrollEnd();
+}
+
+void SerialConnRaw::Update()
+{
+	std::lock_guard<std::mutex> _(mRxBufferLock);
+	this->mRxHex.Get() ? UpdateAsHex() : UpdateAsTxt();
 }
 
 void SerialConnRaw::RxProc()
@@ -535,7 +539,7 @@ void SerialConnRaw::RxProc()
             mRxBufferLock.unlock();
             //
             PostCallback([=]() {
-                mRxHex.Get() ? UpdateAsHex() : UpdateAsTxt();
+                Update();
             });
         } else std::this_thread::sleep_for(std::chrono::duration<double>(0.01));
     }

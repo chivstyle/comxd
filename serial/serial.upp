@@ -2,8 +2,7 @@ description "support serial\377";
 
 library(WIN32) setupapi;
 
-options
-	;
+options(MSC) "/D UNICODE /D _UNICODE";
 
 include
 	include;

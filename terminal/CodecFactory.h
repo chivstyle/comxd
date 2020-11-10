@@ -6,6 +6,7 @@
 
 #include "Codec.h"
 #include <map>
+#include <functional>
 
 #ifndef DELETE_CA_FUNCTIONS
 #define DELETE_CA_FUNCTIONS(class_name) class_name(const class_name&) = delete; \

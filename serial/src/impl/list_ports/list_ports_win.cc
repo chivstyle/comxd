@@ -62,12 +62,12 @@ serial::list_ports()
 			DIREG_DEV,
 			KEY_READ);
 
-		TCHAR port_name[port_name_max_length];
+		WCHAR port_name[port_name_max_length];
 		DWORD port_name_length = port_name_max_length;
 
 		LONG return_code = RegQueryValueEx(
 					hkey,
-					_T("PortName"),
+					TEXT("PortName"),
 					NULL,
 					NULL,
 					(LPBYTE)port_name,
@@ -85,7 +85,7 @@ serial::list_ports()
 
 		// Ignore parallel ports
 
-		if(_tcsstr(port_name, _T("LPT")) != NULL)
+		if(_tcsstr(port_name, TEXT("LPT")) != NULL)
 			continue;
 
 		// Get port friendly name

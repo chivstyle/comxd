@@ -1,4 +1,4 @@
-//
+﻿//
 // (c) 2020 chiv
 //
 #ifndef _comxd_VT102ControlSeq_h_

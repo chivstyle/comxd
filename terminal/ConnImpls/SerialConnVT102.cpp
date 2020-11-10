@@ -1,4 +1,4 @@
-//
+﻿//
 // (c) 2020 chiv
 //
 #include "terminal_rc.h"
@@ -548,8 +548,8 @@ bool SerialConnVT102::ProcessControlSeq(const std::string& seq, int seq_type)
         case VT102_ScrollingRegion: ProcessVT102ScrollingRegion(seq); break;
         // ▒ stands for a canceled control seq.
         case VT102_CanceledSeq: if (1) {
-            std::string tmp = "▒"; // UTF-8
-            size_t ep;RenderText(UTF8ToUTF32_((const unsigned char*)tmp.c_str(), tmp.length(), ep));
+            unsigned char tmp[] = {0xe2, 0x96, 0x92}; // UTF-8, ▒
+            size_t ep;RenderText(UTF8ToUTF32_(tmp, 3, ep));
         } break;
         default:break;
         }

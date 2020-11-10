@@ -181,7 +181,7 @@ protected:
   void reconfigurePort ();
 
 private:
-  wstring port_;               // Path to the file descriptor
+  std::string port_;               // Path to the file descriptor
   HANDLE fd_;
   //
   HANDLE read_event_;

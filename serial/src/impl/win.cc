@@ -20,6 +20,20 @@ using serial::SerialException;
 using serial::PortNotOpenedException;
 using serial::IOException;
 
+static inline std::wstring _FromUTF8(const std::string& s)
+{
+	std::wstring out = L"ERROR";
+	int ret = MultiByteToWideChar(CP_UTF8, 0, s.c_str(), (int)s.length(), nullptr, 0);
+	if (ret > 0) {
+		WCHAR *tmp = new WCHAR[(size_t)ret + 1];
+		MultiByteToWideChar(CP_UTF8, 0, s.c_str(), (int)s.length(), tmp, ret+1);
+		tmp[ret] = '\0';
+		out = tmp;
+		delete[] tmp;
+	}
+	return out;
+}
+
 inline wstring
 _prefix_port_if_needed(const wstring &input)
 {
@@ -67,7 +81,7 @@ Serial::SerialImpl::open ()
   }
 
   // See: https://github.com/wjwwood/serial/issues/84
-  wstring port_with_prefix = _prefix_port_if_needed(port_);
+  std::wstring port_with_prefix = _prefix_port_if_needed(_FromUTF8(port_));
   LPCWSTR lp_port = port_with_prefix.c_str();
   fd_ = CreateFileW(lp_port,
                     GENERIC_READ | GENERIC_WRITE,
@@ -84,10 +98,10 @@ Serial::SerialImpl::open ()
     case ERROR_FILE_NOT_FOUND:
       // Use this->getPort to convert to a std::string
       ss << "Specified port, " << this->getPort() << ", does not exist.";
-      THROW (IOException, ss.str().c_str());
+      SERIAL_THROW (IOException, ss.str().c_str());
     default:
       ss << "Unknown error opening the serial port: " << create_file_err;
-      THROW (IOException, ss.str().c_str());
+      SERIAL_THROW (IOException, ss.str().c_str());
     }
   }
 
@@ -100,7 +114,7 @@ Serial::SerialImpl::reconfigurePort ()
 {
   if (fd_ == INVALID_HANDLE_VALUE) {
     // Can only operate on a valid file descriptor
-    THROW (IOException, "Invalid file descriptor, is the serial port open?");
+    SERIAL_THROW (IOException, "Invalid file descriptor, is the serial port open?");
   }
 
   DCB dcbSerialParams = {0};
@@ -109,7 +123,7 @@ Serial::SerialImpl::reconfigurePort ()
 
   if (!GetCommState(fd_, &dcbSerialParams)) {
     //error getting state
-    THROW (IOException, "Error getting the serial port state.");
+    SERIAL_THROW (IOException, "Error getting the serial port state.");
   }
 
   // setup baud rate
@@ -263,7 +277,7 @@ Serial::SerialImpl::reconfigurePort ()
   // activate settings
   if (!SetCommState(fd_, &dcbSerialParams)){
     CloseHandle(fd_);
-    THROW (IOException, "Error setting serial port settings.");
+    SERIAL_THROW (IOException, "Error setting serial port settings.");
   }
 
   // Setup timeouts
@@ -274,7 +288,7 @@ Serial::SerialImpl::reconfigurePort ()
   timeouts.WriteTotalTimeoutConstant = timeout_.write_timeout_constant;
   timeouts.WriteTotalTimeoutMultiplier = timeout_.write_timeout_multiplier;
   if (!SetCommTimeouts(fd_, &timeouts)) {
-    THROW (IOException, "Error setting timeouts.");
+    SERIAL_THROW (IOException, "Error setting timeouts.");
   }
 }
 
@@ -288,7 +302,7 @@ Serial::SerialImpl::close ()
       if (ret == 0) {
         stringstream ss;
         ss << "Error while closing serial port: " << GetLastError();
-        THROW (IOException, ss.str().c_str());
+        SERIAL_THROW (IOException, ss.str().c_str());
       } else {
         fd_ = INVALID_HANDLE_VALUE;
       }
@@ -313,7 +327,7 @@ Serial::SerialImpl::available ()
   if (!ClearCommError(fd_, NULL, &cs)) {
     stringstream ss;
     ss << "Error while checking status of the serial port: " << GetLastError();
-    THROW (IOException, ss.str().c_str());
+    SERIAL_THROW (IOException, ss.str().c_str());
   }
   return static_cast<size_t>(cs.cbInQue);
 }
@@ -321,14 +335,14 @@ Serial::SerialImpl::available ()
 bool
 Serial::SerialImpl::waitReadable (uint32_t /*timeout*/)
 {
-  THROW (IOException, "waitReadable is not implemented on Windows.");
+  SERIAL_THROW (IOException, "waitReadable is not implemented on Windows.");
   return false;
 }
 
 void
 Serial::SerialImpl::waitByteTimes (size_t /*count*/)
 {
-  THROW (IOException, "waitByteTimes is not implemented on Windows.");
+  SERIAL_THROW (IOException, "waitByteTimes is not implemented on Windows.");
 }
 
 size_t
@@ -338,7 +352,8 @@ Serial::SerialImpl::read (uint8_t *buf, size_t size)
     throw PortNotOpenedException ("Serial::read");
   }
   DWORD bytes_read = 0;
-  OVERLAPPED overlapped; overlapped.hEvent = read_event_;
+  OVERLAPPED overlapped; memset(&overlapped, 0, sizeof(overlapped));
+  overlapped.hEvent = read_event_;
   DWORD ret = WaitForSingleObject(read_event_, 100);
   if (ret == WAIT_OBJECT_0) {
     BOOL ok = ReadFile(fd_, buf, static_cast<DWORD>(size), &bytes_read, &overlapped);
@@ -348,14 +363,18 @@ Serial::SerialImpl::read (uint8_t *buf, size_t size)
         while (timeout--) {
             BOOL fs = GetOverlappedResult(fd_, &overlapped, &bytes_read, FALSE);
             if (fs) {
-                if (bytes_read == size) break;
-            } else break;
+                if (bytes_read == size) break; // transfer completed.
+            }
+            else {
+                if (GetLastError() != ERROR_IO_INCOMPLETE)
+                    break;
+            }
             Sleep(1);
         }
       } else {
         stringstream ss;
         ss << "Error while reading from the serial port: " << GetLastError();
-        THROW (IOException, ss.str().c_str());
+        SERIAL_THROW (IOException, ss.str().c_str());
       }
     }
   }
@@ -369,7 +388,8 @@ Serial::SerialImpl::write (const uint8_t *data, size_t length)
     throw PortNotOpenedException ("Serial::write");
   }
   DWORD bytes_written = 0;
-  OVERLAPPED overlapped; overlapped.hEvent = write_event_;
+  OVERLAPPED overlapped; memset(&overlapped, 0, sizeof(overlapped));
+  overlapped.hEvent = write_event_;
   DWORD ret = WaitForSingleObject(write_event_, 100);
   if (ret == WAIT_OBJECT_0) {
     BOOL ok = WriteFile(fd_, data, static_cast<DWORD>(length), &bytes_written, &overlapped);
@@ -377,16 +397,20 @@ Serial::SerialImpl::write (const uint8_t *data, size_t length)
       if (GetLastError() == ERROR_IO_PENDING) {
         int timeout = 500;
         while (timeout--) {
-            BOOL fs = GetOverlappedResult(fd_, &overlapped, &bytes_written, FALSE);
+            BOOL fs = GetOverlappedResult(fd_, &overlapped, &bytes_written, TRUE);
             if (fs) {
                 if (bytes_written == length) break; // transfer completed.
-            } else break;
+            }
+            else {
+                if (GetLastError() != ERROR_IO_INCOMPLETE)
+                    break;
+            }
             Sleep(1);
         }
       } else {
         stringstream ss;
         ss << "Error while writing to the serial port: " << GetLastError();
-        THROW (IOException, ss.str().c_str());
+        SERIAL_THROW (IOException, ss.str().c_str());
       }
     }
   }
@@ -396,13 +420,13 @@ Serial::SerialImpl::write (const uint8_t *data, size_t length)
 void
 Serial::SerialImpl::setPort (const string &port)
 {
-  port_ = wstring(port.begin(), port.end());
+  port_ = port;
 }
 
 string
 Serial::SerialImpl::getPort () const
 {
-  return string(port_.begin(), port_.end());
+  return port_;
 }
 
 void
@@ -525,7 +549,7 @@ Serial::SerialImpl::flushOutput ()
 void
 Serial::SerialImpl::sendBreak (int /*duration*/)
 {
-  THROW (IOException, "sendBreak is not supported on Windows.");
+  SERIAL_THROW (IOException, "sendBreak is not supported on Windows.");
 }
 
 void
@@ -597,7 +621,7 @@ Serial::SerialImpl::getCTS ()
   }
   DWORD dwModemStatus;
   if (!GetCommModemStatus(fd_, &dwModemStatus)) {
-    THROW (IOException, "Error getting the status of the CTS line.");
+    SERIAL_THROW (IOException, "Error getting the status of the CTS line.");
   }
 
   return (MS_CTS_ON & dwModemStatus) != 0;
@@ -611,7 +635,7 @@ Serial::SerialImpl::getDSR ()
   }
   DWORD dwModemStatus;
   if (!GetCommModemStatus(fd_, &dwModemStatus)) {
-    THROW (IOException, "Error getting the status of the DSR line.");
+    SERIAL_THROW (IOException, "Error getting the status of the DSR line.");
   }
 
   return (MS_DSR_ON & dwModemStatus) != 0;
@@ -625,7 +649,7 @@ Serial::SerialImpl::getRI()
   }
   DWORD dwModemStatus;
   if (!GetCommModemStatus(fd_, &dwModemStatus)) {
-    THROW (IOException, "Error getting the status of the RI line.");
+    SERIAL_THROW (IOException, "Error getting the status of the RI line.");
   }
 
   return (MS_RING_ON & dwModemStatus) != 0;
@@ -640,7 +664,7 @@ Serial::SerialImpl::getCD()
   DWORD dwModemStatus;
   if (!GetCommModemStatus(fd_, &dwModemStatus)) {
     // Error in GetCommModemStatus;
-    THROW (IOException, "Error getting the status of the CD line.");
+    SERIAL_THROW (IOException, "Error getting the status of the CD line.");
   }
 
   return (MS_RLSD_ON & dwModemStatus) != 0;
@@ -650,7 +674,7 @@ void
 Serial::SerialImpl::readLock()
 {
   if (WaitForSingleObject(read_mutex, INFINITE) != WAIT_OBJECT_0) {
-    THROW (IOException, "Error claiming read mutex.");
+    SERIAL_THROW (IOException, "Error claiming read mutex.");
   }
 }
 
@@ -658,7 +682,7 @@ void
 Serial::SerialImpl::readUnlock()
 {
   if (!ReleaseMutex(read_mutex)) {
-    THROW (IOException, "Error releasing read mutex.");
+    SERIAL_THROW (IOException, "Error releasing read mutex.");
   }
 }
 
@@ -666,7 +690,7 @@ void
 Serial::SerialImpl::writeLock()
 {
   if (WaitForSingleObject(write_mutex, INFINITE) != WAIT_OBJECT_0) {
-    THROW (IOException, "Error claiming write mutex.");
+    SERIAL_THROW (IOException, "Error claiming write mutex.");
   }
 }
 
@@ -674,7 +698,7 @@ void
 Serial::SerialImpl::writeUnlock()
 {
   if (!ReleaseMutex(write_mutex)) {
-    THROW (IOException, "Error releasing write mutex.");
+    SERIAL_THROW (IOException, "Error releasing write mutex.");
   }
 }
 

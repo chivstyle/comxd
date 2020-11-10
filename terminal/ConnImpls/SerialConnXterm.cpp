@@ -226,6 +226,16 @@ bool SerialConnXterm::ProcessKeyUp(dword key, dword flags)
     return SerialConnECMA48::ProcessKeyUp(key, flags);
 }
 
+Upp::WString SerialConnXterm::TranscodeToUTF16(const VTChar& cc) const
+{
+	return SerialConnVT102::TranscodeToUTF16(cc);
+}
+//
+bool SerialConnXterm::ProcessChar(Upp::dword cc)
+{
+	return SerialConnVT102::ProcessChar(cc);
+}
+
 void SerialConnXterm::InstallXtermFunctions()
 {
 #if 1
