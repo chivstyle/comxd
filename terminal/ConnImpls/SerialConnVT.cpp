@@ -801,7 +801,7 @@ void SerialConnVT::Copy()
 
 void SerialConnVT::SelectAll()
 {
-    if (!!mLines.empty()) {
+    if (!mLines.empty()) {
         mSelectionSpan.X0 = 0;
         mSelectionSpan.X1 = 0;
         mSelectionSpan.Y0 = 0;
