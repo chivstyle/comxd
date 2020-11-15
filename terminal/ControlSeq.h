@@ -4,6 +4,8 @@
 #ifndef _comxd_ControlSeq_h_
 #define _comxd_ControlSeq_h_
 
+//----------------------------------------------------------------------------------------------
+// CONTROl SEQ
 #define SEQ_NONE                      0
 #define SEQ_PENDING                   1
 // VT102 SPAN
@@ -18,6 +20,6 @@
 #define XTERM_SEQ_BEGIN               ECMA48_SEQ_END+1
 #define XTERM_SEQ_COUNT               200
 #define XTERM_SEQ_END                 XTERM_SEQ_BEGIN+XTERM_SEQ_COUNT
-
+//----------------------------------------------------------------------------------------------
 
 #endif

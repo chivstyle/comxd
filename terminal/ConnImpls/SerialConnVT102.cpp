@@ -1,4 +1,4 @@
-﻿//
+//
 // (c) 2020 chiv
 //
 #include "terminal_rc.h"
@@ -31,22 +31,16 @@ void SerialConnVT102::SaveCursor(CursorData& cd)
     cd.Vy = mVy;
     cd.OriginMode = mModes.Origin;
     cd.Charset = mCharset;
-    cd.FgColor = mFgColor;
-    cd.BgColor = mBgColor;
     cd.Strikeout = mFont.IsStrikeout();
     cd.Bold = mFont.IsBold();
     cd.Underline = mFont.IsUnderline();
     cd.Italic = mFont.IsItalic();
-    cd.Blink = mBlink;
-    cd.AttrFuncs = mCurrAttrFuncs;
 }
 //
 void SerialConnVT102::SwapCursor(CursorData& cd)
 {
     std::swap(cd.Vx, mVx);
     std::swap(cd.Vy, mVy);
-    std::swap(cd.FgColor, mFgColor);
-    std::swap(cd.BgColor, mBgColor);
     std::swap(cd.Charset, mCharset);
     unsigned int origin_mode = cd.OriginMode;
     cd.OriginMode = mModes.Origin;
@@ -63,8 +57,6 @@ void SerialConnVT102::SwapCursor(CursorData& cd)
     bool italic = mFont.IsItalic();
     std::swap(cd.Italic, italic);
     mFont.Italic(italic);
-    std::swap(cd.Blink, mBlink);
-    std::swap(cd.AttrFuncs, mCurrAttrFuncs);
     // layout again.
     mFontW = mFont.GetAveWidth();
     mFontH = mFont.GetLineHeight();
@@ -77,12 +69,8 @@ void SerialConnVT102::LoadCursor(const CursorData& cd)
 {
     mVx = cd.Vx;
     mVy = cd.Vy;
-    mFgColor = cd.FgColor;
-    mBgColor = cd.BgColor;
-    mBlink = cd.Blink;
     mCharset = cd.Charset;
     mModes.Origin = cd.OriginMode;
-    mCurrAttrFuncs = cd.AttrFuncs;
     mFont.Bold(cd.Bold).Italic(cd.Italic).Underline(cd.Underline).Strikeout(cd.Strikeout);
     // layout again.
     mFontW = mFont.GetAveWidth();
@@ -103,7 +91,7 @@ int SerialConnVT102::IsControlSeq(const std::string& seq)
 //----------------------------------------------------------------------------------------------
 WString SerialConnVT102::TranscodeToUTF16(const VTChar& cc) const
 {
-    return Superclass::TranscodeToUTF16(VT102_Transcode(cc, mCharset, mSS));
+    return Superclass::TranscodeToUTF16(VT102_Transcode(cc.Code(), mCharset, mSS));
 }
 //----------------------------------------------------------------------------------------------
 void SerialConnVT102::InstallVT102Functions()
@@ -133,7 +121,7 @@ void SerialConnVT102::InstallVT102Functions()
     };
     mVT102TrivialHandlers["[?5h"] = [=]() {
         if (mModes.Screen == VT102Modes::Normal) {
-            std::swap(mPaperColor, mTextsColor);
+            std::swap(mStyle.BgColorId, mStyle.FgColorId);
             mModes.Screen = VT102Modes::Reverse;
         }
     };
@@ -178,7 +166,7 @@ void SerialConnVT102::InstallVT102Functions()
     };
     mVT102TrivialHandlers["[?5l"] = [=]() {
         if (mModes.Screen == VT102Modes::Reverse) {
-            std::swap(mPaperColor, mTextsColor);
+            std::swap(mStyle.FgColorId, mStyle.BgColorId);
             mModes.Screen = VT102Modes::Normal;
         }
     };
@@ -293,7 +281,7 @@ void SerialConnVT102::InstallVT102Functions()
         this->ProcessAsciiControlChar(0x09);
     };
     mVT102TrivialHandlers["[g"] = [=]() { // TBC , clear tab
-        if (mLines[mVy][mVx] == '\t') { // remove it.
+        if (mLines[mVy][mVx].Code() == '\t') { // remove it.
             mLines[mVy].erase(mLines[mVy].begin() + mVx);
             mLines[mVy].push_back(mBlankChar);
         }
@@ -303,7 +291,7 @@ void SerialConnVT102::InstallVT102Functions()
         for (size_t i = 0; i < mLines.size(); ++i) {
             VTLine vline;
             for (size_t j = 0; j < mLines[i].size(); ++j) {
-                if (mLines[i][j] != '\t') {
+                if (mLines[i][j].Code() != '\t') {
                     vline.push_back(mLines[i][j]);
                 }
             }
@@ -498,20 +486,19 @@ void SerialConnVT102::ProcessVT102CharAttribute(int attr_code)
 {
     switch (attr_code) {
     case 0: // Default
-        mCurrAttrFuncs.clear();
-        mCurrAttrFuncs.push_back([=](){ SetDefaultStyle(); });
+        mStyle = VTStyle();
         break;
     case 1: // bold
-        mCurrAttrFuncs.push_back([=]() { mFont.Bold(); });
+        mStyle.FontStyle |= VTStyle::eBold;
         break;
     case 4: // underline
-        mCurrAttrFuncs.push_back([=]() { mFont.Underline(); });
+        mStyle.FontStyle |= VTStyle::eUnderline;
         break;
     case 5: // blink
-        mCurrAttrFuncs.push_back([=]() { mBlink = true; });
+        mStyle.FontStyle |= VTStyle::eBlink;
         break;
     case 7: // reverse
-        mCurrAttrFuncs.push_back([=]() { std::swap(mFgColor, mBgColor); });
+        std::swap(mStyle.FgColorId, mStyle.BgColorId);
         break;
     }
 }

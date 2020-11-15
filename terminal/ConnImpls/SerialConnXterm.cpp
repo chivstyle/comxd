@@ -17,9 +17,6 @@ SerialConnXterm::SerialConnXterm(std::shared_ptr<SerialIo> serial)
     , mIsAltScr(false)
 {
     //
-    this->mPaperColor = Color(10, 10, 10);
-    this->mTextsColor = Color(200, 200, 200);
-    //
     InstallXtermFunctions();
     // The default setting of alt screen is fixed, inherit from VT.
     // The user can change settings when the alt screen is active, but we do not store the

@@ -1,4 +1,4 @@
-LAYOUT(MainWindow, 736, 440)
+LAYOUT(MainWindow, 632, 440)
 	ITEM(TabCtrl, mDevsTab, AcceptCurrent(true).HSizePosZ(4, 4).VSizePosZ(4, 4))
 END_LAYOUT
 

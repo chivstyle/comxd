@@ -7,143 +7,13 @@
 #define _comxd_ConnVT_h_
 
 #include "Conn.h"
-#include <stdint.h>
-#include <vector>
-#include <string>
+#include "ColorTable.h"
+#include "VTtypes.h"
 #include <functional>
 #include <map>
 #include <queue>
 #include <thread>
 #include <mutex>
-// UPP provides Split to split string, but we do not want to get the splitted string actually,
-// so we could do it faster. This routine was designed for VT only.
-// Why we do not use strtok, it's not safe. Windows provides strtok_s, Linux provides strtok_r,
-// we do not like that way.
-// Warning: s should be valid
-// Warning: this routine will modify the string s, like strtok
-// NOTE: Use Upp::Split, if you want to split string to words.
-static inline void SplitString(char* s, size_t s_len, char delim, std::function<void(const char*)> func)
-{
-    size_t p = 0, q = 0; // [p, q) defines a result
-    for (; q < s_len && s[q] != delim; ++q);
-    while (q < s_len) {
-        s[q] = '\0';
-        func(s+p);
-        p = q+1;
-        for (; q < s_len && s[q] != delim; ++q);
-    }
-    // process the left chars
-    if (p < s_len) {
-        func(s+p);
-    }
-}
-static inline bool SplitString(const char* cs, char delim, std::function<void(const char*)> func)
-{
-    static const size_t kCacheSize = 64; char _cache[kCacheSize];
-    size_t cs_len = strlen(cs);
-    if (cs_len < kCacheSize) {
-        strcpy(_cache, cs);
-        SplitString(_cache, cs_len, delim, func);
-        return true;
-    } else {
-        char* s = strdup(cs);
-        if (s) {
-            SplitString(s, cs_len, delim, func);
-            free(s);
-            return true;
-        }
-        return false;
-    }
-}
-static inline void SplitString(std::string&& s, char delim, std::function<void(const char*)> func)
-{
-    size_t s_len = s.length();
-    size_t p = 0, q = 0; // [p, q) defines a result
-    for (; q < s_len && s[q] != delim; ++q);
-    while (q < s_len) {
-        s[q] = '\0';
-        func(s.data() + p);
-        p = q+1;
-        for (; q < s_len && s[q] != delim; ++q);
-    }
-    // process the left chars
-    if (p < s_len) {
-        func(s.data() + p);
-    }
-}
-//----------------------------------------------------------------------------------------------
-class VTChar {
-public:
-    VTChar()
-        : VTChar(0)
-    {
-    }
-    VTChar(const uint32_t& c)
-        : VTChar(c, std::vector<std::function<void()> >())
-    {
-    }
-    VTChar(const uint32_t& c, const std::vector<std::function<void()> >& attr_funs)
-        : mChar(c)
-        , mCx(0)
-        , mCy(0)
-        , mAttrFuns(attr_funs)
-    {
-    }
-    // operators
-    operator uint32_t() const
-    {
-        return mChar;
-    }
-    //
-    VTChar& operator=(const uint32_t& c)
-    {
-        mChar = c;
-        return *this;
-    }
-    //
-    void SetAttrFuns(const std::vector<std::function<void()> >& attr_funs)
-    {
-        mAttrFuns = attr_funs;
-    }
-    //
-    void ApplyAttrs() const
-    {
-        for (size_t k = 0; k < mAttrFuns.size(); ++k) {
-            mAttrFuns[k]();
-        }
-    }
-    // cx, cy
-    void SetCx(int cx) { mCx = cx; }
-    void SetCy(int cy) { mCy = cy; }
-    int Cx() const { return mCx; }
-    int Cy() const { return mCy; }
-    //
-private:
-    uint32_t mChar; // UTF-32 LE
-    int mCx;
-    int mCy;
-    std::vector<std::function<void()> > mAttrFuns;
-};
-/// warning: You should set height manually.
-class VTLine : public std::vector<VTChar> {
-public:
-    VTLine() {}
-    explicit VTLine(size_t sz)
-        : std::vector<VTChar>(sz)
-        , mHeight(1)
-    {
-    }
-    VTLine(size_t sz, const VTChar& c)
-        : std::vector<VTChar>(sz, c)
-        , mHeight(1)
-    {
-    }
-    VTLine& SetHeight(int height) { mHeight = height; return *this; }
-    int GetHeight() const { return mHeight; };
-    
-private:
-    int mHeight;
-};
 
 class SerialConnVT : public SerialConn {
 public:
@@ -173,11 +43,9 @@ public:
     struct ScreenData {
         std::vector<VTLine> LinesBuffer;
         std::vector<VTLine> Lines;       // virtual screen
-        std::vector<std::function<void()> > AttrFuncs;
+        VTStyle Style;
         int Vx, Vy;
         Upp::Font Font;
-        Upp::Color FgColor, BgColor;
-        bool Blink;
         struct SelectionSpan SelSpan;
     };
     void SaveScr(ScreenData& sd);
@@ -294,22 +162,18 @@ protected:
     // font of console
     Upp::Font mFont;
     int mFontW, mFontH;
-    Upp::Color mFgColor; // font color
-    Upp::Color mBgColor; // font background color
-    Upp::Color mPaperColor; // paper color, \033[0m
-    Upp::Color mTextsColor; // default texts color
+    VTStyle mStyle; // current style
+    VTColorTable mColorTbl;
+    void UseStyle(const VTChar& c, Upp::Font& font, Upp::Color& fg_color, Upp::Color& bg_color,
+        bool& blink, bool& visible);
     //
     volatile bool mBlinkSignal; // 0,1,0,1,0,1, 2 Hz
-    bool mBlink;
-    volatile bool mVisible;
     Upp::TimeCallback mBlinkTimer;
-    // before render character, use this attribute function
-    std::vector<std::function<void()> > mCurrAttrFuncs;
     // scroll bar
     Upp::VScrollBar mSbV;
     Upp::HScrollBar mSbH;
     //
-    virtual int GetCharWidth(const VTChar& c);
+    virtual int GetCharWidth(const VTChar& c, int vx);
     // vy - absolute position
     virtual int GetLineHeight(int vy) const;
     // calculate the size of console

@@ -49,14 +49,11 @@ public:
 	            // the callback will execute in the main thread (i.e GUI-thread), so
 	            // we should save the conn and tab_bar in the instance of TabCloseBtn.
 	            Upp::PostCallback([=]() {
+	                mTabbar->Remove(*mConn);
+	                delete mConn;
 	                delete this; // delete myself.
 	            });
 	        };
-	    }
-	    virtual ~TabCloseBtn()
-	    {
-	        mTabbar->Remove(*mConn);
-	        delete mConn;
 	    }
 	    //
     private:
@@ -94,6 +91,14 @@ public:
 	    if (mDevsTab.GetCount()) {
             int ret = Upp::PromptYesNo(t_("Do you want to exit really?"));
             // ret , 1 - yes, 0 - None, -1 - cancel
+            if (ret == 1) {
+                int cnt = mDevsTab.GetCount();
+                for (int i = 0; i < cnt; ++i) {
+                    TabCtrl::Item& item = mDevsTab.GetItem(i);
+                    delete item.GetCtrl();
+                    delete item.GetSlave();
+                }
+            }
             return ret == 1;
 	    } else return true;
 	}

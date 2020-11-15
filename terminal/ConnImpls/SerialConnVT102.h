@@ -14,12 +14,11 @@ public:
 protected:
 	struct CursorData {
         int Vx, Vy;
-        bool Blink;
+        VTStyle Style;
         bool Strikeout, Bold, Italic, Underline;
         int Charset;
         unsigned int OriginMode;
-        Upp::Color BgColor, FgColor;
-        std::vector<std::function<void()> > AttrFuncs;
+        std::list<std::function<void()> > AttrFuncs;
     };
     void SaveCursor(CursorData& cd);
     void LoadCursor(const CursorData& cd);

@@ -26,52 +26,32 @@ void SerialConnECMA48::ProcessSGR(int attr_code)
 {
     switch (attr_code) {
     case 0:
-        mCurrAttrFuncs.clear();
-        mCurrAttrFuncs.push_back([=]() { SetDefaultStyle(); });
+        mStyle = VTStyle();
         break;
     case 1:
-        mCurrAttrFuncs.push_back([=]() {
-            if (mFont.IsScaleable())
-                mFont.Bold();
-        });
+        mStyle.FontStyle |= VTStyle::eBold;
         break;
     case 2:
-        mCurrAttrFuncs.push_back([=]() {
-            if (mFont.IsScaleable())
-                mFont.NoBold();
-        });
+        mStyle.FontStyle |= ~VTStyle::eBold;
         break;
     case 3:
-        mCurrAttrFuncs.push_back([=]() {
-            if (mFont.IsScaleable())
-                mFont.Italic();
-        });
+        mStyle.FontStyle |= VTStyle::eItalic;
         break;
     case 4:
-        mCurrAttrFuncs.push_back([=]() {
-            mFont.Underline();
-        });
+        mStyle.FontStyle |= VTStyle::eUnderline;
         break;
     case 5:
     case 6: // rapidly blinking, No, we treat is as 5
-        mCurrAttrFuncs.push_back([=]() {
-            mBlink = true;
-        });
+        mStyle.FontStyle |= VTStyle::eBlink;
         break;
     case 7:
-        mCurrAttrFuncs.push_back([=]() {
-            std::swap(mFgColor, mBgColor);
-        });
+        std::swap(mStyle.FgColorId, mStyle.BgColorId);
         break;
     case 8: // conceal
-        mCurrAttrFuncs.push_back([=]() {
-            mVisible = false;
-        });
+        mStyle.FontStyle |= VTStyle::eVisible;
         break;
     case 9: // crossed-out
-        mCurrAttrFuncs.push_back([=]() {
-            mFont.Strikeout();
-        });
+        mStyle.FontStyle |= VTStyle::eStrikeout;
         break;
     case 10: // fonts
     case 11:
@@ -86,134 +66,86 @@ void SerialConnECMA48::ProcessSGR(int attr_code)
     case 20: // Fraktur
     case 21: // double underlined
     case 22: // normal color, normal intensity
-        mCurrAttrFuncs.push_back([=]() {
-            mFont.NoBold();
-            mFgColor = mTextsColor;
-        });
+        mStyle.FontStyle &= VTStyle::eBold;
+        mStyle.FgColorId = VTColorTable::kColorId_Texts;
         break;
     case 23: // Not italicized, not fraktur
-        mCurrAttrFuncs.push_back([=]() {
-            mFont.NoItalic();
-        });
+        mStyle.FontStyle &= VTStyle::eItalic;
         break;
     case 24: // not underline
-        mCurrAttrFuncs.push_back([=]() {
-            mFont.NoUnderline();
-        });
+        mStyle.FontStyle &= VTStyle::eUnderline;
         break;
     case 25: // steady, no blinking
-        mCurrAttrFuncs.push_back([=]() {
-            mBlink = false;
-        });
+        mStyle.FontStyle &= VTStyle::eBlink;
         break;
     case 26: // reserved for proportional spacing as specified in CCITT recommendation T6.1
     case 27: // positive image
         break;
     case 28: // revealed characters
-        mCurrAttrFuncs.push_back([=]() {
-            mVisible = true;
-        });
+        mStyle.FontStyle |= VTStyle::eVisible;
         break;
     case 29: // not crossed
-        mCurrAttrFuncs.push_back([=]() {
-            mFont.NoStrikeout();
-        });
+        mStyle.FontStyle &= ~VTStyle::eStrikeout;
         break;
     case 30: // black
-        mCurrAttrFuncs.push_back([=]() {
-            mFgColor = Color(0, 0, 0);
-        });
+        mStyle.FgColorId = VTColorTable::kColorId_Black;
         break;
     case 31: // red
-        mCurrAttrFuncs.push_back([=]() {
-            mFgColor = Color(255, 0, 0);
-        });
+        mStyle.FgColorId = VTColorTable::kColorId_Red;
         break;
     case 32: // green
-        mCurrAttrFuncs.push_back([=]() {
-            mFgColor = Color(0, 255, 0);
-        });
+        mStyle.FgColorId = VTColorTable::kColorId_Green;
         break;
     case 33: // yellow
-        mCurrAttrFuncs.push_back([=]() {
-            mFgColor = Color(255, 255, 0);
-        });
+        mStyle.FgColorId = VTColorTable::kColorId_Yellow;
         break;
     case 34: // blue
-        mCurrAttrFuncs.push_back([=]() {
-            mFgColor = Color(50, 50, 255);
-        });
+        mStyle.FgColorId = VTColorTable::kColorId_Blue;
         break;
     case 35: // magenta
-        mCurrAttrFuncs.push_back([=]() {
-            mFgColor = Color(255, 50, 255);
-        });
+        mStyle.FgColorId = VTColorTable::kColorId_Magenta;
         break;
     case 36: // cyan
-        mCurrAttrFuncs.push_back([=]() {
-            mFgColor = Color(0, 255, 255);
-        });
+        mStyle.FgColorId = VTColorTable::kColorId_Cyan;
         break;
     case 37: // white
-        mCurrAttrFuncs.push_back([=]() {
-            mFgColor = Color(255, 255, 255);
-        });
+        mStyle.FgColorId = VTColorTable::kColorId_White;
         break;
     case 38: // (reserved for future standardization; intended for setting character foreground colour as specified in
              // ISO 8613-6 [CCITT Recommendation T.416])
         break;
     case 39: // default color
-        mCurrAttrFuncs.push_back([=]() {
-            mFgColor = mTextsColor;
-        });
+        mStyle.FgColorId = VTColorTable::kColorId_Texts;
         break;
     case 40: // black background
-        mCurrAttrFuncs.push_back([=]() {
-            mBgColor = Color(0, 0, 0);
-        });
+        mStyle.BgColorId = VTColorTable::kColorId_Black;
         break;
     case 41: // red bg
-        mCurrAttrFuncs.push_back([=]() {
-            mBgColor = Color(255, 0, 0);
-        });
+        mStyle.BgColorId = VTColorTable::kColorId_Red;
         break;
     case 42: // green bg
-        mCurrAttrFuncs.push_back([=]() {
-            mBgColor = Color(0, 255, 0);
-        });
+        mStyle.BgColorId = VTColorTable::kColorId_Green;
         break;
     case 43: // yellow bg
-        mCurrAttrFuncs.push_back([=]() {
-            mBgColor = Color(255, 255, 0);
-        });
+        mStyle.BgColorId = VTColorTable::kColorId_Yellow;
         break;
     case 44: // blue bg
-        mCurrAttrFuncs.push_back([=]() {
-            mBgColor = Color(0, 0, 255);
-        });
+        mStyle.BgColorId = VTColorTable::kColorId_Blue;
         break;
     case 45: // magenta bg
-        mCurrAttrFuncs.push_back([=]() {
-            mBgColor = Color(255, 0, 255);
-        });
+        mStyle.BgColorId = VTColorTable::kColorId_Magenta;
         break;
     case 46: // cyan bg
-        mCurrAttrFuncs.push_back([=]() {
-            mBgColor = Color(0, 255, 255);
-        });
+        mStyle.BgColorId = VTColorTable::kColorId_Cyan;
         break;
     case 47: // white bg
-        mCurrAttrFuncs.push_back([=]() {
-            mBgColor = Color(255, 255, 255);
-        });
+        mStyle.BgColorId = VTColorTable::kColorId_White;
         break;
     case 48: // (reserved for future standardization; intended for setting character foreground colour as specified in
              // ISO 8613-6 [CCITT Recommendation T.416])
         break;
     case 49: // default color bg
-        mCurrAttrFuncs.push_back([=]() {
-            mBgColor = mTextsColor;
-        });
+        mStyle.BgColorId = VTColorTable::kColorId_Paper;
         break;
     case 50: // (reserved for cancelling the effect of the rendering aspect established by parameter value 26)
         break;
@@ -406,7 +338,7 @@ void SerialConnECMA48::ProcessCTC(int ps)
             mVx >= 0 && mVx < (int)mLines[mVy].size())
         {
             // we do not consider TSM mode, only support Single line
-            if (mLines[mVy][mVx] == '\t') {
+            if (mLines[mVy][mVx].Code() == '\t') {
                 mLines[mVy].erase(mLines[mVy].begin() + mVx);
                 mVx--;
             }
@@ -417,8 +349,8 @@ void SerialConnECMA48::ProcessCTC(int ps)
             mVx >= 0 && mVx < (int)mLines[mVy].size())
         {
             // merge
-            if (mLines[mVy][mVx] == '\v') {
-                mLines[mVy][mVx] = ' '; // The \v is the last char of current line,
+            if (mLines[mVy][mVx].Code() == '\v') {
+                mLines[mVy][mVx].SetCode(' '); // The \v is the last char of current line,
                                                   // we replace it with a blank char,
                                                   // if the next line exists, then merge it
                                                   // into current line, that op will override
@@ -444,7 +376,7 @@ void SerialConnECMA48::ProcessCTC(int ps)
         {
             VTLine vline;
             for (size_t k = 0; k < mLines[mVy].size(); ++k) {
-                if (mLines[mVy][k] != '\t') {
+                if (mLines[mVy][k].Code() != '\t') {
                     vline.push_back(mLines[mVy][k]);
                 }
             }
@@ -458,7 +390,7 @@ void SerialConnECMA48::ProcessCTC(int ps)
         for (size_t i = 0; i < mLines.size(); ++i) {
             VTLine vline;
             for (size_t j = 0; j < mLines[i].size(); ++j) {
-                if (mLines[i][j] != '\t') {
+                if (mLines[i][j].Code() != '\t') {
                     vline.push_back(mLines[i][j]);
                 }
             }
@@ -474,7 +406,7 @@ void SerialConnECMA48::ProcessCTC(int ps)
         for (size_t i = 0; i < mLines.size(); ++i) {
             VTLine vline;
             for (size_t j = 0; j < mLines[i].size(); ++j) {
-                if (mLines[i][j] == '\v') {
+                if (mLines[i][j].Code() == '\v') {
                     continue;
                 }
                 vline.push_back(mLines[i][j]);

@@ -12,7 +12,7 @@
 // REGISTER_CONN_INSTANCE("Original VT", SerialConnVT);
 // register
 using namespace Upp;
-//
+//----------------------------------------------------------------------------------------------
 SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> serial)
     : SerialConn(serial)
     , mPx(0)
@@ -20,13 +20,7 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> serial)
     , mVx(0)
     , mVy(0)
     , mRxShouldStop(false)
-    , mFgColor(Color(255, 255, 255))
-    , mBgColor(Color(110, 110, 0))
-    , mPaperColor(Color(110, 110, 0))
-    , mTextsColor(Color(255, 255, 255))
     , mBlinkSignal(true)
-    , mBlink(false)
-    , mVisible(true)
     , mScrollToEnd(true)
     , mPressed(false)
     , mMaxLinesBufferSize(5000)
@@ -39,9 +33,7 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> serial)
     mFontW = mFont.GetAveWidth();
     mFontH = mFont.GetLineHeight();
     // default style
-    mCurrAttrFuncs.push_back([=]() { SetDefaultStyle(); });
     mBlankChar = ' ';
-    mBlankChar.SetAttrFuns(mCurrAttrFuncs);
     // enable scroll bar
     mSbH.SetLine(mFontW);
     mSbH.Set(0);
@@ -104,17 +96,17 @@ void SerialConnVT::InstallUserActions()
             VTOptionsDialog::Options options;
             options.Font = mFont;
             options.LinesBufferSize = (int)this->mMaxLinesBufferSize;
-            options.PaperColor = mPaperColor;
-            options.FontColor = mTextsColor;
+            options.PaperColor = mColorTbl.GetColor(VTColorTable::kColorId_Paper);
+            options.FontColor = mColorTbl.GetColor(VTColorTable::kColorId_Texts);
             VTOptionsDialog opt;
             opt.SetOptions(options);
             int ret = opt.Run();
             if (ret == IDOK) {
                 options = opt.GetOptions();
-                this->mPaperColor = options.PaperColor;
-                this->mTextsColor = options.FontColor;
                 this->mFont = options.Font;
                 this->mMaxLinesBufferSize = options.LinesBufferSize;
+                this->mColorTbl.SetColor(VTColorTable::kColorId_Texts, options.FontColor);
+                this->mColorTbl.SetColor(VTColorTable::kColorId_Paper, options.PaperColor);
                 //
                 bool vscr_modified = false; // lines buffer or virtual screen was modified ?
                 int fontw = mFont.GetAveWidth(), fonth = mFont.GetLineHeight();
@@ -147,11 +139,8 @@ void SerialConnVT::SaveScr(ScreenData& sd)
 {
     sd.Vx = mVx;
     sd.Vy = mVy;
+    sd.Style = mStyle;
     sd.Font = mFont;
-    sd.Blink = mBlink;
-    sd.BgColor = mBgColor;
-    sd.FgColor = mFgColor;
-    sd.AttrFuncs = mCurrAttrFuncs;
     sd.Lines = mLines;
     sd.LinesBuffer = mLinesBuffer;
     sd.SelSpan = mSelectionSpan;
@@ -161,11 +150,8 @@ void SerialConnVT::SwapScr(ScreenData& sd)
 {
     std::swap(sd.Vx, mVx);
     std::swap(sd.Vy, mVy);
+    std::swap(sd.Style, mStyle);
     std::swap(sd.Font, mFont);
-    std::swap(sd.Blink, mBlink);
-    std::swap(sd.BgColor, mBgColor);
-    std::swap(sd.FgColor, mFgColor);
-    std::swap(sd.AttrFuncs, mCurrAttrFuncs);
     std::swap(sd.Lines, mLines);
     std::swap(sd.LinesBuffer, mLinesBuffer);
     std::swap(sd.SelSpan, mSelectionSpan);
@@ -181,12 +167,9 @@ void SerialConnVT::LoadScr(const ScreenData& sd)
 {
     mLinesBuffer = sd.LinesBuffer;
     mLines = sd.Lines;
-    mCurrAttrFuncs = sd.AttrFuncs;
     mVx = sd.Vx;
     mVy = sd.Vy;
-    mFgColor = sd.FgColor;
-    mBgColor = sd.BgColor;
-    mBlink = sd.Blink;
+    mStyle = sd.Style;
     mFont = sd.Font;
     mSelectionSpan = sd.SelSpan;
     // restore font w/h
@@ -199,10 +182,7 @@ void SerialConnVT::LoadScr(const ScreenData& sd)
 //
 void SerialConnVT::SetDefaultStyle()
 {
-    mFont.NoBold().NoItalic().NoUnderline().NoStrikeout();
-    mFgColor = mTextsColor;
-    mBgColor = mPaperColor;
-    mBlink = false;
+    mStyle = VTStyle(); // default.
 }
 //
 void SerialConnVT::Clear()
@@ -296,31 +276,21 @@ void SerialConnVT::RxProc()
     }
 }
 
-int SerialConnVT::GetCharWidth(const VTChar& c)
+int SerialConnVT::GetCharWidth(const VTChar& c, int vx)
 {
     int cx = mFontW;
-    switch (c) {
+    switch (c.Code()) {
     case '\t':
-        cx = c.Cx();
+        cx = cx * (8 - (vx % 8));
+        break;
     case '\v':
     case ' ':
         break;
-    default:
-        if (1) {
-            // save rendering tool
-            Font font = mFont;
-            Color bgcolor = mBgColor;
-            Color fgcolor = mFgColor;
-            // apply
-            c.ApplyAttrs();
-            // get width of char
-            cx = mFont.GetWidth((int)c);
-            // restore rendering tool
-            mFont = font;
-            mBgColor = bgcolor;
-            mFgColor = fgcolor;
-        }
-        break;
+    default: if (1) {
+            Font font = mFont; bool blink, visible;
+            c.UseFontStyle(font, blink, visible);
+            cx = font.GetWidth(c.Code());
+        } break;
     }
     return cx;
 }
@@ -382,7 +352,7 @@ Point SerialConnVT::VirtualToLogic(const std::vector<VTLine>& lines, int vx, int
     }
     int lx = 0;
     for (size_t k = 0; k < vx && k < lines[vy].size(); ++k) {
-        lx += GetCharWidth(lines[vy][k]);
+        lx += GetCharWidth(lines[vy][k], (int)k);
     }
     return Point(lx, ly);
 }
@@ -403,7 +373,7 @@ Point SerialConnVT::VirtualToLogic(int vx, int vy)
     // calculate lx
     int lx = 0;
     for (size_t k = 0; k < vx && k < vline->size(); ++k) {
-        lx += GetCharWidth(vline->at(k));
+        lx += GetCharWidth(vline->at(k), (int)k);
     }
     return Point(lx, ly);
 }
@@ -412,7 +382,7 @@ int SerialConnVT::VirtualToLogic(const VTLine& vline, int vx)
 {
     int lx = 0;
     for (size_t i = 0; i < vx && i < vline.size(); ++i) {
-        lx += GetCharWidth(vline[i]);
+        lx += GetCharWidth(vline[i], (int)i);
     }
     return lx;
 }
@@ -423,7 +393,7 @@ int SerialConnVT::GetLogicWidth(const VTLine& vline, int count)
     if (count < 0)
         count = (int)vline.size();
     for (int k = 0; k < count; ++k) {
-        x += GetCharWidth(vline[k]);
+        x += GetCharWidth(vline[k], (int)k);
     }
     return x;
 }
@@ -453,7 +423,7 @@ Point SerialConnVT::LogicToVirtual(const std::vector<VTLine>& lines, int lx, int
     px = 0;
     next_px = 0;
     for (int i = 0; i < (int)lines[vy].size(); ++i) {
-        int vchar_sz = GetCharWidth(lines[vy][i]);
+        int vchar_sz = GetCharWidth(lines[vy][i], i);
         next_px += vchar_sz;
         // [px, px+vchar_sz]
         if (lx >= px && lx < next_px) {
@@ -505,7 +475,7 @@ Point SerialConnVT::LogicToVirtual(int lx, int ly, int& px, int& next_px,
     px = 0;
     next_px = 0;
     for (int k = 0; k < (int)vline->size(); ++k) {
-        int vchar_sz = GetCharWidth(vline->at(k));
+        int vchar_sz = GetCharWidth(vline->at(k), (int)k);
         next_px += vchar_sz;
         // [px, px+vchar_sz]
         if (lx >= px && lx < next_px) {
@@ -526,7 +496,7 @@ int SerialConnVT::LogicToVirtual(const VTLine& vline, int lx, int& px, int& next
     px = 0;
     next_px = 0;
     for (int i = 0; i < (int)vline.size(); ++i) {
-        int vchar_sz = GetCharWidth(vline[i]);
+        int vchar_sz = GetCharWidth(vline[i], i);
         next_px += vchar_sz;
         // [px, px+vchar_sz]
         if (lx >= px && lx < next_px) {
@@ -566,15 +536,8 @@ bool SerialConnVT::ProcessAsciiControlChar(char cc)
         mVy += 1;
         break;
     case '\t':
-        if (1) { // HT
-            Point ppos = VirtualToLogic(mVx, (int)mLines.size() + mVy);
-            mPx = ppos.x - mSbH.Get();
-            mPy = ppos.y - mSbV.Get();
-            int cellsz = 8 - (mPx / mFontW % 8);
-            mLines[mVy][mVx] = '\t';
-            mLines[mVy][mVx].SetCx(mFontW * cellsz);
-            mVx++;
-        }
+        mLines[mVy][mVx] = '\t';
+        mVx++;
         break;
     }
     return true;
@@ -618,7 +581,7 @@ void SerialConnVT::ProcessOverflowLines()
         mLines.insert(mLines.begin() + bottom + 1, dy, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
         if (span.Top == 0) { // If span.Top == 0, buffer the lines out of scrolling region.
 	        for (int i = span.Top; i < span.Top + dy; ++i) {
-	            mLinesBuffer.push_back(mLines[i]);
+	            PushToLinesBufferAndCheck(mLines[i]);
 	        }
         }
         mLines.erase(mLines.begin() + span.Top, mLines.begin() + span.Top + dy);
@@ -636,17 +599,16 @@ void SerialConnVT::RenderText(const std::vector<uint32_t>& s)
     Size csz = GetConsoleSize();
     for (size_t k = 0; k < s.size(); ++k) {
         VTChar chr = s[k];
-        if (chr < 0x20 || chr == 0x7f) {
-            if (ProcessAsciiControlChar(chr)) {
+        if (chr.Code() < 0x20 || chr.Code() == 0x7f) {
+            if (ProcessAsciiControlChar(chr.Code())) {
                 ProcessOverflowLines();
             }
         } else {
-            chr.SetAttrFuns(mCurrAttrFuncs);
-            mCurrAttrFuncs.clear();
+            chr.SetStyle(mStyle);
             // Unfortunately, UPP does not support complete UNICODE, support UCS-16 instead. So
             // we should ignore those out of range
-            if (chr > 0xffff)
-                chr = '?'; // replace chr with ?
+            if (chr.Code() > 0xffff)
+                chr.SetCode('?'); // replace chr with ?
             VTLine& vline = mLines[mVy];
             if (mVx < vline.size()) {
                 vline[mVx] = chr;
@@ -745,13 +707,13 @@ void SerialConnVT::LeftDouble(Point p, dword)
         // forward
         int fx = vpos.x;
         mSelectionSpan.X0 = fx;
-        while (fx >= 0 && vline->at(fx) != ' ') {
+        while (fx >= 0 && vline->at(fx).Code() != ' ') {
             mSelectionSpan.X0 = fx--;
         }
         // backward
         int bx = vpos.x + 1; // selection span is [vpos.x, vpos.x + N+1)
         if (fx != vpos.x) { // If you have clicked blank, we do not extend the selection span
-            while (bx < (int)vline->size() && vline->at(bx) != ' ') {
+            while (bx < (int)vline->size() && vline->at(bx).Code() != ' ') {
                 bx++;
             }
         }
@@ -786,6 +748,7 @@ void SerialConnVT::LeftUp(Point p, dword)
         mPressed = false;
         Refresh();
     }
+    ReleaseCapture();
 }
 
 void SerialConnVT::Paste()
@@ -966,7 +929,7 @@ int SerialConnVT::CalculateNumberOfBlankLinesFromEnd(const std::vector<VTLine>& 
         const VTLine& vline = lines[sz];
         bool blank = true;
         for (size_t k = 0; k < vline.size(); ++k) {
-            if (vline[k] != ' ') {
+            if (vline[k].Code() != ' ') {
                 blank = false;
                 break;
             }
@@ -984,7 +947,7 @@ int SerialConnVT::CalculateNumberOfBlankCharsFromEnd(const VTLine& vline) const
     int cn = 0;
     size_t sz = vline.size();
     while (sz--) {
-        if (vline[sz] == ' ')
+        if (vline[sz].Code() == ' ')
             cn++;
         else
             break;
@@ -1118,7 +1081,7 @@ std::vector<std::string> SerialConnVT::GetSelection() const
         for (size_t i = vx; i < nchars; ++i) {
             bool is_selected = IsCharInSelectionSpan((int)i, span.Y0);
             if (is_selected) {
-                sel += UTF32ToUTF8_(vline->at(i));
+                sel += UTF32ToUTF8_(vline->at(i).Code());
             }
         }
         out[out_p++] = sel;
@@ -1130,7 +1093,7 @@ std::vector<std::string> SerialConnVT::GetSelection() const
         std::string sel;
         int nchars = (int)vline->size() - this->CalculateNumberOfBlankCharsFromEnd(*vline);
         for (size_t i = 0; i < nchars; ++i) {
-            sel += UTF32ToUTF8_(vline->at(i));
+            sel += UTF32ToUTF8_(vline->at(i).Code());
         }
         out[out_p++] = sel;
     }
@@ -1143,7 +1106,7 @@ std::vector<std::string> SerialConnVT::GetSelection() const
         for (size_t i = 0; i < nchars && i < vx; ++i) {
             bool is_selected = IsCharInSelectionSpan((int)i, span.Y1);
             if (is_selected) {
-                sel += UTF32ToUTF8_(vline->at(i));
+                sel += UTF32ToUTF8_(vline->at(i).Code());
             }
         }
         out[out_p++] = sel;
@@ -1209,8 +1172,9 @@ void SerialConnVT::DrawCursor(Draw& draw)
         draw.DrawRect(mPx, mPy, mFontW, mFontH, Color(0, 255, 0));
         // a visible char.
         if (mVx < (int)mLines[mVy].size() && mVy < (int)mLines.size()
-            && mLines[mVy][mVx] != ' ' && mLines[mVy][mVx] != '\t') {
-            this->DrawVTChar(draw, mPx, mPy, mLines[mVy][mVx], mFont, mPaperColor);
+            && mLines[mVy][mVx].Code() != ' ' && mLines[mVy][mVx].Code() != '\t') {
+            this->DrawVTChar(draw, mPx, mPy, mLines[mVy][mVx], mFont, \
+                mColorTbl.GetColor(VTColorTable::kColorId_Paper));
         }
     }
 }
@@ -1224,6 +1188,15 @@ int SerialConnVT::GetVTLinesHeight(const std::vector<VTLine>& lines) const
     return linesz;
 }
 
+void SerialConnVT::UseStyle(const VTChar& c, Upp::Font& font, Upp::Color& fg_color, Upp::Color& bg_color,
+    bool& blink, bool& visible)
+{
+	uint16_t fgcolor_id, bgcolor_id;
+	c.UseStyle(font, fgcolor_id, bgcolor_id, blink, visible);
+	fg_color = mColorTbl.GetColor(fgcolor_id);
+	bg_color = mColorTbl.GetColor(bgcolor_id);
+}
+
 void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
     int vx, int vy, /*! absolute position of data */
     int lxoff, int lyoff)
@@ -1233,46 +1206,49 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
     bool tail_selected = IsCharInSelectionSpan((int)vline.size() - 1, vy);
     bool line_selected = IsCharInSelectionSpan(0, vy) && tail_selected; // line was selected.
     int abc_cnt = (int)vline.size();
+    // style
+    const Color& paper_color = mColorTbl.GetColor(VTColorTable::kColorId_Paper);
+    Color bg_color, fg_color; bool blink, visible;
     for (i = vx; i < abc_cnt && x < usz.cx; ++i) {
-        vline[i].ApplyAttrs();
+        UseStyle(vline[i], mFont, fg_color, bg_color, blink, visible);
         bool is_selected = line_selected ? true : IsCharInSelectionSpan(i, vy);
         if (is_selected) {
-            std::swap(mBgColor, mFgColor);
+            std::swap(bg_color, fg_color);
         }
-        int vchar_cx = GetCharWidth(vline[i]);
-        if (mBlink) {
+        int vchar_cx = GetCharWidth(vline[i], i);
+        if (blink) {
             if (mBlinkSignal) {
-                draw.DrawRect(x, y, vchar_cx, vline.GetHeight(), mPaperColor);
+                draw.DrawRect(x, y, vchar_cx, vline.GetHeight(), paper_color);
             } else {
-                if (mBgColor != mPaperColor) {
-                    draw.DrawRect(x, y, vchar_cx, vline.GetHeight(), mBgColor);
+                if (bg_color != paper_color) {
+                    draw.DrawRect(x, y, vchar_cx, vline.GetHeight(), bg_color);
                 }
-                if (mFgColor != mBgColor) {
-                    if (vline[i] != ' ' && vline[i] != '\t' && vline[i] != '\v' && mVisible) {
-                        DrawVTChar(draw, x, y, vline[i], mFont, mFgColor);
+                if (fg_color != bg_color) {
+                    if (vline[i].Code() != ' ' && vline[i].Code() != '\t' && vline[i].Code() != '\v' && visible) {
+                        DrawVTChar(draw, x, y, vline[i], mFont, fg_color);
                     }
                 }
             }
         } else {
-            if (mBgColor != mPaperColor) {
-                draw.DrawRect(x, y, vchar_cx, vline.GetHeight(), mBgColor);
+            if (bg_color != paper_color) {
+                draw.DrawRect(x, y, vchar_cx, vline.GetHeight(), bg_color);
             }
-            if (mFgColor != mBgColor) {
-                if (vline[i] != ' ' && vline[i] != '\t' && vline[i] != '\v' && mVisible) {
-                    DrawVTChar(draw, x, y, vline[i], mFont, mFgColor);
+            if (fg_color != bg_color) {
+                if (vline[i].Code() != ' ' && vline[i].Code() != '\t' && vline[i].Code() != '\v' && visible) {
+                    DrawVTChar(draw, x, y, vline[i], mFont, fg_color);
                 }
             }
         }
         x += vchar_cx;
         if (is_selected) { // restore color
-            std::swap(mBgColor, mFgColor);
+            std::swap(bg_color, fg_color);
         }
     }
     // should we padding line with blanks?
     if (tail_selected && vx < std::max(mSelectionSpan.Y0, mSelectionSpan.Y1)) {
         if (usz.cx - x > 0) {
             // Use black to tell the user it's the end of the normal text.
-            draw.DrawRect(x, y, usz.cx - x, vline.GetHeight(), mFgColor);
+            draw.DrawRect(x, y, usz.cx - x, vline.GetHeight(), fg_color);
         }
     }
 }
@@ -1367,7 +1343,7 @@ void SerialConnVT::DrawVT(Draw& draw)
 void SerialConnVT::Render(Draw& draw)
 {
     // draw background
-    draw.DrawRect(GetRect(), mPaperColor);
+    draw.DrawRect(GetRect(), mColorTbl.GetColor(VTColorTable::kColorId_Paper));
     //
     DrawVT(draw);
     //
@@ -1378,7 +1354,7 @@ WString SerialConnVT::TranscodeToUTF16(const VTChar& cc) const
 {
     // Because the UPP only support UCS-16, so we replace the unsupported chars with ?
     WString out;
-    out << (int)cc;
+    out << (int)cc.Code();
     return out;
 }
 
