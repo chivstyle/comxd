@@ -126,6 +126,7 @@ protected:
     // calcualte blank lines from end of lines
     int CalculateNumberOfBlankLinesFromEnd(const std::vector<VTLine>& lines) const;
     int CalculateNumberOfBlankCharsFromEnd(const VTLine& vline) const;
+    int CalculateNumberOfPureBlankCharsFromEnd(const VTLine& vline) const;
     //
     bool mScrollToEnd;
     bool mPressed;
@@ -140,20 +141,20 @@ protected:
     // lx, ly - Absolute position
     //        cN       cN+1   cN+2
     // lx     |____lx___|______|
-    Upp::Point LogicToVirtual(int lx, int ly, int& px, int& next_px, int& py, int& next_py);
-    Upp::Point VirtualToLogic(int vx, int vy);
+    Upp::Point LogicToVirtual(int lx, int ly, int& px, int& next_px, int& py, int& next_py, bool ignore_tail_blanks = true);
+    Upp::Point VirtualToLogic(int vx, int vy, bool ignore_tail_blanks = true);
     // lx, ly - lines is virtual screen
     //        cN       cN+1   cN+2
     // lx     |____lx___|______|
     Upp::Point LogicToVirtual(const std::vector<VTLine>& lines, int lx, int ly, int& px, int& next_px,
-                                                                                int& py, int& next_py);
-    Upp::Point VirtualToLogic(const std::vector<VTLine>& lines, int vx, int vy);
+                                                                                int& py, int& next_py, bool ignore_tail_blanks = true);
+    Upp::Point VirtualToLogic(const std::vector<VTLine>& lines, int vx, int vy, bool ignore_tail_blanks = true);
     //        cN       cN+1   cN+2
     // lx     |____lx___|______|
-    int LogicToVirtual(const VTLine& vline, int lx, int& px, int& next_px);
-    int VirtualToLogic(const VTLine& vline, int vx);
+    int LogicToVirtual(const VTLine& vline, int lx, int& px, int& next_px, bool ignore_tail_blanks = true);
+    int VirtualToLogic(const VTLine& vline, int vx, bool ignore_tail_blanks = true);
     // return logic width of vline, unit: pixels
-    int GetLogicWidth(const VTLine& vline, int count = -1);
+    int GetLogicWidth(const VTLine& vline, int count = -1, bool ignore_tail_blanks = true);
     // adjust virtual screen, what can affect this routine were listed below
     //  1. Font
     //  2. Size of client region
@@ -173,7 +174,7 @@ protected:
     Upp::VScrollBar mSbV;
     Upp::HScrollBar mSbH;
     //
-    virtual int GetCharWidth(const VTChar& c, int vx);
+    virtual int GetCharWidth(const VTChar& c, int vx) const;
     // vy - absolute position
     virtual int GetLineHeight(int vy) const;
     // calculate the size of console

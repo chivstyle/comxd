@@ -9,7 +9,7 @@ VTColorTable::VTColorTable()
 	: mFallbackColor(Upp::White())
 {
 	mTbl[kColorId_Texts] = Upp::Black();
-	mTbl[kColorId_Paper] = Upp::White();
+	mTbl[kColorId_Paper] = Upp::LtGray();
 	mTbl[kColorId_Red] = Upp::Red();
 	mTbl[kColorId_Green] = Upp::Green();
 	mTbl[kColorId_Blue] = Upp::Blue();
