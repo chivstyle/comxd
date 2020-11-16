@@ -1076,6 +1076,8 @@ void SerialConnVT::DoLayout()
     } else {
         ShrinkVirtualScreen(csz.cx, csz.cy);
     }
+    //
+    this->ProcessOverflowLines();
 }
 
 void SerialConnVT::Layout()
@@ -1100,7 +1102,7 @@ std::vector<std::string> SerialConnVT::GetSelection() const
     if (span.X0 == span.X1 && span.Y0 == span.Y1)
         return std::vector<std::string>();
     // merge buffer and virtual screen.
-    int nlines = (int)mLines.size() - this->CalculateNumberOfBlankLinesFromEnd(mLines);
+    int nlines = (int)(mLinesBuffer.size() + mLines.size()) - this->CalculateNumberOfBlankLinesFromEnd(mLines);
     std::vector<std::string> out(span.Y1 - span.Y0 + 1);
     size_t out_p = 0;
     // first line
