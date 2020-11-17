@@ -32,7 +32,7 @@ void SerialConnECMA48::ProcessSGR(int attr_code)
         mStyle.FontStyle |= VTStyle::eBold;
         break;
     case 2:
-        mStyle.FontStyle |= ~VTStyle::eBold;
+        mStyle.FontStyle &= ~VTStyle::eBold;
         break;
     case 3:
         mStyle.FontStyle |= VTStyle::eItalic;
@@ -48,7 +48,7 @@ void SerialConnECMA48::ProcessSGR(int attr_code)
         std::swap(mStyle.FgColorId, mStyle.BgColorId);
         break;
     case 8: // conceal
-        mStyle.FontStyle |= VTStyle::eVisible;
+        mStyle.FontStyle &= ~VTStyle::eVisible;
         break;
     case 9: // crossed-out
         mStyle.FontStyle |= VTStyle::eStrikeout;
@@ -66,17 +66,17 @@ void SerialConnECMA48::ProcessSGR(int attr_code)
     case 20: // Fraktur
     case 21: // double underlined
     case 22: // normal color, normal intensity
-        mStyle.FontStyle &= VTStyle::eBold;
+        mStyle.FontStyle &= ~VTStyle::eBold;
         mStyle.FgColorId = VTColorTable::kColorId_Texts;
         break;
     case 23: // Not italicized, not fraktur
-        mStyle.FontStyle &= VTStyle::eItalic;
+        mStyle.FontStyle &= ~VTStyle::eItalic;
         break;
     case 24: // not underline
-        mStyle.FontStyle &= VTStyle::eUnderline;
+        mStyle.FontStyle &= ~VTStyle::eUnderline;
         break;
     case 25: // steady, no blinking
-        mStyle.FontStyle &= VTStyle::eBlink;
+        mStyle.FontStyle &= ~VTStyle::eBlink;
         break;
     case 26: // reserved for proportional spacing as specified in CCITT recommendation T6.1
     case 27: // positive image
@@ -463,7 +463,7 @@ void SerialConnECMA48::ProcessDCH(const std::string& seq)
     if (mModes.HEM == Ecma48Modes::HemFollowing) {
         int p_ = mVx + pn;
         if (p_ >= (int)mLines[mVy].size()) {
-            p_ = (int)mLines[mVy].size()-1;
+            p_ = (int)mLines[mVy].size();
         }
         mLines[mVy].erase(mLines[mVy].begin() + mVx, mLines[mVy].begin() + p_);
     } else { // Preceding
@@ -488,7 +488,7 @@ void SerialConnECMA48::ProcessDL(const std::string& seq)
     if (mModes.VEM == Ecma48Modes::VemFollowing) {
         int p_ = mVy + pn;
         if (p_ >= (int)mLines.size()) {
-            p_ = (int)mLines.size() - 1;
+            p_ = (int)mLines.size();
         }
         int bot = mScrollingRegion.Bottom; if (bot < 0) bot = csz.cy - 1;
         mLines.erase(mLines.begin() + mVy, mLines.begin() + p_);

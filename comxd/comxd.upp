@@ -20,10 +20,14 @@ file
 	comxd.lay,
 	resource.cpp,
 	resource.h,
-	SerialPort.cpp,
-	SerialPort.h,
-	SerialDevsDialog.h,
-	SerialDevsDialog.cpp,
+	IoImpls/SerialPort.cpp,
+	IoImpls/SerialPort.h,
+	IoImpls/SSHPort.cpp,
+	IoImpls/SSHPort.h,
+	IoImpls/SSHDevsDialog.h,
+	IoImpls/SSHDevsDialog.cpp,
+	IoImpls/SerialDevsDialog.h,
+	IoImpls/SerialDevsDialog.cpp,
 	main.cpp;
 
 mainconfig

@@ -1,4 +1,4 @@
-﻿//
+//
 // (c) 2020 chiv
 //
 #include "terminal_rc.h"
@@ -662,7 +662,7 @@ bool SerialConnVT102::ProcessChar(Upp::dword cc)
             return true;
         }
     }
-    if (isprint((int)cc) && mModes.SendReceive == VT102Modes::On) {
+    if (mModes.SendReceive == VT102Modes::On) {
         // local echo
         RenderText(std::vector<uint32_t>({(uint32_t)cc}));
     }

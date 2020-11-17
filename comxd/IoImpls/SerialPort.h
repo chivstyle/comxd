@@ -1,5 +1,7 @@
-#ifndef _comxd_SerialPort_h_
-#define _comxd_SerialPort_h_
+//
+// (c) 2020 chiv
+//
+#pragma once
 
 #include "SerialIo.h"
 #include "serial/serial.h"
@@ -50,5 +52,3 @@ public:
 private:
     std::shared_ptr<serial::Serial> mSerial;
 };
-
-#endif

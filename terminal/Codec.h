@@ -39,7 +39,7 @@ static inline std::vector<uint32_t> UTF8ToUTF32_(const unsigned char* seq, size_
     while (p < sz) {
         int flag = seq[p] & 0xf0;
         if (flag == 0xf0) { // 4 bytes
-            if (sz - p <= 4) break;
+            if (sz - p < 4) break;
             uint32_t bits = (seq[p] & 0x07) << 18; // 3+6+6+6=21bits
             // check and check
             if ((seq[p+1] & 0xc0) != 0x80 ||
@@ -56,7 +56,7 @@ static inline std::vector<uint32_t> UTF8ToUTF32_(const unsigned char* seq, size_
                 p += 4;
             }
         } else if ((flag & 0xe0) == 0xe0) { // 3 bytes, 4+6+6=16bits
-            if (sz - p <= 3) break;
+            if (sz - p < 3) break;
             if ((seq[p+1] & 0xc0) != 0x80 ||
                 (seq[p+2] & 0xc0) != 0x80)
             {
@@ -70,7 +70,7 @@ static inline std::vector<uint32_t> UTF8ToUTF32_(const unsigned char* seq, size_
                 p += 3;
             }
         } else if ((flag & 0xc0) == 0xc0) { // 2 bytes, 5+6 = 11bits
-            if (sz - p <= 2) break;
+            if (sz - p < 2) break;
             if ((seq[p+1] & 0xc0) != 0x80) {
                 out.push_back('?');
                 p++;

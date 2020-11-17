@@ -64,6 +64,9 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> serial)
         mBlinkSignal = !mBlinkSignal;
         this->Refresh();
     });
+    // initialize size
+    VTLine vline = VTLine(40, ' ').SetHeight(mFontH);
+    mLines.insert(mLines.begin(), 30, vline);
     //
     InstallUserActions();
     // finally start the rx-thread.
@@ -1076,6 +1079,8 @@ void SerialConnVT::DoLayout()
     } else {
         ShrinkVirtualScreen(csz.cx, csz.cy);
     }
+    //
+    WhenSizeChanged(GetConsoleSize());
     //
     this->ProcessOverflowLines();
 }

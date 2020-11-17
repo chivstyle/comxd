@@ -30,7 +30,8 @@ public:
     //
     SerialIo* GetSerial() const { return mSerial.get(); }
     Codec* GetCodec() const { return mCodec.get(); }
-    
+    // Event.
+    Upp::Event<Upp::Size> WhenSizeChanged;
 protected:
     std::shared_ptr<SerialIo> mSerial;
     std::shared_ptr<Codec> mCodec;

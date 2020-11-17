@@ -1,5 +1,8 @@
 description "virtual terminal\377";
 
+uses
+	Core/SSH;
+
 library
 	;
 

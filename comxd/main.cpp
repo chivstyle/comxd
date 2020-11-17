@@ -3,7 +3,8 @@
 //
 #include "resource.h"
 // dialogs or forms
-#include "SerialDevsDialog.h"
+#include "IoImpls/SerialDevsDialog.h"
+#include "IoImpls/SSHDevsDialog.h"
 // main window
 class MainWindow : public WithMainWindow<TopWindow> {
 	typedef MainWindow CLASSNAME;
@@ -61,9 +62,21 @@ public:
         TabCtrl* mTabbar;
 	};
 	// create a new connection
-	void NewConn()
+	void NewSerialConn()
 	{
 	    SerialDevsDialog d;
+		auto conn = d.RequestConn();
+		if (conn) {
+		    auto btn_close = new TabCloseBtn(conn, &mDevsTab);
+		    btn_close->SetImage(comxd::close_little());
+		    btn_close->SetRect(0, 0, 16, 16);
+		    mDevsTab.Add(conn->SizePos(), conn->ConnName()).SetCtrl(btn_close);
+		    mDevsTab.Set(*conn);
+		}
+	}
+	void NewSSHConn()
+	{
+		SSHDevsDialog d;
 		auto conn = d.RequestConn();
 		if (conn) {
 		    auto btn_close = new TabCloseBtn(conn, &mDevsTab);
@@ -111,7 +124,8 @@ protected:
 	// Add a toolbar for window
 	void MainToolbar(Bar& bar)
 	{
-		bar.Add(t_("New Connection"), comxd::new_conn(), THISBACK(NewConn));
+		bar.Add(t_("New Serial"), comxd::new_serial(), THISBACK(NewSerialConn));
+		bar.Add(t_("New SSH"), comxd::new_ssh(), THISBACK(NewSSHConn));
 		bar.ToolSeparator();
 		//
 		OndemandToolbar(bar);

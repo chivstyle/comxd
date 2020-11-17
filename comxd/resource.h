@@ -1,5 +1,7 @@
-#ifndef _comxd_resource_h_
-#define _comxd_resource_h_
+//
+// (c) 2020 chiv
+//
+#pragma once
 
 #include <CtrlLib/CtrlLib.h>
 using namespace Upp;
@@ -19,6 +21,4 @@ using namespace Upp;
 
 #ifndef ARRAYSIZE
 #define ARRAYSIZE(a) (sizeof(a)/sizeof(a[0]))
-#endif
-
 #endif
