@@ -520,6 +520,8 @@ void SerialConnECMA48::ProcessDSR(const std::string& seq)
     case 4: // some malfunction detected, another DSR will be sent later
         break;
     case 5: // a DSR is requested
+        // report No error.
+        GetSerial()->Write("\033[0\x6e");
         break;
     case 6:
         // a report of the active presentation position or of the active data position in the form of
@@ -932,6 +934,16 @@ void SerialConnECMA48::ProcessSIMD(const std::string& seq)
 }
 void SerialConnECMA48::ProcessSL(const std::string& seq)
 {
+	int pn = atoi(seq.substr(2, seq.length()-2).c_str());
+	if (pn <= 0) pn = 1;
+	// scroll left
+	for (size_t k = 0; k < mLines.size(); ++k) {
+		VTLine& vline = mLines[k];
+		for (int i = 0; i < pn && i < vline.size(); ++k) {
+			vline.erase(vline.begin());
+		}
+		vline.insert(vline.end(), pn, mBlankChar);
+	}
 }
 void SerialConnECMA48::ProcessSLH(const std::string& seq)
 {
@@ -960,8 +972,16 @@ void SerialConnECMA48::ProcessSPL(const std::string& seq)
 void SerialConnECMA48::ProcessSPQR(const std::string& seq)
 {
 }
+// scroll right
 void SerialConnECMA48::ProcessSR(const std::string& seq)
 {
+	int pn = atoi(seq.substr(2, seq.length()-2).c_str());
+	if (pn <= 0) pn = 1;
+	for (size_t k = 0; k < mLines.size(); ++k) {
+		VTLine& vline = mLines[k];
+		vline.insert(vline.begin(), pn, mBlankChar);
+		vline.erase(vline.begin() + vline.size() - pn, vline.end());
+	}
 }
 void SerialConnECMA48::ProcessSRCS(const std::string& seq)
 {
@@ -1014,13 +1034,25 @@ void SerialConnECMA48::ProcessTSS(const std::string& seq)
 }
 void SerialConnECMA48::ProcessVPA(const std::string& seq)
 {
+	int pn = atoi(seq.substr(2, seq.length()-2).c_str());
+	if (pn <= 0) pn = 1; // default 1.
+	mVy = pn-1;
 }
 void SerialConnECMA48::ProcessVPB(const std::string& seq)
 {
+	int pn = atoi(seq.substr(2, seq.length()-2).c_str());
+	if (pn <= 0) pn = 1; // default 1.
+	mVy -= pn;
+	// TODO: how to process the lines when mVy < 0 ?
+	if (mVy < 0)
+		mVy = 0;
 }
 
 void SerialConnECMA48::ProcessVPR(const std::string& seq)
 {
+	int pn = atoi(seq.substr(2, seq.length()-2).c_str());
+	if (pn <= 0) pn = 1; // default 1.
+	mVy += pn;
 }
 
 void SerialConnECMA48::InstallEcma48Functions()
@@ -1029,7 +1061,6 @@ void SerialConnECMA48::InstallEcma48Functions()
     mEcma48Funcs[ECMA48_CHA ] = [=](const std::string& seq) { ProcessCHA(seq); };
     mEcma48Funcs[ECMA48_CHT ] = [=](const std::string& seq) { ProcessCHT(seq); };
     mEcma48Funcs[ECMA48_SGR ] = [=](const std::string& seq) { ProcessSGR(seq); };
-    mEcma48Funcs[ECMA48_C1  ] = [=](const std::string& seq) { ProcessC1(seq[0]); };
     mEcma48Funcs[ECMA48_CTC ] = [=](const std::string& seq) { ProcessCTC(seq); };
     mEcma48Funcs[ECMA48_CUB ] = [=](const std::string& seq) { ProcessCUB(seq); };
     mEcma48Funcs[ECMA48_CUD ] = [=](const std::string& seq) { ProcessCUD(seq); };
@@ -1112,6 +1143,34 @@ void SerialConnECMA48::InstallEcma48Functions()
     mEcma48Funcs[ECMA48_VPA ] = [=](const std::string& seq) { ProcessVPA(seq); };
     mEcma48Funcs[ECMA48_VPB ] = [=](const std::string& seq) { ProcessVPB(seq); };
     mEcma48Funcs[ECMA48_VPR ] = [=](const std::string& seq) { ProcessVPR(seq); };
+    mEcma48Funcs[ECMA48_C1_APC] = [=](const std::string& seq) { ProcessAPC(seq); };
+	mEcma48Funcs[ECMA48_C1_BPH] = [=](const std::string& seq) { ProcessBPH(seq); };
+	mEcma48Funcs[ECMA48_C1_CCH] = [=](const std::string& seq) { ProcessCCH(seq); };
+	mEcma48Funcs[ECMA48_C1_CSI] = [=](const std::string& seq) { ProcessCSI(seq); };
+	mEcma48Funcs[ECMA48_C1_DCS] = [=](const std::string& seq) { ProcessDCS(seq); };
+	mEcma48Funcs[ECMA48_C1_EPA] = [=](const std::string& seq) { ProcessEPA(seq); };
+	mEcma48Funcs[ECMA48_C1_ESA] = [=](const std::string& seq) { ProcessESA(seq); };
+	mEcma48Funcs[ECMA48_C1_HTJ] = [=](const std::string& seq) { ProcessHTJ(seq); };
+	mEcma48Funcs[ECMA48_C1_HTS] = [=](const std::string& seq) { ProcessHTS(seq); };
+	mEcma48Funcs[ECMA48_C1_MW ] = [=](const std::string& seq) { ProcessMW (seq); };
+	mEcma48Funcs[ECMA48_C1_NBH] = [=](const std::string& seq) { ProcessNBH(seq); };
+	mEcma48Funcs[ECMA48_C1_NEL] = [=](const std::string& seq) { ProcessNEL(seq); };
+	mEcma48Funcs[ECMA48_C1_OSC] = [=](const std::string& seq) { ProcessOSC(seq); };
+	mEcma48Funcs[ECMA48_C1_PLD] = [=](const std::string& seq) { ProcessPLD(seq); };
+	mEcma48Funcs[ECMA48_C1_PLU] = [=](const std::string& seq) { ProcessPLU(seq); };
+	mEcma48Funcs[ECMA48_C1_PM ] = [=](const std::string& seq) { ProcessPM (seq); };
+	mEcma48Funcs[ECMA48_C1_PU1] = [=](const std::string& seq) { ProcessPU1(seq); };
+	mEcma48Funcs[ECMA48_C1_PU2] = [=](const std::string& seq) { ProcessPU2(seq); };
+	mEcma48Funcs[ECMA48_C1_RI ] = [=](const std::string& seq) { ProcessRI (seq); };
+	mEcma48Funcs[ECMA48_C1_SCI] = [=](const std::string& seq) { ProcessSCI(seq); };
+	mEcma48Funcs[ECMA48_C1_SOS] = [=](const std::string& seq) { ProcessSOS(seq); };
+	mEcma48Funcs[ECMA48_C1_SPA] = [=](const std::string& seq) { ProcessSPA(seq); };
+	mEcma48Funcs[ECMA48_C1_SSA] = [=](const std::string& seq) { ProcessSSA(seq); };
+	mEcma48Funcs[ECMA48_C1_SS2] = [=](const std::string& seq) { ProcessSS2(seq); };
+	mEcma48Funcs[ECMA48_C1_SS3] = [=](const std::string& seq) { ProcessSS3(seq); };
+	mEcma48Funcs[ECMA48_C1_ST ] = [=](const std::string& seq) { ProcessST (seq); };
+	mEcma48Funcs[ECMA48_C1_STS] = [=](const std::string& seq) { ProcessSTS(seq); };
+	mEcma48Funcs[ECMA48_C1_VTS] = [=](const std::string& seq) { ProcessVTS(seq); };
 }
 
 void SerialConnECMA48::ProcessEcma48Trivial(const std::string& seq)
@@ -1146,7 +1205,108 @@ bool SerialConnECMA48::ProcessControlSeq(const std::string& seq, int seq_type)
     }
     return true;
 }
-
+//---------------------------------------------------------------------------
+void SerialConnECMA48::ProcessAPC(const std::string& seq)
+{
+}
+void SerialConnECMA48::ProcessBPH(const std::string& seq)
+{
+}
+void SerialConnECMA48::ProcessCCH(const std::string& seq)
+{
+}
+void SerialConnECMA48::ProcessCSI(const std::string& seq)
+{
+}
+void SerialConnECMA48::ProcessDCS(const std::string& seq)
+{
+}
+void SerialConnECMA48::ProcessEPA(const std::string& seq)
+{
+}
+void SerialConnECMA48::ProcessESA(const std::string& seq)
+{
+	mSelectionSpan.X1 = mVx;
+	mSelectionSpan.Y1 = mVy;
+	//
+	this->Refresh();
+}
+void SerialConnECMA48::ProcessHTJ(const std::string& seq)
+{
+}
+void SerialConnECMA48::ProcessHTS(const std::string& seq)
+{
+	mLines[mVy][mVx++] = '\t';
+}
+void SerialConnECMA48::ProcessMW(const std::string& seq)
+{
+	GetSerial()->Write("\033[0\x6e");
+}
+void SerialConnECMA48::ProcessNBH(const std::string& seq)
+{
+}
+void SerialConnECMA48::ProcessNEL(const std::string& seq)
+{
+}
+void SerialConnECMA48::ProcessOSC(const std::string& seq)
+{
+}
+void SerialConnECMA48::ProcessPLD(const std::string& seq)
+{
+}
+void SerialConnECMA48::ProcessPLU(const std::string& seq)
+{
+}
+void SerialConnECMA48::ProcessPM(const std::string& seq)
+{
+}
+void SerialConnECMA48::ProcessPU1(const std::string& seq)
+{
+}
+void SerialConnECMA48::ProcessPU2(const std::string& seq)
+{
+}
+void SerialConnECMA48::ProcessRI(const std::string& seq)
+{
+	int top = mScrollingRegion.Top, bot = mScrollingRegion.Bottom;
+	if (bot < 0) bot = (int)mLines.size() - 1;
+	if (mVy > top) mVy--; else {
+		Size csz = GetConsoleSize();
+		int dy = mVy - top + 1;
+		mLines.insert(mLines.begin() + top, dy, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
+		mLines.erase(mLines.begin() + bot+1, mLines.begin() + bot+1+dy);
+		mVy = top;
+	}
+}
+void SerialConnECMA48::ProcessSCI(const std::string& seq)
+{
+}
+void SerialConnECMA48::ProcessSOS(const std::string& seq)
+{
+}
+void SerialConnECMA48::ProcessSPA(const std::string& seq)
+{
+}
+void SerialConnECMA48::ProcessSSA(const std::string& seq)
+{
+	mSelectionSpan.X0 = mVx;
+	mSelectionSpan.Y0 = mVy;
+}
+void SerialConnECMA48::ProcessSS2(const std::string& seq)
+{
+}
+void SerialConnECMA48::ProcessSS3(const std::string& seq)
+{
+}
+void SerialConnECMA48::ProcessST(const std::string& seq)
+{
+}
+void SerialConnECMA48::ProcessSTS(const std::string& seq)
+{
+}
+void SerialConnECMA48::ProcessVTS(const std::string& seq)
+{
+}
 bool SerialConnECMA48::ProcessC0(char cc)
 {
     // process those needed, the super class will process others
@@ -1169,24 +1329,6 @@ bool SerialConnECMA48::ProcessC0(char cc)
         break;
     default:return false;
     }
-    return true;
-}
-
-bool SerialConnECMA48::ProcessC1(char cc)
-{
-	switch (cc) {
-	case 0x4d: if (1) { // ESC M, RI
-		int top = mScrollingRegion.Top, bot = mScrollingRegion.Bottom;
-		if (bot < 0) bot = (int)mLines.size() - 1;
-		if (mVy > top) mVy--; else {
-			Size csz = GetConsoleSize();
-			int dy = mVy - top + 1;
-			mLines.insert(mLines.begin() + top, dy, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
-			mLines.erase(mLines.begin() + bot+1, mLines.begin() + bot+1+dy);
-			mVy = top;
-		}
-	} break;
-	}
     return true;
 }
 

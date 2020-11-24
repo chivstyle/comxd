@@ -234,46 +234,6 @@
 // 8.3.161 VT, ASCII 0x0b
 // 8.3.162 VTS
 // "\x4a"
-// C1 set
-static const char kECMA48_C1[] = {
-    0x42,
-    0x43,
-    0x45,
-    0x46,
-    0x47,
-    0x48,
-    0x49,
-    0x4a,
-    0x4b,
-    0x4c,
-    0x4d,
-    0x4e,
-    0x4f,
-    0x50,
-    0x51,
-    0x52,
-    0x53,
-    0x54,
-    0x55,
-    0x56,
-    0x57,
-    0x58,
-    0x5a,
-    0x5c,
-    0x5d,
-    0x5e,
-    0x5f,
-    0x60,
-    0x61,
-    0x62,
-    0x63,
-    0x64,
-    0x6e,
-    0x6f,
-    0x7c,
-    0x7d,
-    0x7e
-};
 static const char* kECMA48CtrlSeqs[] = {"\xff"};
 
 enum ECMA48FuncionType {
@@ -378,17 +338,89 @@ enum ECMA48FuncionType {
     ECMA48_QUAD, // vPsB48
     ECMA48_SAPV, // vPsB5d
     //-----------------------------------------------------------------------------
-    ECMA48_C1,
+    ECMA48_C1_APC,
+    ECMA48_C1_BPH,
+    ECMA48_C1_CCH,
+    ECMA48_C1_CSI,
+    ECMA48_C1_DCS,
+    ECMA48_C1_EPA,
+    ECMA48_C1_ESA,
+    ECMA48_C1_HTJ,
+    ECMA48_C1_HTS,
+    ECMA48_C1_MW,
+    ECMA48_C1_NBH,
+    ECMA48_C1_NEL,
+    ECMA48_C1_OSC,
+    ECMA48_C1_PLD,
+    ECMA48_C1_PLU,
+    ECMA48_C1_PM,
+    ECMA48_C1_PU1,
+    ECMA48_C1_PU2,
+    ECMA48_C1_RI,
+    ECMA48_C1_SCI,
+    ECMA48_C1_SOS,
+    ECMA48_C1_SPA,
+    ECMA48_C1_SSA,
+    ECMA48_C1_SS2,
+    ECMA48_C1_SS3,
+    ECMA48_C1_ST,
+    ECMA48_C1_STS,
+    ECMA48_C1_VTS,
     //
     ECMA48_SeqType_Endup
 };
 static_assert(ECMA48_SeqType_Endup < ECMA48_SEQ_END, "ECMA48_SeqType_Endup should be less than ECMA48_SEQ_END");
 
+// If we found a ST(string terminator, 0x1b,0x5c), return seq_type
+static inline int IsECMA48_C1String(const std::string& seq, int seq_type)
+{
+	// found the terminator
+	if (seq.length() < 2) return SEQ_PENDING;
+	else {
+		if (seq.length() > 2) {
+		    if (seq[seq.length()-2] == 0x1b &&
+		        seq[seq.length()-1] == 0x5c) return seq_type;
+		}
+		if (seq[seq.length()-1] == '\r' || seq[seq.length()-1] == '\n') {
+			// terminated by CR or LF
+			return seq_type;
+		}
+		return SEQ_PENDING;
+	}
+}
+
 static inline int IsECMA48_C1(const std::string& seq)
 {
-    if (seq.size() == 1) {
-        if (std::binary_search(&kECMA48_C1[0], &kECMA48_C1[sizeof(kECMA48_C1)]/* invalid for end*/, seq[0]))
-            return ECMA48_C1;
+    if (seq.empty()) return SEQ_NONE;
+    switch (seq[0]) {
+    case 0x5f: return IsECMA48_C1String(seq, ECMA48_C1_APC);
+    case 0x42: return ECMA48_C1_BPH;
+    case 0x54: return ECMA48_C1_CCH;
+    //case 0x5b: return ECMA48_C1_CSI; we should ignore this, other procedures will process it.
+    case 0x50: return IsECMA48_C1String(seq, ECMA48_C1_DCS);
+    case 0x57: return ECMA48_C1_EPA;
+    case 0x47: return ECMA48_C1_ESA;
+    case 0x49: return ECMA48_C1_HTJ;
+    case 0x48: return ECMA48_C1_HTS;
+    case 0x55: return ECMA48_C1_MW;
+    case 0x43: return ECMA48_C1_NBH;
+    case 0x45: return ECMA48_C1_NEL;
+    case 0x5d: return IsECMA48_C1String(seq, ECMA48_C1_OSC);
+    case 0x4b: return ECMA48_C1_PLD;
+    case 0x4c: return ECMA48_C1_PLU;
+    case 0x5e: return IsECMA48_C1String(seq, ECMA48_C1_PM);
+    case 0x51: return ECMA48_C1_PU1;
+    case 0x52: return ECMA48_C1_PU2;
+    case 0x4d: return ECMA48_C1_RI;
+    case 0x5a: return ECMA48_C1_SCI;
+    case 0x58: return IsECMA48_C1String(seq, ECMA48_C1_SOS);
+    case 0x56: return ECMA48_C1_SPA;
+    case 0x46: return ECMA48_C1_SSA;
+    case 0x4e: return ECMA48_C1_SS2;
+    case 0x4f: return ECMA48_C1_SS3;
+    case 0x5c: return ECMA48_C1_ST;
+    case 0x53: return ECMA48_C1_STS;
+    case 0x4a: return ECMA48_C1_VTS;
     }
     return SEQ_NONE;
 }
@@ -396,27 +428,25 @@ static inline int IsECMA48_C1(const std::string& seq)
 static inline int IsECMA48_vPs(const std::string& seq)
 {
     size_t seq_sz = seq.length();
-    if (seq_sz == 1 && seq[0] == '[')
-        return SEQ_PENDING; // pending
-    else {
-        if (seq[0] == '[') {
-            size_t b = 1;
-            while (b < seq_sz) {
-                if (seq[b] >= '0' && seq[b] <= '9' || seq[b] == ';')
-                    b++;
-                else
-                    break;
-            }
-            if (b == seq_sz)
-                return SEQ_PENDING;
-            else {
-                switch (seq[b]) {
-                case 0x57: return ECMA48_CTC; // vPs57
-                case 0x6f: return ECMA48_DAQ; // vPs6f
-                case 0x6c: return ECMA48_RM;  // vPs6c
-                case 0x68: return ECMA48_SM;  // vPs68
-                case 0x6d: return ECMA48_SGR; // vPs6d
-                }
+	if (seq[0] != '[') return SEQ_NONE;
+	if (seq_sz < 2) return SEQ_PENDING;
+	{
+        size_t b = 1;
+        while (b < seq_sz) {
+            if (seq[b] >= '0' && seq[b] <= '9' || seq[b] == ';')
+                b++;
+            else
+                break;
+        }
+        if (b == seq_sz)
+            return SEQ_PENDING;
+        else {
+            switch (seq[b]) {
+            case 0x57: return ECMA48_CTC; // vPs57
+            case 0x6f: return ECMA48_DAQ; // vPs6f
+            case 0x6c: return ECMA48_RM;  // vPs6c
+            case 0x68: return ECMA48_SM;  // vPs68
+            case 0x6d: return ECMA48_SGR; // vPs6d
             }
         }
     }
@@ -426,27 +456,25 @@ static inline int IsECMA48_vPs(const std::string& seq)
 static inline int IsECMA48_vPsB(const std::string& seq)
 {
     size_t seq_sz = seq.length();
-    if (seq_sz == 1 && seq[0] == '[')
-        return SEQ_PENDING; // pending
-    else {
-        if (seq[0] == '[') {
-            size_t b = 1;
-            while (b < seq_sz) {
-                if (seq[b] >= '0' && seq[b] <= '9' || seq[b] == ';')
-                    b++;
-                else
-                    break;
-            }
-            if (b == seq_sz)
-                return SEQ_PENDING;
-            else {
-                if (seq_sz - b == 1 && seq[b] == 0x20) return SEQ_PENDING;
-                else if (seq_sz - b == 2 && seq[b] == 0x20) {
-                    switch (seq[b+1]) {
-                    case 0x46: return ECMA48_JFY;  // vPsB46
-                    case 0x48: return ECMA48_QUAD; // vPsB48
-                    case 0x5d: return ECMA48_SAPV; // vPsB5d
-                    }
+	if (seq[0] != '[') return SEQ_NONE;
+	if (seq_sz < 2) return SEQ_PENDING;
+	{
+        size_t b = 1;
+        while (b < seq_sz) {
+            if (seq[b] >= '0' && seq[b] <= '9' || seq[b] == ';')
+                b++;
+            else
+                break;
+        }
+        if (b == seq_sz)
+            return SEQ_PENDING;
+        else {
+            if (seq_sz - b == 1 && seq[b] == 0x20) return SEQ_PENDING;
+            else if (seq_sz - b == 2 && seq[b] == 0x20) {
+                switch (seq[b+1]) {
+                case 0x46: return ECMA48_JFY;  // vPsB46
+                case 0x48: return ECMA48_QUAD; // vPsB48
+                case 0x5d: return ECMA48_SAPV; // vPsB5d
                 }
             }
         }
@@ -457,44 +485,42 @@ static inline int IsECMA48_vPsB(const std::string& seq)
 static inline int IsECMA48_2PsB(const std::string& seq)
 {
     size_t seq_sz = seq.length();
-    if (seq_sz == 1 && seq[0] == '[')
-        return SEQ_PENDING; // pending
-    else {
-        if (seq[0] == '[') {
-            size_t b = 1;
-            while (b < seq_sz) {
-                if (seq[b] >= '0' && seq[b] <= '9')
-                    b++;
-                else
-                    break;
-            }
-            if (b == seq_sz)
-                return SEQ_PENDING;
-            else {
-                if (seq[b] == ';') {
-                    b++; // skip ;
-                    while (b < seq_sz) {
-                        if ((seq[b] >= '0' && seq[b] <= '9'))
-                            b++;
-                        else
-                            break;
-                    }
-                    if (b == seq_sz)
-                        return SEQ_PENDING;
-                    else {
-                        if (seq_sz - b == 1 && seq[b] == 0x20) return SEQ_PENDING;
-                        else if (seq_sz - b == 2 && seq[b] == 0x20) {
-                            switch (seq[b+1]) {
-                            case 0x44: return ECMA48_FNT; // 2PsB44
-                            case 0x6b: return ECMA48_SCP; // 2PsB6b
-                            case 0x59: return ECMA48_SEF; // 2PsB59
-                            case 0x53: return ECMA48_SPD; // 2PsB53
-                            }
+	if (seq[0] != '[') return SEQ_NONE;
+	if (seq_sz < 2) return SEQ_PENDING;
+	{
+        size_t b = 1;
+        while (b < seq_sz) {
+            if (seq[b] >= '0' && seq[b] <= '9')
+                b++;
+            else
+                break;
+        }
+        if (b == seq_sz)
+            return SEQ_PENDING;
+        else {
+            if (seq[b] == ';') {
+                b++; // skip ;
+                while (b < seq_sz) {
+                    if ((seq[b] >= '0' && seq[b] <= '9'))
+                        b++;
+                    else
+                        break;
+                }
+                if (b == seq_sz)
+                    return SEQ_PENDING;
+                else {
+                    if (seq_sz - b == 1 && seq[b] == 0x20) return SEQ_PENDING;
+                    else if (seq_sz - b == 2 && seq[b] == 0x20) {
+                        switch (seq[b+1]) {
+                        case 0x44: return ECMA48_FNT; // 2PsB44
+                        case 0x6b: return ECMA48_SCP; // 2PsB6b
+                        case 0x59: return ECMA48_SEF; // 2PsB59
+                        case 0x53: return ECMA48_SPD; // 2PsB53
                         }
                     }
-                } else
-                    return SEQ_NONE;
-            }
+                }
+            } else
+                return SEQ_NONE;
         }
     }
     return SEQ_NONE;
@@ -503,44 +529,42 @@ static inline int IsECMA48_2PsB(const std::string& seq)
 static inline int IsECMA48_2PnB(const std::string& seq)
 {
     size_t seq_sz = seq.length();
-    if (seq_sz == 1 && seq[0] == '[')
-        return SEQ_PENDING; // pending
-    else {
-        if (seq[0] == '[') {
-            size_t b = 1;
-            while (b < seq_sz) {
-                if (seq[b] >= '0' && seq[b] <= '9')
-                    b++;
-                else
-                    break;
-            }
-            if (b == seq_sz)
-                return SEQ_PENDING;
-            else {
-                if (seq[b] == ';') {
-                    b++; // skip ;
-                    while (b < seq_sz) {
-                        if ((seq[b] >= '0' && seq[b] <= '9'))
-                            b++;
-                        else
-                            break;
-                    }
-                    if (b == seq_sz)
-                        return SEQ_PENDING;
-                    else {
-                        if (seq_sz - b == 1 && seq[b] == 0x20) return SEQ_PENDING;
-                        else if (seq_sz - b == 2 && seq[b] == 0x20) {
-                            switch (seq[b+1]) {
-                            case 0x54: return ECMA48_DTA; // 2PnB54
-                            case 0x42: return ECMA48_GSM; // 2PnB42
-                            case 0x47: return ECMA48_SPI; // 2PnB47
-                            case 0x63: return ECMA48_TCC; // 2PnB63
-                            }
+	if (seq[0] != '[') return SEQ_NONE;
+	if (seq_sz < 2) return SEQ_PENDING;
+	{
+        size_t b = 1;
+        while (b < seq_sz) {
+            if (seq[b] >= '0' && seq[b] <= '9')
+                b++;
+            else
+                break;
+        }
+        if (b == seq_sz)
+            return SEQ_PENDING;
+        else {
+            if (seq[b] == ';') {
+                b++; // skip ;
+                while (b < seq_sz) {
+                    if ((seq[b] >= '0' && seq[b] <= '9'))
+                        b++;
+                    else
+                        break;
+                }
+                if (b == seq_sz)
+                    return SEQ_PENDING;
+                else {
+                    if (seq_sz - b == 1 && seq[b] == 0x20) return SEQ_PENDING;
+                    else if (seq_sz - b == 2 && seq[b] == 0x20) {
+                        switch (seq[b+1]) {
+                        case 0x54: return ECMA48_DTA; // 2PnB54
+                        case 0x42: return ECMA48_GSM; // 2PnB42
+                        case 0x47: return ECMA48_SPI; // 2PnB47
+                        case 0x63: return ECMA48_TCC; // 2PnB63
                         }
                     }
-                } else
-                    return SEQ_NONE;
-            }
+                }
+            } else
+                return SEQ_NONE;
         }
     }
     return SEQ_NONE;
@@ -549,40 +573,38 @@ static inline int IsECMA48_2PnB(const std::string& seq)
 static inline int IsECMA48_2Pn(const std::string& seq)
 {
     size_t seq_sz = seq.length();
-    if (seq_sz == 1 && seq[0] == '[')
-        return SEQ_PENDING; // pending
-    else {
-        if (seq[0] == '[') {
-            size_t b = 1;
-            while (b < seq_sz) {
-                if (seq[b] >= '0' && seq[b] <= '9')
-                    b++;
-                else
-                    break;
-            }
-            if (b == seq_sz)
-                return SEQ_PENDING;
-            else {
-                if (seq[b] == ';') {
-                    b++; // skip ;
-                    while (b < seq_sz) {
-                        if ((seq[b] >= '0' && seq[b] <= '9'))
-                            b++;
-                        else
-                            break;
+	if (seq[0] != '[') return SEQ_NONE;
+	if (seq_sz < 2) return SEQ_PENDING;
+	{
+        size_t b = 1;
+        while (b < seq_sz) {
+            if (seq[b] >= '0' && seq[b] <= '9')
+                b++;
+            else
+                break;
+        }
+        if (b == seq_sz)
+            return SEQ_PENDING;
+        else {
+            if (seq[b] == ';') {
+                b++; // skip ;
+                while (b < seq_sz) {
+                    if ((seq[b] >= '0' && seq[b] <= '9'))
+                        b++;
+                    else
+                        break;
+                }
+                if (b == seq_sz)
+                    return SEQ_PENDING;
+                else {
+                    switch (seq[b]) {
+                    case 0x52: return ECMA48_CPR;  // 2Pn52
+                    case 0x66: return ECMA48_HVP;  // 2Pn66
+                    case 0x48: return ECMA48_CUP; //  2Pn48
                     }
-                    if (b == seq_sz)
-                        return SEQ_PENDING;
-                    else {
-                        switch (seq[b]) {
-                        case 0x52: return ECMA48_CPR;  // 2Pn52
-                        case 0x66: return ECMA48_HVP;  // 2Pn66
-                        case 0x48: return ECMA48_CUP; //  2Pn48
-                        }
-                    }
-                } else
-                    return SEQ_NONE;
-            }
+                }
+            } else
+                return SEQ_NONE;
         }
     }
     return SEQ_NONE;
@@ -591,35 +613,33 @@ static inline int IsECMA48_2Pn(const std::string& seq)
 static inline int IsECMA48_1PsB(const std::string& seq)
 {
     size_t seq_sz = seq.length();
-    if (seq_sz == 1 && seq[0] == '[')
-        return SEQ_PENDING; // pending
-    else {
-        if (seq[0] == '[') {
-            size_t b = 1;
-            while (b < seq_sz) {
-                if (seq[b] >= '0' && seq[b] <= '9')
-                    b++;
-                else
-                    break;
-            }
-            if (b == seq_sz)
-                return SEQ_PENDING;
-            else {
-                if (seq_sz - b == 1 && seq[b] == 0x20) return SEQ_PENDING;
-                else if (seq_sz - b == 2 && seq[b] == 0x20) {
-                    switch (seq[b+1]) {
-                    case 0x5f: return ECMA48_GCC;  // 1PsB5f
-                    case 0x4f: return ECMA48_IDCS; // 1PsB4f
-                    case 0x4d: return ECMA48_IGS;  // 1PsB4d
-                    case 0x5a: return ECMA48_PEC;  // 1PsB5a
-                    case 0x4a: return ECMA48_PFS;  // 1PsB4a
-                    case 0x65: return ECMA48_SCO;  // 1PsB65
-                    case 0x58: return ECMA48_SPQR; // 1PsB58
-                    case 0x49: return ECMA48_SSU;  // 1PsB49
-                    case 0x5e: return ECMA48_STAB; // 1PsB5e
-                    case 0x4c: return ECMA48_SVS;  // 1PsB4c
-                    case 0x4b: return ECMA48_SHS;  // 1PsB4b
-                    }
+	if (seq[0] != '[') return SEQ_NONE;
+	if (seq_sz < 2) return SEQ_PENDING;
+	{
+        size_t b = 1;
+        while (b < seq_sz) {
+            if (seq[b] >= '0' && seq[b] <= '9')
+                b++;
+            else
+                break;
+        }
+        if (b == seq_sz)
+            return SEQ_PENDING;
+        else {
+            if (seq_sz - b == 1 && seq[b] == 0x20) return SEQ_PENDING;
+            else if (seq_sz - b == 2 && seq[b] == 0x20) {
+                switch (seq[b+1]) {
+                case 0x5f: return ECMA48_GCC;  // 1PsB5f
+                case 0x4f: return ECMA48_IDCS; // 1PsB4f
+                case 0x4d: return ECMA48_IGS;  // 1PsB4d
+                case 0x5a: return ECMA48_PEC;  // 1PsB5a
+                case 0x4a: return ECMA48_PFS;  // 1PsB4a
+                case 0x65: return ECMA48_SCO;  // 1PsB65
+                case 0x58: return ECMA48_SPQR; // 1PsB58
+                case 0x49: return ECMA48_SSU;  // 1PsB49
+                case 0x5e: return ECMA48_STAB; // 1PsB5e
+                case 0x4c: return ECMA48_SVS;  // 1PsB4c
+                case 0x4b: return ECMA48_SHS;  // 1PsB4b
                 }
             }
         }
@@ -633,35 +653,33 @@ static inline int IsECMA48_2Ps(const std::string& seq)
 static inline int IsECMA48_1Ps(const std::string& seq)
 {
     size_t seq_sz = seq.length();
-    if (seq_sz == 1 && seq[0] == '[')
-        return SEQ_PENDING; // pending
-    else {
-        if (seq[0] == '[') {
-            size_t b = 1;
-            while (b < seq_sz) {
-                if (seq[b] >= '0' && seq[b] <= '9')
-                    b++;
-                else
-                    break;
-            }
-            if (b == seq_sz)
-                return SEQ_PENDING;
-            else {
-                switch (seq[b]) {
-                case 0x63: return ECMA48_DA;  // 1Ps63
-                case 0x6e: return ECMA48_DSR; // 1Ps6e
-                case 0x4f: return ECMA48_EA;  // 1Ps4f
-                case 0x4a: return ECMA48_ED;  // 1Ps4a
-                case 0x4e: return ECMA48_EF;  // 1Ps4e
-                case 0x4b: return ECMA48_EL;  // 1Ps4b
-                case 0x69: return ECMA48_MC;  // 1Ps69
-                case 0x5c: return ECMA48_PTX; // 1Ps5c
-                case 0x5b: return ECMA48_SRS; // 1Ps5b
-                case 0x67: return ECMA48_TBC; // 1Ps67
-                case 0x5d: return ECMA48_SDS;  // 1Ps5d
-                case 0x51: return ECMA48_SEE;  // 1Ps51
-                case 0x5e: return ECMA48_SIMD; // 1Ps5e
-                }
+	if (seq[0] != '[') return SEQ_NONE;
+	if (seq_sz < 2) return SEQ_PENDING;
+	{
+        size_t b = 1;
+        while (b < seq_sz) {
+            if (seq[b] >= '0' && seq[b] <= '9')
+                b++;
+            else
+                break;
+        }
+        if (b == seq_sz)
+            return SEQ_PENDING;
+        else {
+            switch (seq[b]) {
+            case 0x63: return ECMA48_DA;  // 1Ps63
+            case 0x6e: return ECMA48_DSR; // 1Ps6e
+            case 0x4f: return ECMA48_EA;  // 1Ps4f
+            case 0x4a: return ECMA48_ED;  // 1Ps4a
+            case 0x4e: return ECMA48_EF;  // 1Ps4e
+            case 0x4b: return ECMA48_EL;  // 1Ps4b
+            case 0x69: return ECMA48_MC;  // 1Ps69
+            case 0x5c: return ECMA48_PTX; // 1Ps5c
+            case 0x5b: return ECMA48_SRS; // 1Ps5b
+            case 0x67: return ECMA48_TBC; // 1Ps67
+            case 0x5d: return ECMA48_SDS;  // 1Ps5d
+            case 0x51: return ECMA48_SEE;  // 1Ps51
+            case 0x5e: return ECMA48_SIMD; // 1Ps5e
             }
         }
     }
@@ -671,45 +689,43 @@ static inline int IsECMA48_1Ps(const std::string& seq)
 static inline int IsECMA48_1PnB(const std::string& seq)
 {
     size_t seq_sz = seq.length();
-    if (seq_sz == 1 && seq[0] == '[')
-        return SEQ_PENDING; // pending
-    else {
-        if (seq[0] == '[') {
-            size_t b = 1;
-            while (b < seq_sz) {
-                if (seq[b] >= '0' && seq[b] <= '9')
-                    b++;
-                else
-                    break;
-            }
-            if (b == seq_sz)
-                return SEQ_PENDING;
-            else {
-                if (seq_sz - b == 1 && seq[b] == 0x20) return SEQ_PENDING;
-                else if (seq_sz - b == 2) {
-                    switch (seq[b+1]) {
-                    case 0x57: return ECMA48_FNK; // 1PnB57
-                    case 0x43: return ECMA48_GSS; // 1PnB43
-                    case 0x50: return ECMA48_PPA; // 1PnB50
-                    case 0x52: return ECMA48_PPB; // 1PnB52
-                    case 0x51: return ECMA48_PPR; // 1PnB51
-                    case 0x5c: return ECMA48_SACS; // 1PnB5c
-                    case 0x67: return ECMA48_SCS;  // 1PnB67
-                    case 0x40: return ECMA48_SL;   // 1PnB40
-                    case 0x55: return ECMA48_SLH;  // 1PnB55
-                    case 0x56: return ECMA48_SLL;  // 1PnB56
-                    case 0x68: return ECMA48_SLS;  // 1PnB68
-                    case 0x6a: return ECMA48_SPL;  // 1PnB6a
-                    case 0x41: return ECMA48_SR;   // 1PnB41
-                    case 0x66: return ECMA48_SRCS; // 1PnB66
-                    case 0x64: return ECMA48_TSR;  // 1PnB64
-                    case 0x45: return ECMA48_TSS;  // 1PnB45
-                    case 0x61: return ECMA48_TALE; // 1PnB61
-                    case 0x60: return ECMA48_TATE; // 1PnB60
-                    case 0x5b: return ECMA48_SSW;  // 1PnB5b
-                    case 0x62: return ECMA48_TAC;  // 1PnB62
-                    case 0x69: return ECMA48_SPH;  // 1PnB69
-                    }
+	if (seq[0] != '[') return SEQ_NONE;
+	if (seq_sz < 2) return SEQ_PENDING;
+	{
+        size_t b = 1;
+        while (b < seq_sz) {
+            if (seq[b] >= '0' && seq[b] <= '9')
+                b++;
+            else
+                break;
+        }
+        if (b == seq_sz)
+            return SEQ_PENDING;
+        else {
+            if (seq_sz - b == 1 && seq[b] == 0x20) return SEQ_PENDING;
+            else if (seq_sz - b == 2) {
+                switch (seq[b+1]) {
+                case 0x57: return ECMA48_FNK; // 1PnB57
+                case 0x43: return ECMA48_GSS; // 1PnB43
+                case 0x50: return ECMA48_PPA; // 1PnB50
+                case 0x52: return ECMA48_PPB; // 1PnB52
+                case 0x51: return ECMA48_PPR; // 1PnB51
+                case 0x5c: return ECMA48_SACS; // 1PnB5c
+                case 0x67: return ECMA48_SCS;  // 1PnB67
+                case 0x40: return ECMA48_SL;   // 1PnB40
+                case 0x55: return ECMA48_SLH;  // 1PnB55
+                case 0x56: return ECMA48_SLL;  // 1PnB56
+                case 0x68: return ECMA48_SLS;  // 1PnB68
+                case 0x6a: return ECMA48_SPL;  // 1PnB6a
+                case 0x41: return ECMA48_SR;   // 1PnB41
+                case 0x66: return ECMA48_SRCS; // 1PnB66
+                case 0x64: return ECMA48_TSR;  // 1PnB64
+                case 0x45: return ECMA48_TSS;  // 1PnB45
+                case 0x61: return ECMA48_TALE; // 1PnB61
+                case 0x60: return ECMA48_TATE; // 1PnB60
+                case 0x5b: return ECMA48_SSW;  // 1PnB5b
+                case 0x62: return ECMA48_TAC;  // 1PnB62
+                case 0x69: return ECMA48_SPH;  // 1PnB69
                 }
             }
         }
@@ -720,48 +736,46 @@ static inline int IsECMA48_1PnB(const std::string& seq)
 static inline int IsECMA48_1Pn(const std::string& seq)
 {
     size_t seq_sz = seq.length();
-    if (seq_sz == 1 && seq[0] == '[')
-        return SEQ_PENDING; // pending
-    else {
-        if (seq[0] == '[') {
-            size_t b = 1;
-            while (b < seq_sz) {
-                if (seq[b] >= '0' && seq[b] <= '9')
-                    b++;
-                else
-                    break;
-            }
-            if (b == seq_sz)
-                return SEQ_PENDING;
-            else {
-                switch (seq[b]) {
-                    case 0x5a: return ECMA48_CBT; // 1Pn5a
-                    case 0x47: return ECMA48_CHA; // 1Pn47
-                    case 0x49: return ECMA48_CHT; // 1Pn49
-                    case 0x45: return ECMA48_CNL; // 1Pn45
-                    case 0x46: return ECMA48_CPL; // 1Pn46
-                    case 0x44: return ECMA48_CUB; // 1Pn44
-                    case 0x42: return ECMA48_CUD; // 1Pn42
-                    case 0x43: return ECMA48_CUF; // 1Pn43
-                    case 0x41: return ECMA48_CUU; // 1Pn41
-                    case 0x59: return ECMA48_CVT; // 1Pn59
-                    case 0x50: return ECMA48_DCH; // 1Pn50
-                    case 0x4d: return ECMA48_DL;  // 1Pn4d
-                    case 0x58: return ECMA48_ECH; // 1Pn58
-                    case 0x40: return ECMA48_ICH; // 1Pn40
-                    case 0x55: return ECMA48_NP;  // 1Pn55
-                    case 0x4c: return ECMA48_IL;  // 1Pn4c
-                    case 0x56: return ECMA48_PP;  // 1Pn56
-                    case 0x62: return ECMA48_REP; // 1Pn62
-                    case 0x64: return ECMA48_VPA; // 1Pn64
-                    case 0x6b: return ECMA48_VPB; // 1Pn6b
-                    case 0x65: return ECMA48_VPR; // 1Pn65
-                    case 0x54: return ECMA48_SD;  // 1Pn54
-                    case 0x53: return ECMA48_SU;  // 1Pn53
-                    case 0x60: return ECMA48_HPA; // 1Pn60
-                    case 0x6a: return ECMA48_HPB; // 1PB6a
-                    case 0x61: return ECMA48_HPR; // 1PB61
-                }
+	if (seq[0] != '[') return SEQ_NONE;
+	if (seq_sz < 2) return SEQ_PENDING;
+	{
+        size_t b = 1;
+        while (b < seq_sz) {
+            if (seq[b] >= '0' && seq[b] <= '9')
+                b++;
+            else
+                break;
+        }
+        if (b == seq_sz)
+            return SEQ_PENDING;
+        else {
+            switch (seq[b]) {
+                case 0x5a: return ECMA48_CBT; // 1Pn5a
+                case 0x47: return ECMA48_CHA; // 1Pn47
+                case 0x49: return ECMA48_CHT; // 1Pn49
+                case 0x45: return ECMA48_CNL; // 1Pn45
+                case 0x46: return ECMA48_CPL; // 1Pn46
+                case 0x44: return ECMA48_CUB; // 1Pn44
+                case 0x42: return ECMA48_CUD; // 1Pn42
+                case 0x43: return ECMA48_CUF; // 1Pn43
+                case 0x41: return ECMA48_CUU; // 1Pn41
+                case 0x59: return ECMA48_CVT; // 1Pn59
+                case 0x50: return ECMA48_DCH; // 1Pn50
+                case 0x4d: return ECMA48_DL;  // 1Pn4d
+                case 0x58: return ECMA48_ECH; // 1Pn58
+                case 0x40: return ECMA48_ICH; // 1Pn40
+                case 0x55: return ECMA48_NP;  // 1Pn55
+                case 0x4c: return ECMA48_IL;  // 1Pn4c
+                case 0x56: return ECMA48_PP;  // 1Pn56
+                case 0x62: return ECMA48_REP; // 1Pn62
+                case 0x64: return ECMA48_VPA; // 1Pn64
+                case 0x6b: return ECMA48_VPB; // 1Pn6b
+                case 0x65: return ECMA48_VPR; // 1Pn65
+                case 0x54: return ECMA48_SD;  // 1Pn54
+                case 0x53: return ECMA48_SU;  // 1Pn53
+                case 0x60: return ECMA48_HPA; // 1Pn60
+                case 0x6a: return ECMA48_HPB; // 1PB6a
+                case 0x61: return ECMA48_HPR; // 1PB61
             }
         }
     }
@@ -792,7 +806,6 @@ static inline int IsECMA48TrivialSeq(const std::string& seq)
 static inline int IsECMA48ControlSeq(const std::string& seq)
 {
     std::function<int(const std::string&)> funcs[] = {
-        IsECMA48_C1,
         IsECMA48TrivialSeq,
         IsECMA48_1Pn,
         IsECMA48_1PnB,
@@ -803,7 +816,8 @@ static inline int IsECMA48ControlSeq(const std::string& seq)
         IsECMA48_2Ps,
         IsECMA48_2PsB,
         IsECMA48_vPs,
-        IsECMA48_vPsB
+        IsECMA48_vPsB,
+        IsECMA48_C1
     };
     int ret = SEQ_NONE;
     for (int i = 0; i < sizeof(funcs) / sizeof(funcs[0]); ++i) {

@@ -6,26 +6,28 @@
 
 using namespace Upp;
 
-SSHPort::SSHPort(const Upp::String& host, int port, const Upp::String& user, const Upp::String& passwd)
+SSHPort::SSHPort(std::shared_ptr<Upp::SshSession> session, String name, String term)
+	: mSession(session)
+	, mDeviceName(name)
 {
-	mDeviceName = host;
-	if (mSession.Timeout(200).Connect(host, port, user, passwd)) {
-		mShell = new SshShell(mSession);
-		mShell->Timeout(Null);
-		mShell->WhenOutput = [=](const void* out, int out_len) {
-			if (out_len > 0) {
-				std::lock_guard<std::mutex> _(mLock);
-				mRxBuffer.insert(mRxBuffer.end(), (unsigned char*)out, (unsigned char*)out + out_len);
-				mCond.notify_one();
-			}
-		};
-		mThr = std::thread([=]() {
-			// initial size is 60x34
-			mShell->Run("ansi", 100, 34, Null);
-		});
-	} else {
-		throw mSession.GetErrorDesc();
-	}
+	mShell = new SshShell(*mSession.get());
+	mShell->Timeout(Null);
+	mShell->WhenOutput = [=](const void* out, int out_len) {
+		if (out_len > 0) {
+			std::lock_guard<std::mutex> _(mLock);
+			mRxBuffer.insert(mRxBuffer.end(), (unsigned char*)out, (unsigned char*)out + out_len);
+			mCond.notify_one();
+		}
+	};
+	mShell->WhenInput = [=]() {
+		std::unique_lock<std::mutex> _(mLock);
+		// block the thread for some time to yield cpu if queue is empty.
+		mCond.wait_for(_, std::chrono::milliseconds(10), [=]() { return !mQueue.IsEmpty(); });
+	};
+	mThr = std::thread([=]() {
+		// initial size is 60x34
+		mShell->Run(term, 60, 34, Null);
+	});
 }
 
 SSHPort::~SSHPort()

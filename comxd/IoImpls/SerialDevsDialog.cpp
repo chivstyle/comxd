@@ -127,6 +127,7 @@ SerialConn* SerialDevsDialog::RequestConn()
 	                Upp::PromptOK(t_("Dose not support:") + type_name);
 	            } else {
 	                conn->SetCodec(mCodecs.Get().ToString());
+	                conn->Start();
 	                return conn;
 	            }
 	        }

@@ -31,7 +31,6 @@ protected:
     // C0 set.
     virtual bool ProcessAsciiControlChar(char cc);
     //-------------------------------------------------------------------------------------
-    //
     // key, must be
     // 1. key with K_DELTA
     // 2. RETURN

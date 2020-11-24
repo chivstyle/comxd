@@ -1,4 +1,4 @@
-﻿//
+//
 // (c) 2020 chiv
 //
 #ifndef _comxd_VT102ControlSeq_h_
@@ -167,6 +167,7 @@ static const char* kVT102CtrlSeqs[] = {
     "V",
     "Z",
     "/Z"
+    //-----------------------------------------------------
 };
 //
 enum VT102SeqType {
@@ -185,30 +186,28 @@ static_assert(VT102_SeqType_Endup < VT102_SEQ_END, "VT102_SeqType_Endup should b
 static inline int IsVT102_1Pn(const std::string& seq)
 {
     size_t seq_sz = seq.length();
-    if (seq_sz == 1 && seq[0] == '[') return SEQ_PENDING; // pending
-    else {
-        // [ nb P/L/M
-        if (seq[0] == '[') {
-            size_t b = 1;
-            while (b < seq_sz) {
-                if (seq[b] >= '0' && seq[b] <= '9') {
-                    b++;
-                } else break;
-            }
-            if (b == seq_sz) return SEQ_PENDING;
-            else {
-                switch (seq[b]) {
-                case 'P':
-                case 'L':
-                case 'M':
-                    return VT102_EditingFunctions;
-                case 'A':
-                case 'B':
-                case 'C':
-                case 'D':
-                case 'f':
-                    return VT102_CursorMovementCmds;
-                }
+	if (seq[0] != '[') return SEQ_NONE;
+	if (seq_sz < 2) return SEQ_PENDING;
+	{
+        size_t b = 1;
+        while (b < seq_sz) {
+            if (seq[b] >= '0' && seq[b] <= '9') {
+                b++;
+            } else break;
+        }
+        if (b == seq_sz) return SEQ_PENDING;
+        else {
+            switch (seq[b]) {
+            case 'P':
+            case 'L':
+            case 'M':
+                return VT102_EditingFunctions;
+            case 'A':
+            case 'B':
+            case 'C':
+            case 'D':
+            case 'f':
+                return VT102_CursorMovementCmds;
             }
         }
     }
@@ -219,21 +218,20 @@ static inline int IsVT102_1Pn(const std::string& seq)
 static inline int IsVT102_vPn(const std::string& seq)
 {
     size_t seq_sz = seq.length();
-    if (seq_sz == 1 && seq[0] == '[') return SEQ_PENDING; // pending
-    else {
+	if (seq[0] != '[') return SEQ_NONE;
+	if (seq_sz < 2) return SEQ_PENDING;
+	{
         // [ nb P/L/M
-        if (seq[0] == '[') {
-            size_t b = 1;
-            while (b < seq_sz) {
-                if (seq[b] >= '0' && seq[b] <= '9' || seq[b] == ';') {
-                    b++;
-                } else break;
-            }
-            if (b == seq_sz) return SEQ_PENDING;
-            else {
-                switch (seq[b]) {
-                case 'm': return VT102_CharAttributes;
-                }
+        size_t b = 1;
+        while (b < seq_sz) {
+            if (seq[b] >= '0' && seq[b] <= '9' || seq[b] == ';') {
+                b++;
+            } else break;
+        }
+        if (b == seq_sz) return SEQ_PENDING;
+        else {
+            switch (seq[b]) {
+            case 'm': return VT102_CharAttributes;
             }
         }
     }
@@ -243,33 +241,31 @@ static inline int IsVT102_vPn(const std::string& seq)
 static inline int IsVT102_2Pn(const std::string& seq)
 {
     size_t seq_sz = seq.length();
-    if (seq_sz == 1) {
-        if (seq[0] == '[') return SEQ_PENDING; // pending
-    } else {
+	if (seq[0] != '[') return SEQ_NONE;
+	if (seq_sz < 2) return SEQ_PENDING;
+	{
         // [ nb;nb R/r
-        if (seq[0] == '[') {
-            size_t b = 1;
-            while (b < seq_sz) {
-                if (seq[b] >= '0' && seq[b] <= '9') {
-                    b++;
-                } else break;
+        size_t b = 1;
+        while (b < seq_sz) {
+            if (seq[b] >= '0' && seq[b] <= '9') {
+                b++;
+            } else break;
+        }
+        // contiguous numbers
+        if (b == seq_sz) return SEQ_PENDING; // pending
+        else if (b < seq_sz) {
+            if (seq[b] != ';') return 0; else {
+                b++; // skip ;
+                while (b < seq_sz) {
+                    if (seq[b] >= '0' && seq[b] <= '9') {
+                        b++;
+                    } else break;
+                }
             }
-            // contiguous numbers
-            if (b == seq_sz) return SEQ_PENDING; // pending
-            else if (b < seq_sz) {
-                if (seq[b] != ';') return 0; else {
-                    b++; // skip ;
-                    while (b < seq_sz) {
-                        if (seq[b] >= '0' && seq[b] <= '9') {
-                            b++;
-                        } else break;
-                    }
-                }
-                if (b == seq_sz) return SEQ_PENDING;
-                else {
-                    if (seq[b] == 'H' || seq[b] == 'f') return VT102_CursorMovementCmds;
-                    if (seq[b] == 'r') return VT102_ScrollingRegion;
-                }
+            if (b == seq_sz) return SEQ_PENDING;
+            else {
+                if (seq[b] == 'H' || seq[b] == 'f') return VT102_CursorMovementCmds;
+                if (seq[b] == 'r') return VT102_ScrollingRegion;
             }
         }
     }
@@ -279,30 +275,29 @@ static inline int IsVT102_2Pn(const std::string& seq)
 static inline int IsVT52CursorKeyCodes(const std::string& seq)
 {
     size_t seq_sz = seq.length();
-    if (seq_sz == 1 && seq[0] == 'Y') return SEQ_PENDING; // pending
-    else {
+	if (seq[0] != 'Y') return SEQ_NONE;
+	if (seq_sz < 2) return SEQ_PENDING;
+	{
         // Y nb nb \037
-        if (seq[0] == 'Y') {
-            size_t b = 1;
-            while (b < seq_sz) {
-                if (seq[b] >= '0' && seq[b] <= '9') {
-                    b++;
-                } else break;
+        size_t b = 1;
+        while (b < seq_sz) {
+            if (seq[b] >= '0' && seq[b] <= '9') {
+                b++;
+            } else break;
+        }
+        if (b == seq_sz) return SEQ_PENDING;
+        else if (b < seq_sz) {
+            if (seq[b] != ' ') return 0; else {
+                b++; // skip
+                while (b < seq_sz) {
+                    if (seq[b] >= '0' && seq[b] <= '9') {
+                        b++;
+                    } else break;
+                }
             }
             if (b == seq_sz) return SEQ_PENDING;
-            else if (b < seq_sz) {
-                if (seq[b] != ' ') return 0; else {
-                    b++; // skip
-                    while (b < seq_sz) {
-                        if (seq[b] >= '0' && seq[b] <= '9') {
-                            b++;
-                        } else break;
-                    }
-                }
-                if (b == seq_sz) return SEQ_PENDING;
-                else {
-                    if (seq[b] == '\037') return VT52_CursorKeyCodes;
-                }
+            else {
+                if (seq[b] == '\037') return VT52_CursorKeyCodes;
             }
         }
     }

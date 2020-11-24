@@ -23,6 +23,7 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> serial)
     , mBlinkSignal(true)
     , mScrollToEnd(true)
     , mPressed(false)
+    , mShowCursor(true)
     , mMaxLinesBufferSize(5000)
 {
     // double buffer
@@ -69,8 +70,6 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> serial)
     mLines.insert(mLines.begin(), 30, vline);
     //
     InstallUserActions();
-    // finally start the rx-thread.
-    mRxThr = std::thread([=]() { RxProc(); });
 }
 
 SerialConnVT::~SerialConnVT()
@@ -79,6 +78,13 @@ SerialConnVT::~SerialConnVT()
     if (mRxThr.joinable()) {
         mRxThr.join();
     }
+}
+//
+bool SerialConnVT::Start()
+{
+	mRxThr = std::thread([=]() { RxProc(); });
+	//
+	return true;
 }
 //
 void SerialConnVT::InstallUserActions()
@@ -642,8 +648,14 @@ void SerialConnVT::RenderText(const std::vector<uint32_t>& s)
                 vline.push_back(chr);
             }
             mVx++;
+            if (mVx >= (int)vline.size()) {
+                // extend vline
+                vline.insert(vline.end(), 8, mBlankChar);
+            }
         }
+        
     }
+    
 }
 
 Image SerialConnVT::CursorImage(Point p, dword keyflags)
@@ -1205,6 +1217,7 @@ bool SerialConnVT::IsCharInSelectionSpan(int vx, int vy) const
 
 void SerialConnVT::DrawCursor(Draw& draw)
 {
+	if (!mShowCursor) return;
     Size usz = GetSize();
     if (mPx >= 0 && mPx < usz.cx && mPy >= 0 && mPy < usz.cy) {
         draw.DrawRect(mPx, mPy, mFontW, mFontH, Color(0, 255, 0));

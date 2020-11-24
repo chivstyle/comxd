@@ -19,7 +19,35 @@ protected:
     // 00~0x1f
     virtual bool ProcessC0(char cc);
     // 0x1b c1, we have stripped the 0x1b already.
-    virtual bool ProcessC1(char cc);
+    // C1 Commands
+    virtual void ProcessAPC(const std::string& seq);
+	virtual void ProcessBPH(const std::string& seq);
+	virtual void ProcessCCH(const std::string& seq);
+	virtual void ProcessCSI(const std::string& seq);
+	virtual void ProcessDCS(const std::string& seq);
+	virtual void ProcessEPA(const std::string& seq);
+	virtual void ProcessESA(const std::string& seq);
+	virtual void ProcessHTJ(const std::string& seq);
+	virtual void ProcessHTS(const std::string& seq);
+	virtual void ProcessMW(const std::string& seq);
+	virtual void ProcessNBH(const std::string& seq);
+	virtual void ProcessNEL(const std::string& seq);
+	virtual void ProcessOSC(const std::string& seq);
+	virtual void ProcessPLD(const std::string& seq);
+	virtual void ProcessPLU(const std::string& seq);
+	virtual void ProcessPM(const std::string& seq);
+	virtual void ProcessPU1(const std::string& seq);
+	virtual void ProcessPU2(const std::string& seq);
+	virtual void ProcessRI(const std::string& seq);
+	virtual void ProcessSCI(const std::string& seq);
+	virtual void ProcessSOS(const std::string& seq);
+	virtual void ProcessSPA(const std::string& seq);
+	virtual void ProcessSSA(const std::string& seq);
+	virtual void ProcessSS2(const std::string& seq);
+	virtual void ProcessSS3(const std::string& seq);
+	virtual void ProcessST(const std::string& seq);
+	virtual void ProcessSTS(const std::string& seq);
+	virtual void ProcessVTS(const std::string& seq);
     //------------------------------------------------------------------------------------------
     virtual void ProcessSGR(const std::string& seq);
     virtual void ProcessSGR(int attr_code);

@@ -39,19 +39,28 @@ SSHDevsDialog::SSHDevsDialog()
 
 SerialConn* SSHDevsDialog::RequestConn()
 {
+	SerialConn* conn = nullptr;
 	if (Run(true) == IDOK) {
-		try {
-			auto port = std::make_shared<SSHPort>(mHost.GetData().ToString(), mPort,
-				mUser.GetData().ToString(), mPassword.GetData().ToString());
-			auto conn = ConnFactory::Inst()->CreateInst(mTypes.Get().ToString(), port);
-			conn->WhenSizeChanged = [=](const Size& csz) {
-				port->SetConsoleSize(csz);
-			};
-			conn->SetCodec(mCodecs.Get().ToString());
-			return conn;
-		} catch (const String& desc) {
-			PromptOK(Upp::DeQtf(desc));
+		this->Disable(); // disable the dialog.
+		std::shared_ptr<SshSession> session = std::make_shared<SshSession>();
+		session->WhenWait = [=]() { this->Title("Connecting..."); ProcessEvents(); };
+		if (session->Timeout(2000).Connect(~mHost, ~mPort, ~mUser, ~mPassword)) {
+			try {
+				auto port = std::make_shared<SSHPort>(session, ~mHost, ~mTypes);
+				conn = ConnFactory::Inst()->CreateInst(~mTypes.Get(), port);
+				conn->WhenSizeChanged = [=](const Size& csz) {
+					port->SetConsoleSize(csz);
+				};
+				conn->SetCodec(mCodecs.GetData().ToString());
+				conn->Start();
+			} catch (const String& desc) {
+				PromptOK(Upp::DeQtf(desc));
+			}
+		} else {
+			PromptOK(Upp::DeQtf(session->GetErrorDesc()));
 		}
+		// remove the callback before return.
+		session->WhenWait = Event<>();
 	}
-	return nullptr;
+	return conn;
 }

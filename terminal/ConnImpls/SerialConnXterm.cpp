@@ -5,15 +5,15 @@
 #include "XtermControlSeq.h"
 #include "ConnFactory.h"
 
-
-REGISTER_CONN_INSTANCE("Xterm", SerialConnXterm);
+// REGISTER_CONN_INSTANCE("xterm", SerialConnXterm);
 
 using namespace Upp;
 
 SerialConnXterm::SerialConnXterm(std::shared_ptr<SerialIo> serial)
-    : Superclass(serial)
+    : SerialConnVT(serial)
     , SerialConnVT102(serial)
     , SerialConnECMA48(serial)
+    , SerialConnAnsi(serial)
     , mIsAltScr(false)
 {
     //
@@ -35,20 +35,30 @@ void SerialConnXterm::ProcessXtermTrivial(const std::string& seq)
         it->second();
     }
 }
-
+// who we are
+// [?1;2c     VT100 with advanced video option
+// [?1;0c     VT101 with No options
+// [?4;6c     VT132 with Advanced Video and Graphics
+// [?6c       VT102
+// [?7c       VT131
+// [?12;<Ps>c VT125, Ps was defined in relevant docs
+// [?62;<Ps>c VT220
+// [?63;<Ps>c VT320
+// [?64;<Ps>c VT420
+//
 void SerialConnXterm::ProcessDA(const std::string& seq)
 {
     int ps = atoi(seq.substr(1, seq.length()-2).c_str());
     switch (ps) {
     case 0:
-        GetSerial()->Write("\x1b[?62;22c"); // VT-220, support ANSI COLORS
+        GetSerial()->Write("\x1b[?6c"); // VT102
         break;
     }
 }
 
 bool SerialConnXterm::ProcessAsciiControlChar(char cc)
 {
-    return SerialConnECMA48::ProcessAsciiControlChar(cc);
+    return SerialConnAnsi::ProcessAsciiControlChar(cc);
 }
 
 bool SerialConnXterm::ProcessControlSeq(const std::string& seq, int seq_type)
@@ -61,11 +71,11 @@ bool SerialConnXterm::ProcessControlSeq(const std::string& seq, int seq_type)
             it->second(seq);
         }
     } else {
-        bool processed = SerialConnECMA48::ProcessControlSeq(seq, seq_type);
+        bool processed = SerialConnAnsi::ProcessControlSeq(seq, seq_type);
         if (!processed) {
             processed = SerialConnVT102::ProcessControlSeq(seq, seq_type);
             if (!processed) {
-                return Superclass::ProcessControlSeq(seq, seq_type);
+                return SerialConnVT::ProcessControlSeq(seq, seq_type);
             }
         }
     }
@@ -76,11 +86,11 @@ int SerialConnXterm::IsControlSeq(const std::string& seq)
 {
     auto seq_type = IsXtermControlSeq(seq);
     if (seq_type == SEQ_NONE) {
-        seq_type = SerialConnECMA48::IsControlSeq(seq);
+        seq_type = SerialConnAnsi::IsControlSeq(seq);
         if (seq_type == SEQ_NONE) {
             seq_type = SerialConnVT102::IsControlSeq(seq);
             if (seq_type == SEQ_NONE) {
-                seq_type = Superclass::IsControlSeq(seq);
+                seq_type = SerialConnVT::IsControlSeq(seq);
             }
         }
     }
@@ -215,12 +225,12 @@ bool SerialConnXterm::ProcessKeyDown(Upp::dword key, Upp::dword flags)
         GetSerial()->Write(d);
         return true;
     }
-    return SerialConnECMA48::ProcessKeyDown(key, flags);
+    return SerialConnAnsi::ProcessKeyDown(key, flags);
 }
 
 bool SerialConnXterm::ProcessKeyUp(dword key, dword flags)
 {
-    return SerialConnECMA48::ProcessKeyUp(key, flags);
+    return SerialConnAnsi::ProcessKeyUp(key, flags);
 }
 
 Upp::WString SerialConnXterm::TranscodeToUTF16(const VTChar& cc) const
@@ -235,7 +245,6 @@ bool SerialConnXterm::ProcessChar(Upp::dword cc)
 
 void SerialConnXterm::InstallXtermFunctions()
 {
-#if 1
     mXtermTrivialHandlers["[?1049h"] = [=]() { // switch to alternative screen
         if (mIsAltScr == false) {
             //SaveScr(mBkgScr); // backup current screen
@@ -251,5 +260,5 @@ void SerialConnXterm::InstallXtermFunctions()
             mIsAltScr = false;
         }
     };
-#endif
+    mXtermTrivialHandlers["[?3J"] = [=]() { mLinesBuffer.clear(); };
 }

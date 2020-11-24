@@ -12,7 +12,7 @@
 
 class SSHPort : public SerialIo {
 public:
-    SSHPort(const Upp::String& host, int port, const Upp::String& user, const Upp::String& passwd);
+    SSHPort(std::shared_ptr<Upp::SshSession> session, Upp::String name, Upp::String term = "vt102");
     virtual ~SSHPort();
     //
     size_t Available() const;
@@ -23,7 +23,7 @@ public:
     void SetConsoleSize(const Upp::Size& csz);
 private:
 	Upp::SshShell* mShell;
-	Upp::SshSession mSession;
+	std::shared_ptr<Upp::SshSession> mSession;
 	std::string mDeviceName;
 	std::thread mThr;
 	Upp::String mQueue;

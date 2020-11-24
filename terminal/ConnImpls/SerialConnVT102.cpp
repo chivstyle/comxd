@@ -6,7 +6,7 @@
 #include "VT102ControlSeq.h"
 #include "ConnFactory.h"
 // register
-REGISTER_CONN_INSTANCE("VT102", SerialConnVT102);
+REGISTER_CONN_INSTANCE("vt102", SerialConnVT102);
 //
 using namespace Upp;
 
@@ -278,7 +278,7 @@ void SerialConnVT102::InstallVT102Functions()
     mVT102TrivialHandlers["8"] = [=]() { LoadCursor(mCursorData); };
     // 1.10 Tab stops
     mVT102TrivialHandlers["H"] = [=]() { // HTS
-        this->ProcessAsciiControlChar(0x09);
+        mLines[mVy][mVx++] = '\t';
     };
     mVT102TrivialHandlers["[g"] = [=]() { // TBC , clear tab
         if (mLines[mVy][mVx].Code() == '\t') { // remove it.
@@ -394,6 +394,7 @@ void SerialConnVT102::InstallVT102Functions()
     //-----------------------------------------------------
     // 2.4 Erasing
     // 2.5 Print Commands
+    //-----------------------------------------------------
 }
 //
 void SerialConnVT102::ProcessVT102CursorMovementCmds(const std::string& seq)

@@ -20,6 +20,14 @@
 #define XTERM_SEQ_BEGIN               ECMA48_SEQ_END+1
 #define XTERM_SEQ_COUNT               200
 #define XTERM_SEQ_END                 XTERM_SEQ_BEGIN+XTERM_SEQ_COUNT
+// Ansi
+#define ANSI_SEQ_BEGIN                XTERM_SEQ_END+1
+#define ANSI_SEQ_COUNT                200
+#define ANSI_SEQ_END                  ANSI_SEQ_BEGIN+ANSI_SEQ_COUNT
 //----------------------------------------------------------------------------------------------
+// VT220
+#define VT220_SEQ_BEGIN               ANSI_SEQ_END+1
+#define VT220_SEQ_COUNT               20
+#define VT220_SEQ_END                 VT220_SEQ_BEGIN+VT220_SEQ_COUNT
 
 #endif

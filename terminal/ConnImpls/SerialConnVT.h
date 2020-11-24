@@ -20,6 +20,8 @@ public:
     using Superclass = SerialConn;
     SerialConnVT(std::shared_ptr<SerialIo> serial);
     virtual ~SerialConnVT();
+    //
+    virtual bool Start();
     // clear screen and buffer, restore default, .etc, you can override it
     virtual void Clear();
     // Editing commands
@@ -108,7 +110,7 @@ protected:
         std::lock_guard<std::mutex> _(mLockSeqs);
         mSeqs.push(Seq(seq, seq_type));
     }
-    void RenderSeqs();
+    virtual void RenderSeqs();
     //-------------------------------------------------------------------------------------
     /// Active position
     int mVx, mVy;      //<! Active position of data component
@@ -168,7 +170,8 @@ protected:
     void UseStyle(const VTChar& c, Upp::Font& font, Upp::Color& fg_color, Upp::Color& bg_color,
         bool& blink, bool& visible);
     //
-    volatile bool mBlinkSignal; // 0,1,0,1,0,1, 2 Hz
+    bool mBlinkSignal; // 0,1,0,1,0,1, 2 Hz
+    bool mShowCursor;
     Upp::TimeCallback mBlinkTimer;
     // scroll bar
     Upp::VScrollBar mSbV;
