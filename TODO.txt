@@ -1,4 +1,0 @@
-1. Support other terminal keycodes, such as Ctrl+D,Ctrl+Z, .etc
-2. Support shortcuts to complete tasks such as copy,paste, .etc
-3. Fix bugs on recognizing cursor keycodes
-4. Improve the performance of renderer

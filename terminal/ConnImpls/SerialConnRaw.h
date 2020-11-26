@@ -16,6 +16,8 @@ public:
     SerialConnRaw(std::shared_ptr<SerialIo> serial);
     virtual ~SerialConnRaw();
     //
+    bool Start();
+    //
 protected:
     static const int kPeriodicTimerId = 0;
     std::thread mRxThr; //<! thread to receive data

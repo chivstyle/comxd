@@ -1,7 +1,8 @@
 description "virtual terminal\377";
 
 uses
-	Core/SSH;
+	Core/SSH,
+	upp-components/CtrlLib/Terminal;
 
 library
 	;
@@ -25,32 +26,6 @@ file
 	Conn.h,
 	ConnFactory.h,
 	ConnFactory.cpp,
-	ColorTable.cpp,
-	ColorTable.h,
-	ControlSeq.h,
-	VTtypes.h,
-	VTtypes.cpp,
-	ConnImpls/VTOptionsDialog.h,
-	ConnImpls/VTOptionsDialog.cpp,
-	ConnImpls/SerialConnRaw.h,
-	ConnImpls/SerialConnRaw.cpp,
-	ConnImpls/SerialConnVT.h,
-	ConnImpls/SerialConnVT.cpp,
-	ConnImpls/VT102ControlSeq.h,
-	ConnImpls/SerialConnVT102.h,
-	ConnImpls/SerialConnVT102.cpp,
-	ConnImpls/ECMA48ControlSeq.h,
-	ConnImpls/SerialConnECMA48.h,
-	ConnImpls/SerialConnECMA48.cpp,
-	ConnImpls/XtermControlSeq.h,
-	ConnImpls/SerialConnXterm.h,
-	ConnImpls/SerialConnXterm.cpp,
-	ConnImpls/AnsiControlSeq.h,
-	ConnImpls/SerialConnAnsi.h,
-	ConnImpls/SerialConnAnsi.cpp,
-	ConnImpls/VT220ControlSeq.h,
-	ConnImpls/SerialConnVT220.h,
-	ConnImpls/SerialConnVT220.cpp,
 	Proto.cpp,
 	Proto.h,
 	ProtoFactory.cpp,
@@ -59,14 +34,26 @@ file
 	proto/ss.cpp,
 	proto\ProtoSs.cpp,
 	proto\ProtoSs.h,
+	ConnImpls\SerialConnVT.h,
+	ConnImpls\SerialConnVT.cpp,
+	ConnImpls\ColorTable.cpp,
+	ConnImpls\ColorTable.h,
+	ConnImpls\VTtypes.cpp,
+	ConnImpls\VTtypes.h,
 	CodecFactory.h,
+	CodecFactory.cpp,
 	Codec.h,
 	codec\CodecLatin1.cpp,
 	codec\CodecLatin1.h,
 	codec\CodecUTF8.cpp,
 	codec\CodecUTF8.h,
 	Codec.cpp,
-	CodecFactory.cpp,
 	ConnImpls\TextCodecsDialog.h,
-	ConnImpls\TextCodecsDialog.cpp;
+	ConnImpls\TextCodecsDialog.cpp,
+	ConnImpls\VTOptionsDialog.h,
+	ConnImpls\VTOptionsDialog.cpp,
+	ConnImpls/SerialConnRaw.h,
+	ConnImpls/SerialConnRaw.cpp,
+	ConnImpls/SerialConnXterm.h,
+	ConnImpls/SerialConnXterm.cpp;
 

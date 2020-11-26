@@ -13,8 +13,14 @@ class SerialIo {
 public:
     SerialIo();
     virtual ~SerialIo();
-    // 4 necessary methods
-    virtual size_t Available() const = 0;
+    //
+    virtual bool Start() { return true; }
+    /// Was data available?
+    /// @return
+    ///  - <0 Error, device was corrupted
+    ///    =0 Nothing
+    ///    >0 Number of bytes available
+    virtual int Available() const = 0;
     virtual size_t Read(unsigned char* buff, size_t sz) = 0;
     virtual size_t Write(const unsigned char* buff, size_t sz) = 0;
     virtual std::string DeviceName() const = 0;

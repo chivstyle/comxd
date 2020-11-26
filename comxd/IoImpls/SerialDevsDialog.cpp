@@ -122,7 +122,9 @@ SerialConn* SerialDevsDialog::RequestConn()
 	            (serial::stopbits_t)mStopBits.GetKey(mStopBits.GetIndex()).To<int>(),
 	            (serial::flowcontrol_t)mFlowCtrl.GetKey(mFlowCtrl.GetIndex()).To<int>());
 	        if (serial) {
-	            auto conn = ConnFactory::Inst()->CreateInst(type_name, std::make_shared<SerialPort>(serial));
+	            auto port = std::make_shared<SerialPort>(serial);
+	            port->Start();
+	            auto conn = ConnFactory::Inst()->CreateInst(type_name, port);
 	            if (!conn) {
 	                Upp::PromptOK(t_("Dose not support:") + type_name);
 	            } else {

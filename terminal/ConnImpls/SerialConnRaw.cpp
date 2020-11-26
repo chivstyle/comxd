@@ -51,9 +51,6 @@ SerialConnRaw::SerialConnRaw(std::shared_ptr<SerialIo> serial)
     InstallActions();
     InstallUsrActions();
     //------------------------------------------------------------------------
-    // start receiving thread
-    mRxThr = std::thread([=] { RxProc(); });
-    //------------------------------------------------------------------------
     // formats
     Upp::CtrlLayout(*this);
 }
@@ -66,6 +63,12 @@ SerialConnRaw::~SerialConnRaw()
     }
     KillTimeCallback(kPeriodicTimerId);
     delete mTxProto;
+}
+
+bool SerialConnRaw::Start()
+{
+	mRxThr = std::thread([=] { RxProc(); });
+	return true;
 }
 
 void SerialConnRaw::InstallUsrActions()

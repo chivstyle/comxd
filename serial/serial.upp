@@ -10,6 +10,7 @@ file
 	src\impl\list_ports\list_ports_linux.cc,
 	src\impl\list_ports\list_ports_osx.cc,
 	src\impl\win.cc,
+	include\serial\impl\unix.h,
 	src\impl\unix.cc,
 	include\serial\v8stdint.h,
 	include\serial\serial.h,

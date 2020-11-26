@@ -32,7 +32,7 @@ public:
     //
     SerialIo* GetSerial() const { return mSerial.get(); }
     Codec* GetCodec() const { return mCodec.get(); }
-    // Event.
+    // terminal size changed
     Upp::Event<Upp::Size> WhenSizeChanged;
 protected:
     std::shared_ptr<SerialIo> mSerial;

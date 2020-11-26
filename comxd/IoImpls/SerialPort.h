@@ -11,11 +11,11 @@ class SerialPort : public SerialIo {
 public:
     SerialPort(std::shared_ptr<serial::Serial> serial);
     //
-    size_t Available() const
+    int Available() const
     {
-        size_t sz = 0;
+        int sz = -1;
         try {
-            sz = mSerial->available();
+            sz = (int)mSerial->available();
         } catch (...) {}
         return sz;
     }

@@ -48,6 +48,7 @@ SerialConn* SSHDevsDialog::RequestConn()
 			try {
 				auto port = std::make_shared<SSHPort>(session, ~mHost, ~mTypes);
 				conn = ConnFactory::Inst()->CreateInst(~mTypes.Get(), port);
+				port->Start();
 				conn->WhenSizeChanged = [=](const Size& csz) {
 					port->SetConsoleSize(csz);
 				};

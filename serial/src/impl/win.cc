@@ -253,6 +253,9 @@ Serial::SerialImpl::reconfigurePort ()
   } else {
     throw invalid_argument ("invalid parity");
   }
+  
+  uint32_t bit_time_ns = (uint32_t)1e9 / baudrate_;
+  byte_time_ns_ = bit_time_ns * (1 + bytesize_ + parity_ + stopbits_);
 
   // setup flowcontrol
   if (flowcontrol_ == flowcontrol_none) {
@@ -333,14 +336,16 @@ Serial::SerialImpl::available ()
 }
 
 bool
-Serial::SerialImpl::waitReadable (uint32_t /*timeout*/)
+Serial::SerialImpl::waitReadable (uint32_t timeout)
 {
-  SERIAL_THROW (IOException, "waitReadable is not implemented on Windows.");
-  return false;
+  OVERLAPPED overlapped; memset(&overlapped, 0, sizeof(overlapped));
+  overlapped.hEvent = read_event_;
+  DWORD ret = WaitForSingleObject(read_event_, timeout);
+  return ret = WAIT_OBJECT_0;
 }
 
 void
-Serial::SerialImpl::waitByteTimes (size_t /*count*/)
+Serial::SerialImpl::waitByteTimes (size_t count)
 {
   SERIAL_THROW (IOException, "waitByteTimes is not implemented on Windows.");
 }
@@ -354,23 +359,11 @@ Serial::SerialImpl::read (uint8_t *buf, size_t size)
   DWORD bytes_read = 0;
   OVERLAPPED overlapped; memset(&overlapped, 0, sizeof(overlapped));
   overlapped.hEvent = read_event_;
-  DWORD ret = WaitForSingleObject(read_event_, 100);
-  if (ret == WAIT_OBJECT_0) {
+  if (1) {
     BOOL ok = ReadFile(fd_, buf, static_cast<DWORD>(size), &bytes_read, &overlapped);
     if (!ok) {
       if (GetLastError() == ERROR_IO_PENDING) {
-        int timeout = 500;
-        while (timeout--) {
-            BOOL fs = GetOverlappedResult(fd_, &overlapped, &bytes_read, FALSE);
-            if (fs) {
-                if (bytes_read == size) break; // transfer completed.
-            }
-            else {
-                if (GetLastError() != ERROR_IO_INCOMPLETE)
-                    break;
-            }
-            Sleep(1);
-        }
+        // I/O was pending
       } else {
         stringstream ss;
         ss << "Error while reading from the serial port: " << GetLastError();
@@ -390,23 +383,14 @@ Serial::SerialImpl::write (const uint8_t *data, size_t length)
   DWORD bytes_written = 0;
   OVERLAPPED overlapped; memset(&overlapped, 0, sizeof(overlapped));
   overlapped.hEvent = write_event_;
-  DWORD ret = WaitForSingleObject(write_event_, 100);
-  if (ret == WAIT_OBJECT_0) {
+  if (1) {
     BOOL ok = WriteFile(fd_, data, static_cast<DWORD>(length), &bytes_written, &overlapped);
     if (!ok) {
       if (GetLastError() == ERROR_IO_PENDING) {
-        int timeout = 500;
-        while (timeout--) {
-            BOOL fs = GetOverlappedResult(fd_, &overlapped, &bytes_written, TRUE);
-            if (fs) {
-                if (bytes_written == length) break; // transfer completed.
-            }
-            else {
-                if (GetLastError() != ERROR_IO_INCOMPLETE)
-                    break;
-            }
-            Sleep(1);
-        }
+        // I/O was pending, let's wait for a while and then get's the result.
+        size_t time = (byte_time_ns_ * length) / 1000 / 1000 + 1;
+        WaitForSingleObject(overlapped.hEvent, (DWORD)time);
+        GetOverlappedResult(fd_, &overlapped, &bytes_written, FALSE);
       } else {
         stringstream ss;
         ss << "Error while writing to the serial port: " << GetLastError();

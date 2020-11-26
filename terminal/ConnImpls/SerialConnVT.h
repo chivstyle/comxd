@@ -55,7 +55,9 @@ public:
     // swap current scr and sd
     void SwapScr(ScreenData& sd);
     //
+    Event<Upp::Bar&> WhenBar;
 protected:
+	//------------------------------------------------------------------------------------------
     // Font
     virtual void Paint(Upp::Draw& draw);
     virtual void Layout();

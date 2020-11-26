@@ -9,6 +9,7 @@ using namespace Upp;
 SSHPort::SSHPort(std::shared_ptr<Upp::SshSession> session, String name, String term)
 	: mSession(session)
 	, mDeviceName(name)
+	, mTerm(term)
 {
 	mShell = new SshShell(*mSession.get());
 	mShell->Timeout(Null);
@@ -24,10 +25,6 @@ SSHPort::SSHPort(std::shared_ptr<Upp::SshSession> session, String name, String t
 		// block the thread for some time to yield cpu if queue is empty.
 		mCond.wait_for(_, std::chrono::milliseconds(10), [=]() { return !mQueue.IsEmpty(); });
 	};
-	mThr = std::thread([=]() {
-		// initial size is 60x34
-		mShell->Run(term, 60, 34, Null);
-	});
 }
 
 SSHPort::~SSHPort()
@@ -39,15 +36,23 @@ SSHPort::~SSHPort()
 	delete mShell;
 }
 
+bool SSHPort::Start()
+{
+	mThr = std::thread([=]() {
+		mShell->Run(mTerm, 80, 34, Null);
+	});
+	return true;
+}
+
 void SSHPort::SetConsoleSize(const Size& csz)
 {
 	mShell->PageSize(csz);
 }
 
-size_t SSHPort::Available() const
+int SSHPort::Available() const
 {
 	std::lock_guard<std::mutex> _(mLock);
-	return mRxBuffer.size();
+	return (int)mRxBuffer.size();
 }
 
 size_t SSHPort::Read(unsigned char* buf, size_t sz)

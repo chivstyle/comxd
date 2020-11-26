@@ -35,7 +35,6 @@ LAYOUT(VTOptions, 456, 120)
 	ITEM(Upp::Label, dv___8, SetLabel(t_("Font Color")).LeftPosZ(8, 64).TopPosZ(72, 19))
 	ITEM(Upp::ColorPusher, mFontColor, LeftPosZ(80, 80).VSizePosZ(67, 29))
 	ITEM(Upp::Label, mFontPreview, SetAlign(ALIGN_CENTER).LeftPosZ(172, 276).TopPosZ(32, 60))
-	ITEM(Upp::Option, mTrackCaret, SetLabel(t_("Track Caret")).Tip(t_("Track the caret when you input valid chars")).LeftPosZ(8, 152).TopPosZ(100, 16))
 	ITEM(Upp::Button, mOk, SetLabel(t_("Ok")).LeftPosZ(332, 56).TopPosZ(96, 19))
 	ITEM(Upp::Button, mCancel, SetLabel(t_("Cancel")).LeftPosZ(392, 56).TopPosZ(96, 19))
 END_LAYOUT

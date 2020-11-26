@@ -191,6 +191,8 @@ private:
 
   Timeout timeout_;           // Timeout for read operations
   unsigned long baudrate_;    // Baudrate
+  
+  uint32_t byte_time_ns_;
 
   parity_t parity_;           // Parity
   bytesize_t bytesize_;       // Size of the bytes

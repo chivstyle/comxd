@@ -9,7 +9,7 @@
 #include "VTOptionsDialog.h"
 #include <algorithm>
 
-// REGISTER_CONN_INSTANCE("Original VT", SerialConnVT);
+//REGISTER_CONN_INSTANCE("Original VT", SerialConnVT);
 // register
 using namespace Upp;
 //----------------------------------------------------------------------------------------------
@@ -89,59 +89,71 @@ bool SerialConnVT::Start()
 //
 void SerialConnVT::InstallUserActions()
 {
-    mUsrActions.emplace_back(terminal::text_codec(),
-        t_("Text Codec"), t_("Select a text codec"), [=]() {
-            TextCodecsDialog d(GetCodec()->GetName().c_str());
-            int ret = d.Run();
-            if (ret == IDOK) {
-                this->SetCodec(d.GetCodecName());
-                Refresh();
-            }
-        });
+    mUsrActions.emplace_back(terminal::text_codec(), t_("Text Codec"), t_("Select a text codec"), [=]() {
+        TextCodecsDialog d(GetCodec()->GetName().c_str());
+        int ret = d.Run();
+        if (ret == IDOK) {
+            this->SetCodec(d.GetCodecName());
+            Refresh();
+        }
+    });
     mUsrActions.emplace_back(terminal::clear_buffer(),
         t_("Clear Buffer"), t_("Clear the line buffers"), [=]() { Clear(); });
-    mUsrActions.emplace_back(terminal::vt_options(),
-        t_("VT options"), t_("Virtual terminal options"), [=]() {
-            VTOptionsDialog::Options options;
-            options.Font = mFont;
-            options.LinesBufferSize = (int)this->mMaxLinesBufferSize;
-            options.PaperColor = mColorTbl.GetColor(VTColorTable::kColorId_Paper);
-            options.FontColor = mColorTbl.GetColor(VTColorTable::kColorId_Texts);
-            VTOptionsDialog opt;
-            opt.SetOptions(options);
-            int ret = opt.Run();
-            if (ret == IDOK) {
-                options = opt.GetOptions();
-                this->mFont = options.Font;
-                this->mMaxLinesBufferSize = options.LinesBufferSize;
-                this->mColorTbl.SetColor(VTColorTable::kColorId_Texts, options.FontColor);
-                this->mColorTbl.SetColor(VTColorTable::kColorId_Paper, options.PaperColor);
-                //
-                bool vscr_modified = false; // lines buffer or virtual screen was modified ?
-                int fontw = mFont.GetAveWidth(), fonth = mFont.GetLineHeight();
-                if (fontw != mFontW || fonth != mFontH) {
-                    int shrink_cnt = (int)mLinesBuffer.size() - options.LinesBufferSize;
-                    if (shrink_cnt > 0) {
-                        mLinesBuffer.erase(mLinesBuffer.begin(), mLinesBuffer.begin() + shrink_cnt);
-                    }
-                    // will override the old parameters, such as line-height
-                    for (size_t k = 0; k < mLinesBuffer.size(); ++k) {
-                        int h = mLinesBuffer[k].GetHeight();
-                        mLinesBuffer[k].SetHeight((int)((double)h / mFontH * fonth));
-                    }
-                    for (size_t k = 0; k < mLines.size(); ++k) {
-                        int h = mLines[k].GetHeight();
-                        mLines[k].SetHeight((int)((double)h / mFontH * fonth));
-                    }
-                    mFontW = fontw, mFontH = fonth;
-                    vscr_modified = true;
+    mUsrActions.emplace_back(terminal::vt_options(), t_("VT options"), t_("Virtual terminal options"), [=]() {
+        VTOptionsDialog::Options options;
+        options.Font = mFont;
+        options.LinesBufferSize = (int)this->mMaxLinesBufferSize;
+        options.PaperColor = mColorTbl.GetColor(VTColorTable::kColorId_Paper);
+        options.FontColor = mColorTbl.GetColor(VTColorTable::kColorId_Texts);
+        VTOptionsDialog opt;
+        opt.SetOptions(options);
+        int ret = opt.Run();
+        if (ret == IDOK) {
+            options = opt.GetOptions();
+            this->mFont = options.Font;
+            this->mMaxLinesBufferSize = options.LinesBufferSize;
+            this->mColorTbl.SetColor(VTColorTable::kColorId_Texts, options.FontColor);
+            this->mColorTbl.SetColor(VTColorTable::kColorId_Paper, options.PaperColor);
+            //
+            bool vscr_modified = false; // lines buffer or virtual screen was modified ?
+            int fontw = mFont.GetAveWidth(), fonth = mFont.GetLineHeight();
+            if (fontw != mFontW || fonth != mFontH) {
+                int shrink_cnt = (int)mLinesBuffer.size() - options.LinesBufferSize;
+                if (shrink_cnt > 0) {
+                    mLinesBuffer.erase(mLinesBuffer.begin(), mLinesBuffer.begin() + shrink_cnt);
                 }
-                if (vscr_modified) {
-                    DoLayout();
-                    UpdatePresentation();
+                // will override the old parameters, such as line-height
+                for (size_t k = 0; k < mLinesBuffer.size(); ++k) {
+                    int h = mLinesBuffer[k].GetHeight();
+                    mLinesBuffer[k].SetHeight((int)((double)h / mFontH * fonth));
                 }
+                for (size_t k = 0; k < mLines.size(); ++k) {
+                    int h = mLines[k].GetHeight();
+                    mLines[k].SetHeight((int)((double)h / mFontH * fonth));
+                }
+                mFontW = fontw, mFontH = fonth;
+                vscr_modified = true;
             }
-        });
+            if (vscr_modified) {
+                DoLayout();
+                UpdatePresentation();
+            }
+        }
+    });
+    WhenBar = [=](Bar& bar) {
+        bool has_sel = mSelectionSpan.Valid;
+        bar.Add(has_sel, t_("Copy"), [=] {
+            // copy to clipboard
+            Copy();
+        }).Image(CtrlImg::copy()).Key(K_CTRL | K_SHIFT | K_C);
+        String text = ReadClipboardUnicodeText().ToString();
+        bar.Add(text.GetCount() > 0, t_("Paste"), [=] {
+            Paste();
+        }).Image(CtrlImg::paste()).Key(K_CTRL | K_SHIFT | K_V);
+        bar.Add(true, t_("Select all"), [=]() {
+            SelectAll();
+        }).Key(K_CTRL | K_SHIFT | K_A);
+    };
 }
 //
 void SerialConnVT::SaveScr(ScreenData& sd)
@@ -239,49 +251,54 @@ void SerialConnVT::RxProc()
         // VT seq.
     std::string pattern, raw;
     while (!mRxShouldStop) {
-        size_t sz = mSerial->Available();
-        if (sz) {
-            // read raw, not string, so, we could read NUL from the device.
-            std::vector<byte> buff = GetSerial()->ReadRaw(sz);
-            for (size_t k = 0; k < sz; ++k) {
-                if (pending) {
-                    pattern.push_back((char)buff[k]);
-                    int ret = IsControlSeq(pattern);
-                    if (ret != SEQ_PENDING) { // bingo
-                        // found it.
-                        AddSeq(pattern, ret);
-                        //
-                        pending = false;
-                        pattern = "";
-                    }
-                } else if (IsSeqPrefix(buff[k])) {
-                    // come across a 0x1b, render the raw
-                    if (!raw.empty()) {
-                        size_t ep;
-                        auto s = this->TranscodeToUTF32(raw, ep);
-                        raw = raw.substr(ep);
-                        if (!s.empty()) {
-                            AddSeq(std::move(s));
-                        }
-                    }
-                    pending = true; // continue
-                } else {
-                    raw.push_back(buff[k]);
-                }
-            }
-            if (!raw.empty()) {
-                size_t ep;
-                auto s = this->TranscodeToUTF32(raw, ep);
-                raw = raw.substr(ep);
-                if (!s.empty()) {
-                    AddSeq(std::move(s));
-                }
-            }
-            // callback is
-            PostCallback([=]() { RenderSeqs(); });
-        } else {
+        int sz = mSerial->Available();
+        if (sz < 0) {
+            PostCallback([=]() {
+                PromptOK(DeQtf(t_("Fatal error of I/O")));
+            });
+            break;
+        } else if (sz == 0) {
             std::this_thread::sleep_for(std::chrono::duration<double>(0.01));
+            continue;
         }
+        // read raw, not string, so, we could read NUL from the device.
+        std::vector<byte> buff = GetSerial()->ReadRaw(sz);
+        for (size_t k = 0; k < sz; ++k) {
+            if (pending) {
+                pattern.push_back((char)buff[k]);
+                int ret = IsControlSeq(pattern);
+                if (ret != SEQ_PENDING) { // bingo
+                    // found it.
+                    AddSeq(pattern, ret);
+                    //
+                    pending = false;
+                    pattern = "";
+                }
+            } else if (IsSeqPrefix(buff[k])) {
+                // come across a 0x1b, render the raw
+                if (!raw.empty()) {
+                    size_t ep;
+                    auto s = this->TranscodeToUTF32(raw, ep);
+                    raw = raw.substr(ep);
+                    if (!s.empty()) {
+                        AddSeq(std::move(s));
+                    }
+                }
+                pending = true; // continue
+            } else {
+                raw.push_back(buff[k]);
+            }
+        }
+        if (!raw.empty()) {
+            size_t ep;
+            auto s = this->TranscodeToUTF32(raw, ep);
+            raw = raw.substr(ep);
+            if (!s.empty()) {
+                AddSeq(std::move(s));
+            }
+        }
+        // callback is
+        PostCallback([=]() { RenderSeqs(); });
     }
 }
 
@@ -572,13 +589,8 @@ bool SerialConnVT::ProcessAsciiControlChar(char cc)
 //
 bool SerialConnVT::ProcessControlSeq(const std::string& seq, int seq_type)
 {
-    if (seq_type == SEQ_NONE) { // can't recognize the seq, display it
-        LOGF("Unrecognized:%s\n", seq.c_str());
-        size_t ep;
-        RenderText(this->TranscodeToUTF32(seq, ep));
-        return true;
-    }
-    return false;
+    LOGF("Unrecognized:%s\n", seq.c_str());
+    return true;
 }
 //
 void SerialConnVT::CheckAndFix(ScrollingRegion& span)
@@ -808,27 +820,9 @@ void SerialConnVT::SelectAll()
     }
 }
 
-void SerialConnVT::RightUp(Point, dword)
+void SerialConnVT::RightUp(Point, dword key)
 {
-    MenuBar::Execute([=](Bar& bar) {
-        bool has_sel = mSelectionSpan.Valid;
-        bar.Add(has_sel, t_("Copy"), [=] {
-               // copy to clipboard
-               Copy();
-           })
-            .Image(CtrlImg::copy())
-            .Key(K_CTRL | K_SHIFT | K_C);
-        String text = ReadClipboardUnicodeText().ToString();
-        bar.Add(text.GetCount() > 0, t_("Paste"), [=] {
-               Paste();
-           })
-            .Image(CtrlImg::paste())
-            .Key(K_CTRL | K_SHIFT | K_V);
-        bar.Add(true, t_("Select all"), [=]() {
-               SelectAll();
-           })
-            .Key(K_CTRL | K_SHIFT | K_A);
-    });
+    MenuBar::Execute(WhenBar);
 }
 //----------------------------------------------
 bool SerialConnVT::ProcessKeyDown(dword key, dword flags)
@@ -846,19 +840,6 @@ bool SerialConnVT::ProcessKeyDown(dword key, dword flags)
             break;
         }
     } else if ((flags & (K_CTRL | K_SHIFT)) == (K_CTRL | K_SHIFT)) { // CTRL+SHIFT+
-        switch (key) {
-        case K_C:
-            Copy();
-            return true;
-        case K_A:
-            SelectAll();
-            return true;
-        case K_V:
-            Paste();
-            return true;
-        default:
-            break;
-        }
         switch (key) {
         case K_2:
             d.push_back(0x00); // NUL
@@ -928,6 +909,8 @@ bool SerialConnVT::ProcessChar(dword cc)
 bool SerialConnVT::Key(dword key, int)
 {
     bool processed = false;
+    //
+    if (MenuBar::Scan(WhenBar, key)) return true;
     // split key and flags.
     dword flags = K_CTRL | K_ALT | K_SHIFT;
     dword d_key = key & ~(flags | K_KEYUP); // key with delta

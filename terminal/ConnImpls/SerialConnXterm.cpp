@@ -1,264 +1,121 @@
 //
 // (c) 2020 chiv
 //
+#include "terminal_rc.h"
 #include "SerialConnXterm.h"
-#include "XtermControlSeq.h"
 #include "ConnFactory.h"
-
-// REGISTER_CONN_INSTANCE("xterm", SerialConnXterm);
+// dialogs
+#include "TextCodecsDialog.h"
+#include "VTOptionsDialog.h"
 
 using namespace Upp;
 
+REGISTER_CONN_INSTANCE("xterm", SerialConnXterm);
+
 SerialConnXterm::SerialConnXterm(std::shared_ptr<SerialIo> serial)
-    : SerialConnVT(serial)
-    , SerialConnVT102(serial)
-    , SerialConnECMA48(serial)
-    , SerialConnAnsi(serial)
-    , mIsAltScr(false)
+	: SerialConn(serial)
+	, mIoThrShouldStop(false)
 {
-    //
-    InstallXtermFunctions();
-    // The default setting of alt screen is fixed, inherit from VT.
-    // The user can change settings when the alt screen is active, but we do not store the
-    // configuration after the user exit the alt screen.
-    SaveScr(mAltScr);
+	Sizeable().Add(mTerm.SizePos());
+	mTerm.WhenOutput = [=](String s) {
+		GetSerial()->Write((unsigned char*)s.Begin(), s.GetLength());
+	};
+	mTerm.ShowScrollBar();
+	//
+	this->PostCallback([=]() {
+		mTerm.SetFocus();
+	});
+	//
+	InstallActions();
 }
-//
+
 SerialConnXterm::~SerialConnXterm()
 {
+	mIoThrShouldStop = true;
+	if (mIoThr.joinable()) {
+		mIoThr.join();
+	}
 }
 
-void SerialConnXterm::ProcessXtermTrivial(const std::string& seq)
+void SerialConnXterm::InstallActions()
 {
-    auto it = mXtermTrivialHandlers.find(seq);
-    if (it != mXtermTrivialHandlers.end()) {
-        it->second();
-    }
-}
-// who we are
-// [?1;2c     VT100 with advanced video option
-// [?1;0c     VT101 with No options
-// [?4;6c     VT132 with Advanced Video and Graphics
-// [?6c       VT102
-// [?7c       VT131
-// [?12;<Ps>c VT125, Ps was defined in relevant docs
-// [?62;<Ps>c VT220
-// [?63;<Ps>c VT320
-// [?64;<Ps>c VT420
-//
-void SerialConnXterm::ProcessDA(const std::string& seq)
-{
-    int ps = atoi(seq.substr(1, seq.length()-2).c_str());
-    switch (ps) {
-    case 0:
-        GetSerial()->Write("\x1b[?6c"); // VT102
-        break;
-    }
-}
-
-bool SerialConnXterm::ProcessAsciiControlChar(char cc)
-{
-    return SerialConnAnsi::ProcessAsciiControlChar(cc);
-}
-
-bool SerialConnXterm::ProcessControlSeq(const std::string& seq, int seq_type)
-{
-    if (seq_type == Xterm_Trivial) {
-        ProcessXtermTrivial(seq);
-    } else if (seq_type > Xterm_Trivial && seq_type < Xterm_SeqType_Endup) {
-        auto it = mXtermFuncs.find(seq_type);
-        if (it != mXtermFuncs.end()) {
-            it->second(seq);
-        }
-    } else {
-        bool processed = SerialConnAnsi::ProcessControlSeq(seq, seq_type);
-        if (!processed) {
-            processed = SerialConnVT102::ProcessControlSeq(seq, seq_type);
-            if (!processed) {
-                return SerialConnVT::ProcessControlSeq(seq, seq_type);
+	mUsrActions.emplace_back(terminal::text_codec(),
+        t_("Text Codec"), t_("Select a text codec"), [=]() {
+            TextCodecsDialog d(GetCodec()->GetName().c_str());
+            int ret = d.Run();
+            if (ret == IDOK) {
+                std::lock_guard<std::mutex> _(mRxLock);
+                // rx thread is using the codec, so we should wait lock then update it.
+                this->SetCodec(d.GetCodecName());
             }
-        }
-    }
-    return true;
-}
-
-int SerialConnXterm::IsControlSeq(const std::string& seq)
-{
-    auto seq_type = IsXtermControlSeq(seq);
-    if (seq_type == SEQ_NONE) {
-        seq_type = SerialConnAnsi::IsControlSeq(seq);
-        if (seq_type == SEQ_NONE) {
-            seq_type = SerialConnVT102::IsControlSeq(seq);
-            if (seq_type == SEQ_NONE) {
-                seq_type = SerialConnVT::IsControlSeq(seq);
+        });
+    mUsrActions.emplace_back(terminal::clear_buffer(),
+        t_("Clear Buffer"), t_("Clear the line buffers"), [=]() {
+            mTerm.ClearHistory();
+        });
+    mUsrActions.emplace_back(terminal::vt_options(),
+        t_("VT options"), t_("Virtual terminal options"), [=]() {
+            VTOptionsDialog::Options options;
+            options.Font = mTerm.GetFont();
+            options.LinesBufferSize = mTerm.GetHistorySize();
+            options.PaperColor = mTerm.GetColor(Terminal::COLOR_PAPER);
+            options.FontColor = mTerm.GetColor(Terminal::COLOR_INK);
+            VTOptionsDialog opt;
+            opt.SetOptions(options);
+            int ret = opt.Run();
+            if (ret == IDOK) {
+                options = opt.GetOptions();
+                mTerm.SetFont(options.Font);
+                mTerm.SetHistorySize(options.LinesBufferSize);
+                mTerm.SetColor(Terminal::COLOR_PAPER, options.PaperColor);
+                mTerm.SetColor(Terminal::COLOR_INK, options.FontColor);
+                mTerm.Refresh();
+                //
+                DoLayout();
             }
-        }
-    }
-    return seq_type;
+        });
 }
 
-bool SerialConnXterm::ProcessKeyDown(Upp::dword key, Upp::dword flags)
+void SerialConnXterm::DoLayout()
 {
-    std::string d;
-    if (flags == 0) {
-        switch (key) {
-        //--------------------------------------------------------------------------------------
-        // VT220 style
-        case K_INSERT:
-            d = "\033[2~";
-            break;
-        case K_DELETE:
-            d = "\033[3~";
-            break;
-        case K_HOME:
-            d = "\033[1~";
-            break;
-        case K_END:
-            d = "\033[4~";
-            break;
-        case K_PAGEUP:
-            d = "\033[5~";
-            break;
-        case K_PAGEDOWN:
-            d = "\033[6~";
-            break;
-        //--------------------------------------------------------------------------------------
-        // PC Style
-        case K_F1:
-            d = "\033OP";
-            break;
-        case K_F2:
-            d = "\033OQ";
-            break;
-        case K_F3:
-            d = "\033OR";
-            break;
-        case K_F4:
-            d = "\033OS";
-            break;
-        case K_F5:
-            d = "\033[15~";
-            break;
-        case K_F6:
-            d = "\033[17~";
-            break;
-        case K_F7:
-            d = "\033[18~";
-            break;
-        case K_F8:
-            d = "\033[19~";
-            break;
-        case K_F9:
-            d = "\033[20~";
-            break;
-        case K_F10:
-            d = "\033[21~";
-            break;
-        case K_F11:
-            d = "\033[23~";
-            break;
-        case K_F12:
-            d = "\033[24~";
-            break;
-        default:break;
-        }
-    } else {
-        int code = 0;
-        if ((flags & (K_CTRL | K_SHIFT | K_ALT)) == (K_CTRL | K_SHIFT | K_ALT)) {
-            code = 8; // ctrl + alt + shift
-        } else if ((flags & (K_CTRL | K_SHIFT | K_ALT)) == K_SHIFT) {
-            code = 2;
-        } else if ((flags & (K_CTRL | K_SHIFT | K_ALT)) == K_ALT) {
-            code = 3;
-        } else if ((flags & (K_CTRL | K_SHIFT | K_ALT)) == (K_SHIFT | K_ALT)) {
-            code = 4;
-        } else if ((flags & (K_CTRL | K_SHIFT | K_ALT)) == K_CTRL) {
-            code = 5;
-        } else if ((flags & (K_CTRL | K_SHIFT | K_ALT)) == (K_SHIFT | K_CTRL)) {
-            code = 6;
-        } else if ((flags & (K_CTRL | K_SHIFT | K_ALT)) == (K_ALT | K_CTRL)) {
-            code = 7;
-        }
-        if (code != 0) {
-            switch (key) {
-            case K_F1:
-                d = "\033O;" + std::to_string(code) + "P";
-                break;
-            case K_F2:
-                d = "\033O;" + std::to_string(code) + "Q";
-                break;
-            case K_F3:
-                d = "\033O;" + std::to_string(code) + "R";
-                break;
-            case K_F4:
-                d = "\033O;" + std::to_string(code) + "S";
-                break;
-            case K_F5:
-                d = "\033[15;" + std::to_string(code) + "~";
-                break;
-            case K_F6:
-                d = "\033[17;" + std::to_string(code) + "~";
-                break;
-            case K_F7:
-                d = "\033[18;" + std::to_string(code) + "~";
-                break;
-            case K_F8:
-                d = "\033[19;" + std::to_string(code) + "~";
-                break;
-            case K_F9:
-                d = "\033[20;" + std::to_string(code) + "~";
-                break;
-            case K_F10:
-                d = "\033[21;" + std::to_string(code) + "~";
-                break;
-            case K_F11:
-                d = "\033[23;" + std::to_string(code) + "~";
-                break;
-            case K_F12:
-                d = "\033[24;" + std::to_string(code) + "~";
-                break;
-            default:break;
-            }
-        }
-    }
-    if (!d.empty()) {
-        GetSerial()->Write(d);
-        return true;
-    }
-    return SerialConnAnsi::ProcessKeyDown(key, flags);
+	Size csz = mTerm.GetPageSize();
+	if (csz.cx > 1 && csz.cy > 1) {
+	    WhenSizeChanged(csz);
+	}
 }
 
-bool SerialConnXterm::ProcessKeyUp(dword key, dword flags)
+void SerialConnXterm::Layout()
 {
-    return SerialConnAnsi::ProcessKeyUp(key, flags);
+	DoLayout();
 }
 
-Upp::WString SerialConnXterm::TranscodeToUTF16(const VTChar& cc) const
+bool SerialConnXterm::Start()
 {
-	return SerialConnVT102::TranscodeToUTF16(cc);
-}
-//
-bool SerialConnXterm::ProcessChar(Upp::dword cc)
-{
-	return SerialConnVT102::ProcessChar(cc);
-}
-
-void SerialConnXterm::InstallXtermFunctions()
-{
-    mXtermTrivialHandlers["[?1049h"] = [=]() { // switch to alternative screen
-        if (mIsAltScr == false) {
-            //SaveScr(mBkgScr); // backup current screen
-            //LoadScr(mAltScr); // load alternative screen.
-            SwapScr(mAltScr);
-            mIsAltScr = true;
-        }
-    };
-    mXtermTrivialHandlers["[?1049l"] = [=]() { // switch to main screen
-        if (mIsAltScr) {
-            //LoadScr(mBkgScr);
-            SwapScr(mAltScr);
-            mIsAltScr = false;
-        }
-    };
-    mXtermTrivialHandlers["[?3J"] = [=]() { mLinesBuffer.clear(); };
+	mIoThr = std::thread([=]() {
+		while (!mIoThrShouldStop) {
+			int sz = mSerial->Available();
+	        if (sz < 0) {
+	            PostCallback([=]() {
+	                PromptOK(DeQtf(t_("Fatal error of I/O")));
+	            });
+	            break;
+	        } else if (sz == 0) {
+	            std::this_thread::sleep_for(std::chrono::duration<double>(0.01));
+	            continue;
+	        }
+			std::vector<unsigned char> buff = GetSerial()->ReadRaw(sz);
+			mRxLock.lock();
+			mRxBuffer.insert(mRxBuffer.end(), buff.begin(), buff.end());
+			PostCallback([=] {
+				mRxLock.lock();
+				std::string s = mCodec->TranscodeToUTF8(mRxBuffer.data(), mRxBuffer.size());
+				mRxBuffer.clear();
+				mRxLock.unlock();
+				//
+				mTerm.Write(s.c_str(), (int)s.length()); // UTF-8
+			});
+			mRxLock.unlock();
+		}
+	});
+	return true;
 }
