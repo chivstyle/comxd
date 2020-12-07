@@ -5,6 +5,7 @@
 #define _terminal_CodecFactory_h_
 
 #include "Codec.h"
+#include <CtrlLib/CtrlLib.h>
 #include <map>
 #include <functional>
 
@@ -20,21 +21,21 @@ public:
     static CodecFactory* Inst();
     // create instance
     // type_name - Type name of conn, such as VT102, Xterm, Modbus RTU, .etc
-    Codec* CreateInst(const char* codec_name);
+    Codec* CreateInst(const Upp::String& codec_name);
     //
-    bool RegisterCreateInstFunc(const char* codec_name,
+    bool RegisterCreateInstFunc(const Upp::String& codec_name,
                                 std::function<Codec*()> func)
     {
-        if (mInstFuncs.find(codec_name) == mInstFuncs.end()) {
-            mInstFuncs[codec_name] = func;
+        if (mInsts.find(codec_name) == mInsts.end()) {
+            mInsts[codec_name] = func;
             return true;
         } else return false; // There's already a function in the map
     }
     //
-    std::vector<std::string> GetSupportedCodecs() const
+    std::vector<Upp::String> GetSupportedCodecNames() const
     {
-        std::vector<std::string> list;
-        for (auto it = mInstFuncs.begin(); it != mInstFuncs.end(); ++it) {
+        std::vector<Upp::String> list;
+        for (auto it = mInsts.begin(); it != mInsts.end(); ++it) {
             list.push_back(it->first);
         }
         return list;
@@ -42,7 +43,7 @@ public:
     //
 protected:
     // functions to create instance(s)
-    std::map<std::string, std::function<Codec*()> > mInstFuncs;
+    std::map<Upp::String, std::function<Codec*()> > mInsts;
     
     DELETE_CA_FUNCTIONS(CodecFactory);
     CodecFactory();

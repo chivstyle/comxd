@@ -142,7 +142,7 @@ protected:
 	        auto conn = dynamic_cast<SerialConn*>(mDevsTab.GetItem(mDevsTab.Get()).GetSlave());
 	        if (conn) {
 	            // Actions of serial device
-	            auto io_actions = conn->GetSerial()->GetActions();
+	            auto io_actions = conn->GetIo()->GetActions();
 	            for (auto it = io_actions.begin(); it != io_actions.end(); ++it) {
 	                bar.Add(it->Text, it->Icon, it->Func).Help(it->Help);
 	            }

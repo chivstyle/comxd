@@ -15,10 +15,11 @@
 #include <thread>
 #include <mutex>
 
+class ControlSeqFactory;
 class SerialConnVT : public SerialConn {
 public:
     using Superclass = SerialConn;
-    SerialConnVT(std::shared_ptr<SerialIo> serial);
+    SerialConnVT(std::shared_ptr<SerialIo> io);
     virtual ~SerialConnVT();
     //
     virtual bool Start();
@@ -55,8 +56,10 @@ public:
     // swap current scr and sd
     void SwapScr(ScreenData& sd);
     //
-    Event<Upp::Bar&> WhenBar;
+    Upp::Event<Upp::Bar&> WhenBar;
 protected:
+	ControlSeqFactory* mSeqsFactory;
+	std::map<int, std::function<void(const std::string&)> > mFunctions;
 	//------------------------------------------------------------------------------------------
     // Font
     virtual void Paint(Upp::Draw& draw);
@@ -81,36 +84,36 @@ protected:
             CTRL_SEQ,
             TEXT_SEQ
         };
-        int type;
-        std::pair<std::string, int> ctrl;
-        std::vector<uint32_t> text;
-        Seq(const std::string& seq, int seq_type)
+        int Type;
+        std::pair<int, std::string> Ctrl;
+        std::vector<uint32_t> Text;
+        Seq(int seq_type, const std::string& p)
         {
-            type = CTRL_SEQ;
-            ctrl = std::make_pair(seq, seq_type);
+            Type = CTRL_SEQ;
+            Ctrl = std::make_pair(seq_type, p);
         }
         Seq(std::vector<uint32_t>&& seq)
         {
-            type = TEXT_SEQ;
-            text = std::move(seq);
+            Type = TEXT_SEQ;
+            Text = std::move(seq);
         }
-        Seq(const std::vector<uint32_t>& seq)
+        Seq(const std::vector<uint32_t>& text)
         {
-            type = TEXT_SEQ;
-            text = seq;
+            Type = TEXT_SEQ;
+            Text = text;
         }
     };
     std::queue<Seq> mSeqs;
     template <class Type>
-    void AddSeq(Type&& seq)
+    void AddSeq(Type&& text)
     {
         std::lock_guard<std::mutex> _(mLockSeqs);
-        mSeqs.push(Seq(std::forward<Type>(seq)));
+        mSeqs.push(Seq(std::forward<Type>(text)));
     }
-    void AddSeq(const std::string& seq, int seq_type)
+    void AddSeq(int seq_type, const std::string& p)
     {
         std::lock_guard<std::mutex> _(mLockSeqs);
-        mSeqs.push(Seq(seq, seq_type));
+        mSeqs.push(Seq(seq_type, p));
     }
     virtual void RenderSeqs();
     //-------------------------------------------------------------------------------------
@@ -202,20 +205,22 @@ protected:
     /// \param ep End position of raw string. From ep To end of s, the data could not be
     ///           recognized.
     virtual std::vector<uint32_t> TranscodeToUTF32(const std::string& s, size_t& ep);
-    //
-    virtual bool IsSeqPrefix(unsigned char c);
-    //
-    virtual int IsControlSeq(const std::string& seq);
-    virtual bool ProcessControlSeq(const std::string& seq, int seq_type);
-    // 00~0x1f
-    // VT will process following chars
-    // 0x0b VT
-    // 0x09 HT
-    // 0x08 BS
-    // 0x0a LN
-    // 0x0d CR
-    // others were ignored.
-    virtual bool ProcessAsciiControlChar(char cc);
+    /// When ?
+    /// The receiver will analyze the buffer received, when it come across a character
+    /// unrecognized, the IsControlSeq was invoked to defined the seq. The return value
+    /// of IsControlSeq defines the next step.
+    /// - SEQ_NONE, the seq was discarded
+    /// - SEQ_PENDING, need more chars to define farther, the receiver will append one char
+    ///                and invoke IsControlSeq again
+    /// - Valid Seq Type, the receiver will add the seq and it's type to the render-queue,
+    ///   it will be processed later.
+    ///   If IsControlSeq returns true, it should set the p_begin, p_sz to tell the receiver
+    ///   the location and size of the parameter.
+    virtual int IsControlSeq(const std::string& seq, size_t& p_begin, size_t& p_sz);
+    /// process the seq
+    /// @param seq_type Type of sequence
+    /// @param p Parameter of this sequence
+    virtual bool ProcessControlSeq(int seq_type, const std::string& p);
     // with K_DELTA
     virtual bool ProcessKeyDown(Upp::dword key, Upp::dword flags);
     virtual bool ProcessKeyUp(Upp::dword key, Upp::dword flags);
@@ -238,7 +243,8 @@ protected:
     //
     int GetVTLinesHeight(const std::vector<VTLine>& lines) const;
     //
-    virtual void UpdatePresentationPos();
+    virtual void UpdatePresentationPos(); // Vx,Vy -> Px,Py
+    virtual void UpdateDataPos(); // Px,Py -> Vx,Vy
     virtual void UpdateHScrollbar();
     virtual void UpdateVScrollbar();
     virtual void UpdatePresentation();

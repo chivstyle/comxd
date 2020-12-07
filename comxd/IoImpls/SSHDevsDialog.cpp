@@ -16,18 +16,18 @@ SSHDevsDialog::SSHDevsDialog()
 	mPort.SetData("22");
 	mPassword.Password();
 	// types
-    auto types = ConnFactory::Inst()->GetSupportedConnTypes();
-    for (size_t k = 0; k < types.size(); ++k) {
-        mTypes.Add(types[k].c_str());
+    auto conn_names = ConnFactory::Inst()->GetSupportedConnNames();
+    for (size_t k = 0; k < conn_names.size(); ++k) {
+        mTypes.Add(conn_names[k]);
     }
-    if (!types.empty()) {
+    if (!conn_names.empty()) {
         mTypes.SetIndex(0);
     }
     // CodecFactory MUST have a UTF-8 codec.
-    auto codecs = CodecFactory::Inst()->GetSupportedCodecs();
-    for (size_t k = 0; k < codecs.size(); ++k) {
-        mCodecs.Add(codecs[k].c_str());
-        if (codecs[k] == "UTF-8" || codecs[k] == "UTF8") {
+    auto codec_names = CodecFactory::Inst()->GetSupportedCodecNames();
+    for (size_t k = 0; k < codec_names.size(); ++k) {
+        mCodecs.Add(codec_names[k]);
+        if (codec_names[k] == "UTF-8" || codec_names[k] == "UTF8") {
             mCodecs.SetIndex((int)k);
         }
     }
@@ -46,8 +46,9 @@ SerialConn* SSHDevsDialog::RequestConn()
 		session->WhenWait = [=]() { this->Title("Connecting..."); ProcessEvents(); };
 		if (session->Timeout(2000).Connect(~mHost, ~mPort, ~mUser, ~mPassword)) {
 			try {
-				auto port = std::make_shared<SSHPort>(session, ~mHost, ~mTypes);
-				conn = ConnFactory::Inst()->CreateInst(~mTypes.Get(), port);
+				auto port = std::make_shared<SSHPort>(session, ~mHost,
+					ConnFactory::Inst()->GetConnType(~mTypes));
+				conn = ConnFactory::Inst()->CreateInst(~mTypes, port);
 				port->Start();
 				conn->WhenSizeChanged = [=](const Size& csz) {
 					port->SetConsoleSize(csz);

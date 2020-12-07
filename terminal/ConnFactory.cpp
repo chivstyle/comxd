@@ -19,29 +19,47 @@ ConnFactory* ConnFactory::Inst()
     return &inst;
 }
 
-std::vector<std::string> ConnFactory::GetSupportedConnTypes() const
+std::vector<String> ConnFactory::GetSupportedConnNames() const
 {
-    std::vector<std::string> list;
-    for (auto it = mInstFuncs.begin(); it != mInstFuncs.end(); ++it) {
+    std::vector<String> list;
+    for (auto it = mInsts.begin(); it != mInsts.end(); ++it) {
         list.push_back(it->first);
     }
     return list;
 }
 
-bool ConnFactory::RegisterCreateInstFunc(const char* type_name,
+String ConnFactory::GetConnType(const String& name) const
+{
+	auto it = mInsts.find(name);
+	if (it != mInsts.end()) {
+		return it->second.first;
+	}
+	return "";
+}
+
+ConnFactory::CreateInstFunc ConnFactory::GetConnInstFunc(const String& name) const
+{
+	auto it = mInsts.find(name);
+	if (it != mInsts.end()) {
+		return it->second.second;
+	}
+	return nullptr;
+}
+
+bool ConnFactory::RegisterCreateInstFunc(const String& name, const String& type,
                             std::function<SerialConn*(std::shared_ptr<SerialIo>)> func)
 {
-    if (mInstFuncs.find(type_name) == mInstFuncs.end()) {
-        mInstFuncs[type_name] = func;
+    if (mInsts.find(name) == mInsts.end()) {
+        mInsts[name] = std::make_pair(type, func);
         return true;
     } else return false; // There's already a function in the map
 }
 
-SerialConn* ConnFactory::CreateInst(const char* type_name, std::shared_ptr<SerialIo> serial)
+SerialConn* ConnFactory::CreateInst(const String& name, std::shared_ptr<SerialIo> serial)
 {
-    auto it = mInstFuncs.find(type_name);
-    if (it != mInstFuncs.end()) {
-        return it->second(serial);
+    auto it = mInsts.find(name);
+    if (it != mInsts.end()) {
+        return it->second.second(serial);
     }
     return nullptr;
 }

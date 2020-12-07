@@ -3,18 +3,15 @@
 //
 #include "terminal_rc.h"
 #include "SerialConnVT.h"
-#include "ConnFactory.h"
 #include "ControlSeq.h"
 #include "TextCodecsDialog.h"
 #include "VTOptionsDialog.h"
 #include <algorithm>
-
-//REGISTER_CONN_INSTANCE("Original VT", SerialConnVT);
 // register
 using namespace Upp;
 //----------------------------------------------------------------------------------------------
-SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> serial)
-    : SerialConn(serial)
+SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
+    : SerialConn(io)
     , mPx(0)
     , mPy(0)
     , mVx(0)
@@ -25,6 +22,7 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> serial)
     , mPressed(false)
     , mShowCursor(true)
     , mMaxLinesBufferSize(5000)
+    , mSeqsFactory(new ControlSeqFactory())
 {
     // double buffer
     BackPaint();
@@ -66,10 +64,14 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> serial)
         this->Refresh();
     });
     // initialize size
-    VTLine vline = VTLine(40, ' ').SetHeight(mFontH);
+    VTLine vline = VTLine(80, ' ').SetHeight(mFontH);
     mLines.insert(mLines.begin(), 30, vline);
     //
     InstallUserActions();
+    //
+    this->PostCallback([=]() {
+		this->SetFocus();
+	});
 }
 
 SerialConnVT::~SerialConnVT()
@@ -78,6 +80,7 @@ SerialConnVT::~SerialConnVT()
     if (mRxThr.joinable()) {
         mRxThr.join();
     }
+    delete mSeqsFactory;
 }
 //
 bool SerialConnVT::Start()
@@ -223,20 +226,38 @@ void SerialConnVT::Clear()
     UpdatePresentation();
 }
 //
+int SerialConnVT::IsControlSeq(const std::string& seq, size_t& p_begin, size_t& p_sz)
+{
+	return mSeqsFactory->IsControlSeq(seq, p_begin, p_sz);
+}
+//
+bool SerialConnVT::ProcessControlSeq(int seq_type, const std::string& p)
+{
+    auto it = mFunctions.find(seq_type);
+    if (it != mFunctions.end()) {
+        it->second(p);
+        // processed
+        return true;
+    }
+    return false;
+}
+//
 void SerialConnVT::RenderSeqs()
 {
     std::lock_guard<std::mutex> _(mLockSeqs);
     while (!mSeqs.empty()) {
         auto seq = mSeqs.front();
-        switch (seq.type) {
+        switch (seq.Type) {
         case Seq::CTRL_SEQ:
-            ProcessControlSeq(seq.ctrl.first, seq.ctrl.second);
-            if (seq.ctrl.second != SEQ_NONE) {
+            if (ProcessControlSeq(seq.Ctrl.first, seq.Ctrl.second)) {
+                UpdateDataPos();
                 ProcessOverflowLines();
+            } else {
+                LOGF("Unprocessed:%s\n", seq.Ctrl.second.c_str());
             }
             break;
         case Seq::TEXT_SEQ:
-            RenderText(seq.text);
+            RenderText(seq.Text);
             break;
         }
         mSeqs.pop();
@@ -251,7 +272,7 @@ void SerialConnVT::RxProc()
         // VT seq.
     std::string pattern, raw;
     while (!mRxShouldStop) {
-        int sz = mSerial->Available();
+        int sz = GetIo()->Available();
         if (sz < 0) {
             PostCallback([=]() {
                 PromptOK(DeQtf(t_("Fatal error of I/O")));
@@ -262,29 +283,40 @@ void SerialConnVT::RxProc()
             continue;
         }
         // read raw, not string, so, we could read NUL from the device.
-        std::vector<byte> buff = GetSerial()->ReadRaw(sz);
+        std::vector<byte> buff = GetIo()->ReadRaw(sz);
         for (size_t k = 0; k < sz; ++k) {
+            // C0 ?
+            if (buff[k] >= 0 && buff[k] <= 0x1f || buff[k] == 0x7f) {
+                pending = true;
+            }
             if (pending) {
-                pattern.push_back((char)buff[k]);
-                int ret = IsControlSeq(pattern);
-                if (ret != SEQ_PENDING) { // bingo
-                    // found it.
-                    AddSeq(pattern, ret);
-                    //
-                    pending = false;
-                    pattern = "";
-                }
-            } else if (IsSeqPrefix(buff[k])) {
-                // come across a 0x1b, render the raw
                 if (!raw.empty()) {
-                    size_t ep;
-                    auto s = this->TranscodeToUTF32(raw, ep);
-                    raw = raw.substr(ep);
-                    if (!s.empty()) {
-                        AddSeq(std::move(s));
-                    }
+		            size_t ep;
+		            auto s = this->TranscodeToUTF32(raw, ep);
+		            raw = raw.substr(ep);
+		            if (!s.empty()) {
+		                AddSeq(std::move(s));
+		            }
+		            // clear raw, because the next is control-seq. Totally, it's not a part of
+		            // characters absolutely.
+		            if (!raw.empty()) {
+		                raw.clear();
+		                LOGF("Incompleted inputs\n");
+		            }
+		        }
+                pattern.push_back(buff[k]);
+                size_t p_begin, p_sz;
+                int type = IsControlSeq(pattern, p_begin, p_sz);
+                if (type == SEQ_NONE) {
+                    LOGF("Unrecognized:%s", pattern);
                 }
-                pending = true; // continue
+                else if (type == SEQ_PENDING) continue;
+                else {
+                    AddSeq(type, pattern.substr(p_begin, p_sz));
+                    //
+                    pattern.clear();
+                    pending = false;
+                }
             } else {
                 raw.push_back(buff[k]);
             }
@@ -306,9 +338,10 @@ int SerialConnVT::GetCharWidth(const VTChar& c, int vx) const
 {
     int cx = mFontW;
     switch (c.Code()) {
-    case '\t':
-        cx = cx * (8 - (vx % 8));
-        break;
+    case '\t': if (1) {
+        int tabsz = mFontW*8;
+        cx = tabsz - (mPx % tabsz);
+    } break;
     case '\v':
     case ' ':
         break;
@@ -319,17 +352,6 @@ int SerialConnVT::GetCharWidth(const VTChar& c, int vx) const
         } break;
     }
     return cx;
-}
-
-bool SerialConnVT::IsSeqPrefix(unsigned char c)
-{
-    return c == 0x1b;
-}
-
-int SerialConnVT::IsControlSeq(const std::string& seq)
-{
-    (void)seq;
-    return SEQ_NONE;
 }
 
 Size SerialConnVT::GetConsoleSize() const
@@ -561,38 +583,6 @@ void SerialConnVT::PushToLinesBufferAndCheck(const VTLine& vline)
     }
 }
 //
-bool SerialConnVT::ProcessAsciiControlChar(char cc)
-{
-    switch (cc) {
-    case '\v': // VT
-        mLines[mVy][mVx] = '\v';
-        mVy++;
-        break;
-    case '\b': // BS
-        if (mVx > 0) {
-            mVx--;
-        }
-        break;
-    case '\r': // CR
-        mVx = 0;
-        break;
-    case '\n': // LF
-        mVy += 1;
-        break;
-    case '\t':
-        mLines[mVy][mVx] = '\t';
-        mVx++;
-        break;
-    }
-    return true;
-}
-//
-bool SerialConnVT::ProcessControlSeq(const std::string& seq, int seq_type)
-{
-    LOGF("Unrecognized:%s\n", seq.c_str());
-    return true;
-}
-//
 void SerialConnVT::CheckAndFix(ScrollingRegion& span)
 {
 	if (span.Top < 0) span.Top = 0;
@@ -614,6 +604,8 @@ void SerialConnVT::ProcessOverflowLines()
     if (bottom < 0 || bottom >= csz.cy)
         bottom = csz.cy - 1;
     ASSERT(span.Top < bottom);
+    if (mVx < 0) mVx = 0;
+    if (mVy < 0) mVy = 0;
     // scrolling region.
     int dy = mVy - bottom;
     if (dy > 0) {
@@ -638,34 +630,27 @@ void SerialConnVT::RenderText(const std::vector<uint32_t>& s)
     Size csz = GetConsoleSize();
     for (size_t k = 0; k < s.size(); ++k) {
         VTChar chr = s[k];
-        if (chr.Code() < 0x20 || chr.Code() == 0x7f) {
-            if (ProcessAsciiControlChar(chr.Code())) {
-                ProcessOverflowLines();
-            }
+        chr.SetStyle(mStyle);
+        // Unfortunately, UPP does not support complete UNICODE, support UCS-16 instead. So
+        // we should ignore those out of range
+        if (chr.Code() > 0xffff)
+            chr.SetCode('?'); // replace chr with ?
+        VTLine& vline = mLines[mVy];
+        if (mVx < vline.size()) {
+            vline[mVx] = chr;
         } else {
-            chr.SetStyle(mStyle);
-            // Unfortunately, UPP does not support complete UNICODE, support UCS-16 instead. So
-            // we should ignore those out of range
-            if (chr.Code() > 0xffff)
-                chr.SetCode('?'); // replace chr with ?
-            VTLine& vline = mLines[mVy];
-            if (mVx < vline.size()) {
-                vline[mVx] = chr;
-            } else {
-                // padding blanks if needed.
-                for (int n = (int)vline.size() - 1; n < mVx - 1; ++n) {
-                    vline.push_back(mBlankChar);
-                }
-                // extend the vline
-                vline.push_back(chr);
+            // padding blanks if needed.
+            for (int n = (int)vline.size() - 1; n < mVx - 1; ++n) {
+                vline.push_back(mBlankChar);
             }
-            mVx++;
-            if (mVx >= (int)vline.size()) {
-                // extend vline
-                vline.insert(vline.end(), 8, mBlankChar);
-            }
+            // extend the vline
+            vline.push_back(chr);
         }
-        
+        mVx++;
+        if (mVx >= (int)vline.size()) {
+            // extend vline
+            vline.insert(vline.end(), 8, mBlankChar);
+        }
     }
     
 }
@@ -799,7 +784,7 @@ void SerialConnVT::LeftUp(Point p, dword)
 void SerialConnVT::Paste()
 {
     String text = ReadClipboardUnicodeText().ToString();
-    GetSerial()->Write(text.ToStd());
+    GetIo()->Write(text.ToStd());
 }
 
 void SerialConnVT::Copy()
@@ -836,18 +821,21 @@ bool SerialConnVT::ProcessKeyDown(dword key, dword flags)
         case K_ESCAPE:
             d.push_back(0x1b);
             break;
+        case K_DELETE:
+            d.push_back(0x7f);
+            break;
         default:
             break;
         }
     } else if ((flags & (K_CTRL | K_SHIFT)) == (K_CTRL | K_SHIFT)) { // CTRL+SHIFT+
         switch (key) {
-        case K_2:
+        case K_2: // CTRL+SHIFT+2 = CTRL+@
             d.push_back(0x00); // NUL
             break;
-        case K_6:
+        case K_6: // CTRL+SHIFT+6 = CTRL+^
             d.push_back(0x1e); // RS
             break;
-        case K_MINUS:
+        case K_GRAVE: // CTRL+SHIFT+`=CTRL+~
             d.push_back(0x1f); // US
             break;
         default:
@@ -858,23 +846,20 @@ bool SerialConnVT::ProcessKeyDown(dword key, dword flags)
             d.push_back(1 + (uint8_t)(key - K_A));
         } else {
             switch (key) {
-            case K_LBRACKET: // '[':
-                d.push_back(0x1b); // ESC
+            case K_LBRACKET: // CTRL+[
+                d.push_back(0x1b);
                 break;
-            case K_SLASH: // '/':
-                d.push_back(0x1c); // FS
+            case K_SLASH: // CTRL+/
+                d.push_back(0x1c);
                 break;
-            case K_RBRACKET: // ']':
-                d.push_back(0x1d); // GS
+            case K_RBRACKET: // CTRL+]
+                d.push_back(0x1d);
                 break;
             }
         }
     }
     if (!d.empty()) {
-        // scroll to end when the user input valid chars.
-        mSbV.End();
-        //
-        GetSerial()->Write(d);
+        GetIo()->Write(d);
         return true;
     }
     return false;
@@ -901,7 +886,7 @@ bool SerialConnVT::ProcessKeyUp(dword key, dword flags)
 
 bool SerialConnVT::ProcessChar(dword cc)
 {
-    GetSerial()->Write(GetCodec()->TranscodeFromUTF32(cc));
+    GetIo()->Write(GetCodec()->TranscodeFromUTF32(cc));
     //
     return true;
 }
@@ -924,6 +909,7 @@ bool SerialConnVT::Key(dword key, int)
         }
     } else {
         if (key < 0xffff) {
+            // key is a character [WCHAR]
             processed = ProcessChar(d_key);
             // Windows/Linux
             if (d_key == 0x0d) {
@@ -1201,13 +1187,17 @@ bool SerialConnVT::IsCharInSelectionSpan(int vx, int vy) const
 void SerialConnVT::DrawCursor(Draw& draw)
 {
 	if (!mShowCursor) return;
+	
+	int px = mPx - mSbH.Get();
+	int py = mPy + mSbH.Get();
+	
     Size usz = GetSize();
-    if (mPx >= 0 && mPx < usz.cx && mPy >= 0 && mPy < usz.cy) {
-        draw.DrawRect(mPx, mPy, mFontW, mFontH, Color(0, 255, 0));
+    if (px >= 0 && py < usz.cx && py >= 0 && py < usz.cy) {
+        draw.DrawRect(px, py, mFontW, mFontH, Color(0, 255, 0));
         // a visible char.
         if (mVx < (int)mLines[mVy].size() && mVy < (int)mLines.size()
             && mLines[mVy][mVx].Code() != ' ' && mLines[mVy][mVx].Code() != '\t') {
-            this->DrawVTChar(draw, mPx, mPy, mLines[mVy][mVx], mFont, \
+            this->DrawVTChar(draw, px, py, mLines[mVy][mVx], mFont, \
                 mColorTbl.GetColor(VTColorTable::kColorId_Paper));
         }
     }
@@ -1284,11 +1274,27 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
     }
 }
 
+void SerialConnVT::UpdateDataPos()
+{
+	int px, py, next_px, next_py;
+	Point vpos = this->LogicToVirtual(mLines, mPx, mPy, px, next_px, py, next_py, false);
+	mVx = vpos.x;
+	mVy = vpos.y;
+}
+
 void SerialConnVT::UpdatePresentationPos()
 {
-    Point ppos = VirtualToLogic(mVx, (int)mLinesBuffer.size() + mVy, false);
-    mPx = ppos.x - mSbH.Get();
-    mPy = ppos.y - mSbV.Get();
+	int buff_height = 0;
+	int posl_height = 0;
+	for (size_t k = 0; k < mLinesBuffer.size(); ++k) {
+		buff_height += mLinesBuffer[k].GetHeight();
+	}
+	posl_height = buff_height;
+	for (size_t k = 0; k < mVy; ++k) {
+		posl_height += mLines[k].GetHeight();
+	}
+	mPy = posl_height - buff_height;
+    mPx = this->VirtualToLogic(mLines[mVy], mVx, false);
 }
 
 void SerialConnVT::UpdateVScrollbar()
@@ -1333,7 +1339,7 @@ void SerialConnVT::UpdateHScrollbar()
     // get the longest line
     VTLine* vline = GetVTLine((int)mLinesBuffer.size() + mVy);
     if (vline) {
-        longest_linesz = std::max(this->GetLogicWidth(*vline, -1, false), longest_linesz);
+        longest_linesz = std::max(this->GetLogicWidth(*vline, mVx, false), longest_linesz);
     }
     mSbH.SetTotal(longest_linesz);
 }

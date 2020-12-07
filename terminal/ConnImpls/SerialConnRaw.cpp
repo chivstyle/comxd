@@ -9,7 +9,7 @@
 #include <functional>
 #include <stdio.h>
 
-REGISTER_CONN_INSTANCE("raw", SerialConnRaw);
+REGISTER_CONN_INSTANCE("Serial Tool", "xterm", SerialConnRaw);
 
 namespace {
 enum LineBreak_ {
@@ -19,11 +19,11 @@ enum LineBreak_ {
 };
 }
 //
-SerialConnRaw::SerialConnRaw(std::shared_ptr<SerialIo> serial)
+SerialConnRaw::SerialConnRaw(std::shared_ptr<SerialIo> io)
     : mRxShouldStop(false)
     , mTxProto(nullptr)
 {
-	this->mSerial = serial; //!< Important, let this as the first sentence.
+	this->mIo = io; //!< Important, let this as the first sentence.
 	//
 	this->mRx.SetFrame(FieldFrame());
 	this->mTx.SetFrame(FieldFrame());
@@ -43,9 +43,9 @@ SerialConnRaw::SerialConnRaw(std::shared_ptr<SerialIo> serial)
     this->mLineBreaks.SetIndex(1); //<! default: LF
     //------------------------------------------------------------------------
     mProtos.Add(t_("None"));mProtos.SetIndex(0);
-    std::vector<std::string> protos = ProtoFactory::Inst()->GetSupportedProtos();
-    for (size_t k = 0; k < protos.size(); ++k) {
-        this->mProtos.Add(protos[k].c_str());
+    auto proto_names = ProtoFactory::Inst()->GetSupportedProtoNames();
+    for (size_t k = 0; k < proto_names.size(); ++k) {
+        this->mProtos.Add(proto_names[k]);
     }
     //------------------------------------------------------------------------
     InstallActions();
@@ -422,7 +422,7 @@ void SerialConnRaw::OnSend()
     std::string tx = mTx.GetData().ToString().ToStd();
     if (mTxHex.Get()) {
         // write as hex.
-        mSerial->Write(ToHex_(tx));
+        GetIo()->Write(ToHex_(tx));
     } else {
         std::string text = tx;
         if (mEnableEscape.Get()) {
@@ -434,11 +434,11 @@ void SerialConnRaw::OnSend()
             if (out.empty()) {
                 PromptOK(Upp::DeQtf(errmsg.c_str()));
             } else {
-                mSerial->Write(out);
+                GetIo()->Write(out);
             }
         } else {
             auto tmp = ReplaceLineBreak_(text, mLineBreaks.GetKey(mLineBreaks.GetIndex()).To<int>());
-            mSerial->Write(GetCodec()->TranscodeFromUTF8((const unsigned char*)tmp.c_str(), tmp.length()));
+            GetIo()->Write(GetCodec()->TranscodeFromUTF8((const unsigned char*)tmp.c_str(), tmp.length()));
         }
     }
 }
@@ -527,10 +527,10 @@ void SerialConnRaw::Update()
 void SerialConnRaw::RxProc()
 {
     while (!mRxShouldStop) {
-        size_t sz = mSerial->Available();
+        size_t sz = GetIo()->Available();
         if (sz) {
             size_t max_buffer_sz = mRxBufferSz;
-            std::vector<unsigned char> buf = mSerial->ReadRaw(sz);
+            std::vector<unsigned char> buf = GetIo()->ReadRaw(sz);
             mRxBufferLock.lock();
             {
                 mRxBuffer.insert(mRxBuffer.end(), buf.begin(), buf.end());

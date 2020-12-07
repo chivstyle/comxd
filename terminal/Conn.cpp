@@ -5,8 +5,8 @@
 #include "codec/CodecUTF8.h"
 #include "CodecFactory.h"
 
-SerialConn::SerialConn(std::shared_ptr<SerialIo> serial)
-    : mSerial(serial)
+SerialConn::SerialConn(std::shared_ptr<SerialIo> io)
+    : mIo(io)
 {
     mCodec = std::make_shared<CodecUTF8>();
 }

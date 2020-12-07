@@ -33,7 +33,7 @@ static inline void SplitString(char* s, size_t s_len, char delim, std::function<
 }
 static inline bool SplitString(const char* cs, char delim, std::function<void(const char*)> func)
 {
-    static const size_t kCacheSize = 64; char _cache[kCacheSize];
+    static const size_t kCacheSize = 128; char _cache[kCacheSize];
     size_t cs_len = strlen(cs);
     if (cs_len < kCacheSize) {
         strcpy(_cache, cs);
@@ -102,6 +102,8 @@ public:
     {
         SetCode(c);
     }
+    //
+    operator uint32_t() { return mBits.Code; }
     
     void SetCode(const uint32_t& c)
     {

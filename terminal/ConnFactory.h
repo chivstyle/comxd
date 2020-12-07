@@ -20,17 +20,19 @@ public:
     static ConnFactory* Inst();
     // create instance
     // type_name - Type name of conn, such as VT102, Xterm, Modbus RTU, .etc
-    SerialConn* CreateInst(const char* type_name, std::shared_ptr<SerialIo> serial);
+    SerialConn* CreateInst(const Upp::String& name, std::shared_ptr<SerialIo> serial);
     //
-    bool RegisterCreateInstFunc(const char* type_name,
-                                std::function<SerialConn*(std::shared_ptr<SerialIo>)> func);
+    using CreateInstFunc = std::function<SerialConn*(std::shared_ptr<SerialIo>)>;
+    bool RegisterCreateInstFunc(const Upp::String& name, const Upp::String& type,
+                                CreateInstFunc func);
     //
-    std::vector<std::string> GetSupportedConnTypes() const;
+    std::vector<Upp::String> GetSupportedConnNames() const;
+    Upp::String GetConnType(const Upp::String& name) const;
+    CreateInstFunc GetConnInstFunc(const Upp::String& name) const;
     //
 protected:
     // functions to create instance(s)
-    std::map<std::string,
-        std::function<SerialConn*(std::shared_ptr<SerialIo>)> > mInstFuncs;
+    std::map<Upp::String, std::pair<Upp::String, CreateInstFunc> > mInsts;
     
     DELETE_CA_FUNCTIONS(ConnFactory);
     ConnFactory();
@@ -38,12 +40,12 @@ protected:
 };
 
 // Help macros
-#define REGISTER_CONN_INSTANCE(type_name, class_name) \
+#define REGISTER_CONN_INSTANCE(name, type, class_name) \
 class class_name##_ { \
 public: \
     class_name##_() \
     { \
-        ConnFactory::Inst()->RegisterCreateInstFunc(type_name, \
+        ConnFactory::Inst()->RegisterCreateInstFunc(name, type, \
         [=](std::shared_ptr<SerialIo> serial)->SerialConn* { \
             return new class_name(serial); \
         }); \

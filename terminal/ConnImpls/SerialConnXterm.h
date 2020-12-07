@@ -4,7 +4,7 @@
 #pragma once
 
 #include "Conn.h"
-#include "Terminal.h"
+#include <CtrlLib/Terminal/Terminal.h>
 // c++11 thread
 #include <thread>
 #include <vector>

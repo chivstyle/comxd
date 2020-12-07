@@ -19,21 +19,21 @@ public:
     static ProtoFactory* Inst();
     // create instance
     // type_name - Type name of conn, such as VT102, Xterm, Modbus RTU, .etc
-    Proto* CreateInst(const char* proto_name);
+    Proto* CreateInst(const Upp::String& proto_name);
     //
-    bool RegisterCreateInstFunc(const char* proto_name,
+    bool RegisterCreateInstFunc(const Upp::String& proto_name,
                                 std::function<Proto*()> func)
     {
-        if (mInstFuncs.find(proto_name) == mInstFuncs.end()) {
-            mInstFuncs[proto_name] = func;
+        if (mInsts.find(proto_name) == mInsts.end()) {
+            mInsts[proto_name] = func;
             return true;
         } else return false; // There's already a function in the map
     }
     //
-    std::vector<std::string> GetSupportedProtos() const
+    std::vector<Upp::String> GetSupportedProtoNames() const
     {
-        std::vector<std::string> list;
-        for (auto it = mInstFuncs.begin(); it != mInstFuncs.end(); ++it) {
+        std::vector<Upp::String> list;
+        for (auto it = mInsts.begin(); it != mInsts.end(); ++it) {
             list.push_back(it->first);
         }
         return list;
@@ -41,7 +41,7 @@ public:
     //
 protected:
     // functions to create instance(s)
-    std::map<std::string, std::function<Proto*()> > mInstFuncs;
+    std::map<Upp::String, std::function<Proto*()> > mInsts;
     
     DELETE_CA_FUNCTIONS(ProtoFactory);
     ProtoFactory();

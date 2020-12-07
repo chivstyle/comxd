@@ -10,7 +10,7 @@
 
 using namespace Upp;
 
-REGISTER_CONN_INSTANCE("xterm", SerialConnXterm);
+REGISTER_CONN_INSTANCE("Xterm powered by upp-components", "xterm", SerialConnXterm);
 
 SerialConnXterm::SerialConnXterm(std::shared_ptr<SerialIo> serial)
 	: SerialConn(serial)
@@ -18,7 +18,8 @@ SerialConnXterm::SerialConnXterm(std::shared_ptr<SerialIo> serial)
 {
 	Sizeable().Add(mTerm.SizePos());
 	mTerm.WhenOutput = [=](String s) {
-		GetSerial()->Write((unsigned char*)s.Begin(), s.GetLength());
+		std::string out = GetCodec()->TranscodeFromUTF8((unsigned char*)s.Begin(), s.GetLength());
+		GetIo()->Write(out);
 	};
 	mTerm.ShowScrollBar();
 	//
@@ -93,7 +94,7 @@ bool SerialConnXterm::Start()
 {
 	mIoThr = std::thread([=]() {
 		while (!mIoThrShouldStop) {
-			int sz = mSerial->Available();
+			int sz = GetIo()->Available();
 	        if (sz < 0) {
 	            PostCallback([=]() {
 	                PromptOK(DeQtf(t_("Fatal error of I/O")));
@@ -103,12 +104,12 @@ bool SerialConnXterm::Start()
 	            std::this_thread::sleep_for(std::chrono::duration<double>(0.01));
 	            continue;
 	        }
-			std::vector<unsigned char> buff = GetSerial()->ReadRaw(sz);
+			std::vector<unsigned char> buff = GetIo()->ReadRaw(sz);
 			mRxLock.lock();
 			mRxBuffer.insert(mRxBuffer.end(), buff.begin(), buff.end());
 			PostCallback([=] {
 				mRxLock.lock();
-				std::string s = mCodec->TranscodeToUTF8(mRxBuffer.data(), mRxBuffer.size());
+				std::string s = GetCodec()->TranscodeToUTF8(mRxBuffer.data(), mRxBuffer.size());
 				mRxBuffer.clear();
 				mRxLock.unlock();
 				//

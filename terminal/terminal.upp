@@ -1,8 +1,7 @@
 description "virtual terminal\377";
 
 uses
-	Core/SSH,
-	upp-components/CtrlLib/Terminal;
+	Core/SSH;
 
 library
 	;
@@ -32,28 +31,34 @@ file
 	ProtoFactory.h,
 	proto/ss.h,
 	proto/ss.cpp,
-	proto\ProtoSs.cpp,
-	proto\ProtoSs.h,
-	ConnImpls\SerialConnVT.h,
-	ConnImpls\SerialConnVT.cpp,
-	ConnImpls\ColorTable.cpp,
-	ConnImpls\ColorTable.h,
-	ConnImpls\VTtypes.cpp,
-	ConnImpls\VTtypes.h,
+	proto/ProtoSs.cpp,
+	proto/ProtoSs.h,
 	CodecFactory.h,
 	CodecFactory.cpp,
 	Codec.h,
-	codec\CodecLatin1.cpp,
-	codec\CodecLatin1.h,
-	codec\CodecUTF8.cpp,
-	codec\CodecUTF8.h,
+	codec/CodecLatin1.cpp,
+	codec/CodecLatin1.h,
+	codec/CodecUTF8.cpp,
+	codec/CodecUTF8.h,
 	Codec.cpp,
-	ConnImpls\TextCodecsDialog.h,
-	ConnImpls\TextCodecsDialog.cpp,
-	ConnImpls\VTOptionsDialog.h,
-	ConnImpls\VTOptionsDialog.cpp,
-	ConnImpls/SerialConnRaw.h,
-	ConnImpls/SerialConnRaw.cpp,
-	ConnImpls/SerialConnXterm.h,
-	ConnImpls/SerialConnXterm.cpp;
+	connimpls/SerialConnVT.h,
+	connimpls/SerialConnVT.cpp,
+	connimpls/ColorTable.cpp,
+	connimpls/ColorTable.h,
+	connimpls/ControlSeq.h,
+	connimpls/ControlSeq.cpp,
+	connimpls/VTtypes.cpp,
+	connimpls/VTtypes.h,
+	connimpls/TextCodecsDialog.h,
+	connimpls/TextCodecsDialog.cpp,
+	connimpls/VTOptionsDialog.h,
+	connimpls/VTOptionsDialog.cpp,
+	connimpls/SerialConnRaw.h,
+	connimpls/SerialConnRaw.cpp,
+	connimpls/SerialConnXterm.h,
+	connimpls/SerialConnXterm.cpp,
+	connimpls/ecma48/Ecma48ControlSeq.cpp,
+	connimpls/ecma48/Ecma48ControlSeq.h,
+	connimpls/ecma48/SerialConnEcma48.cpp,
+	connimpls/ecma48/SerialConnEcma48.h;
 

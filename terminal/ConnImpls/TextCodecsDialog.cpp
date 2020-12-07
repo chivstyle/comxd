@@ -12,9 +12,9 @@ TextCodecsDialog::TextCodecsDialog(const char* name)
     this->Title(t_("Select a text codec"));
     this->Icon(terminal::text_codec());
     //
-    auto codecs = CodecFactory::Inst()->GetSupportedCodecs();
-    for (size_t k = 0; k < codecs.size(); ++k) {
-        mCodecs.Add(codecs[k].c_str());
+    auto codec_names = CodecFactory::Inst()->GetSupportedCodecNames();
+    for (size_t k = 0; k < codec_names.size(); ++k) {
+        mCodecs.Add(codec_names[k]);
     }
     mCodecs.SetData(name);
     //
@@ -27,5 +27,5 @@ TextCodecsDialog::~TextCodecsDialog()
 
 Upp::String TextCodecsDialog::GetCodecName() const
 {
-    return mCodecs.Get().ToString();
+    return mCodecs.Get();
 }

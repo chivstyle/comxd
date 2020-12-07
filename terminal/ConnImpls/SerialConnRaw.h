@@ -13,7 +13,7 @@ class SerialConnRaw : public WithConnRaw<SerialConn> {
 public:
     typedef SerialConnRaw CLASSNAME;
     // SerialConnRaw will manage the life of serial.
-    SerialConnRaw(std::shared_ptr<SerialIo> serial);
+    SerialConnRaw(std::shared_ptr<SerialIo> io);
     virtual ~SerialConnRaw();
     //
     bool Start();

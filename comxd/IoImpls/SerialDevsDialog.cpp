@@ -52,18 +52,18 @@ SerialDevsDialog::SerialDevsDialog()
     mFlowCtrl.Add(serial::flowcontrol_software, "Software");
     mFlowCtrl.SetIndex(0);
     // types
-    auto types = ConnFactory::Inst()->GetSupportedConnTypes();
-    for (size_t k = 0; k < types.size(); ++k) {
-        mTypes.Add(types[k].c_str());
+    auto conn_names = ConnFactory::Inst()->GetSupportedConnNames();
+    for (size_t k = 0; k < conn_names.size(); ++k) {
+        mTypes.Add(conn_names[k]);
     }
-    if (!types.empty()) {
+    if (!conn_names.empty()) {
         mTypes.SetIndex(0);
     }
     // CodecFactory MUST have a UTF-8 codec.
-    auto codecs = CodecFactory::Inst()->GetSupportedCodecs();
-    for (size_t k = 0; k < codecs.size(); ++k) {
-        mCodecs.Add(codecs[k].c_str());
-        if (codecs[k] == "UTF-8" || codecs[k] == "UTF8") {
+    auto codec_names = CodecFactory::Inst()->GetSupportedCodecNames();
+    for (size_t k = 0; k < codec_names.size(); ++k) {
+        mCodecs.Add(codec_names[k]);
+        if (codec_names[k] == "UTF-8" || codec_names[k] == "UTF8") {
             mCodecs.SetIndex((int)k);
         }
     }
@@ -111,7 +111,6 @@ SerialConn* SerialDevsDialog::RequestConn()
 {
     int ret = Run(true);
     if (ret == IDOK) {
-        String type_name = mTypes.Get().ToString();
         try {
 	        auto serial = std::make_shared<serial::Serial>(
 	            mDevsList.GetData().ToString().ToStd(),
@@ -124,9 +123,9 @@ SerialConn* SerialDevsDialog::RequestConn()
 	        if (serial) {
 	            auto port = std::make_shared<SerialPort>(serial);
 	            port->Start();
-	            auto conn = ConnFactory::Inst()->CreateInst(type_name, port);
+	            auto conn = ConnFactory::Inst()->CreateInst(~mTypes, port);
 	            if (!conn) {
-	                Upp::PromptOK(t_("Dose not support:") + type_name);
+	                Upp::PromptOK(t_("Dose not support:") + ~mTypes);
 	            } else {
 	                conn->SetCodec(mCodecs.Get().ToString());
 	                conn->Start();

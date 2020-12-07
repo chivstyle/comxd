@@ -12,7 +12,7 @@
 
 class SerialConn : public Upp::TopWindow {
 public:
-    explicit SerialConn(std::shared_ptr<SerialIo> serial);
+    explicit SerialConn(std::shared_ptr<SerialIo> io);
     SerialConn() {}
     virtual ~SerialConn() {}
     // start the conn
@@ -22,7 +22,7 @@ public:
     //
     Upp::String ConnName() const
     {
-        return mSerial->DeviceName();
+        return mIo->DeviceName();
     }
     //
     const std::list<UsrAction>& GetActions() const
@@ -30,12 +30,12 @@ public:
         return mUsrActions;
     }
     //
-    SerialIo* GetSerial() const { return mSerial.get(); }
+    SerialIo* GetIo() const { return mIo.get(); }
     Codec* GetCodec() const { return mCodec.get(); }
     // terminal size changed
     Upp::Event<Upp::Size> WhenSizeChanged;
 protected:
-    std::shared_ptr<SerialIo> mSerial;
+    std::shared_ptr<SerialIo> mIo;
     std::shared_ptr<Codec> mCodec;
     std::list<UsrAction> mUsrActions;
 };

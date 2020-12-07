@@ -17,10 +17,10 @@ ProtoFactory* ProtoFactory::Inst()
     return &inst;
 }
 
-Proto* ProtoFactory::CreateInst(const char* proto_name)
+Proto* ProtoFactory::CreateInst(const Upp::String& proto_name)
 {
-    auto it = mInstFuncs.find(proto_name);
-    if (it != mInstFuncs.end()) {
+    auto it = mInsts.find(proto_name);
+    if (it != mInsts.end()) {
         return it->second();
     }
     return nullptr;
