@@ -22,7 +22,7 @@ protected:
 	void Layout();
 	void DoLayout();
 private:
-    Upp::Terminal mTerm;
+    Upp::TerminalCtrl mTerm;
     std::mutex mRxLock;
     std::vector<unsigned char> mRxBuffer;
     volatile bool mIoThrShouldStop;

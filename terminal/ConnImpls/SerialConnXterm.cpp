@@ -59,8 +59,8 @@ void SerialConnXterm::InstallActions()
             VTOptionsDialog::Options options;
             options.Font = mTerm.GetFont();
             options.LinesBufferSize = mTerm.GetHistorySize();
-            options.PaperColor = mTerm.GetColor(Terminal::COLOR_PAPER);
-            options.FontColor = mTerm.GetColor(Terminal::COLOR_INK);
+            options.PaperColor = mTerm.GetColor(TerminalCtrl::COLOR_PAPER);
+            options.FontColor = mTerm.GetColor(TerminalCtrl::COLOR_INK);
             VTOptionsDialog opt;
             opt.SetOptions(options);
             int ret = opt.Run();
@@ -68,8 +68,8 @@ void SerialConnXterm::InstallActions()
                 options = opt.GetOptions();
                 mTerm.SetFont(options.Font);
                 mTerm.SetHistorySize(options.LinesBufferSize);
-                mTerm.SetColor(Terminal::COLOR_PAPER, options.PaperColor);
-                mTerm.SetColor(Terminal::COLOR_INK, options.FontColor);
+                mTerm.SetColor(TerminalCtrl::COLOR_PAPER, options.PaperColor);
+                mTerm.SetColor(TerminalCtrl::COLOR_INK, options.FontColor);
                 mTerm.Refresh();
                 //
                 DoLayout();

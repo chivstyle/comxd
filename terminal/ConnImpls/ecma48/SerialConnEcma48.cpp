@@ -12,6 +12,8 @@ SerialConnEcma48::SerialConnEcma48(std::shared_ptr<SerialIo> io)
 	, mSee(1)
 {
 	InstallFunctions();
+	//
+	AddEcma48ControlSeqs(this->mSeqsFactory);
 }
 
 SerialConnEcma48::~SerialConnEcma48()
@@ -23,7 +25,7 @@ void SerialConnEcma48::InstallFunctions()
     mFunctions[ECMA48_SOH] = [=](const std::string& p) { ProcessSOH(p); };
     mFunctions[ECMA48_STX] = [=](const std::string& p) { ProcessSTX(p); };
     mFunctions[ECMA48_ETX] = [=](const std::string& p) { ProcessETX(p); };
-    mFunctions[ECMA48_EQT] = [=](const std::string& p) { ProcessEQT(p); };
+    mFunctions[ECMA48_EOT] = [=](const std::string& p) { ProcessEOT(p); };
     mFunctions[ECMA48_ENQ] = [=](const std::string& p) { ProcessENQ(p); };
     mFunctions[ECMA48_ACK] = [=](const std::string& p) { ProcessACK(p); };
     mFunctions[ECMA48_BEL] = [=](const std::string& p) { ProcessBEL(p); };
@@ -32,7 +34,9 @@ void SerialConnEcma48::InstallFunctions()
     mFunctions[ECMA48_LF] = [=](const std::string& p) { ProcessLF(p); };
     mFunctions[ECMA48_VT] = [=](const std::string& p) { ProcessVT(p); };
     mFunctions[ECMA48_FF] = [=](const std::string& p) { ProcessFF(p); };
-    mFunctions[ECMA48_CR] = [=](const std::string& p) { ProcessCR(p); };
+    mFunctions[ECMA48_CR] = [=](const std::string& p) {
+        ProcessCR(p);
+    };
     mFunctions[ECMA48_SO] = [=](const std::string& p) { ProcessSO(p); };
     mFunctions[ECMA48_SI] = [=](const std::string& p) { ProcessSI(p); };
     mFunctions[ECMA48_DLE] = [=](const std::string& p) { ProcessDLE(p); };
@@ -51,9 +55,9 @@ void SerialConnEcma48::InstallFunctions()
     mFunctions[ECMA48_RS] = [=](const std::string& p) { ProcessRS(p); };
     mFunctions[ECMA48_US] = [=](const std::string& p) { ProcessUS(p); };
     mFunctions[ECMA48_DEL] = [=](const std::string& p) { ProcessDEL(p); };
-    // C1
     mFunctions[ECMA48_APC] = [=](const std::string& p) { ProcessAPC(p); };
     mFunctions[ECMA48_BPH] = [=](const std::string& p) { ProcessBPH(p); };
+    mFunctions[ECMA48_CBT] = [=](const std::string& p) { ProcessCBT(p); };
     mFunctions[ECMA48_CCH] = [=](const std::string& p) { ProcessCCH(p); };
     mFunctions[ECMA48_CHA] = [=](const std::string& p) { ProcessCHA(p); };
     mFunctions[ECMA48_CHT] = [=](const std::string& p) { ProcessCHT(p); };
@@ -140,7 +144,9 @@ void SerialConnEcma48::InstallFunctions()
     mFunctions[ECMA48_SDS] = [=](const std::string& p) { ProcessSDS(p); };
     mFunctions[ECMA48_SEE] = [=](const std::string& p) { ProcessSEE(p); };
     mFunctions[ECMA48_SEF] = [=](const std::string& p) { ProcessSEF(p); };
-    mFunctions[ECMA48_GSR] = [=](const std::string& p) { ProcessGSR(p); };
+    mFunctions[ECMA48_SGR] = [=](const std::string& p) {
+        ProcessSGR(p);
+    };
     mFunctions[ECMA48_SHS] = [=](const std::string& p) { ProcessSHS(p); };
     mFunctions[ECMA48_SIMD] = [=](const std::string& p) { ProcessSIMD(p); };
     mFunctions[ECMA48_SL ] = [=](const std::string& p) { ProcessSL(p); };
@@ -157,6 +163,7 @@ void SerialConnEcma48::InstallFunctions()
     mFunctions[ECMA48_SPQR] = [=](const std::string& p) { ProcessSPQR(p); };
     mFunctions[ECMA48_SR ] = [=](const std::string& p) { ProcessSR(p); };
     mFunctions[ECMA48_SRCS] = [=](const std::string& p) { ProcessSRCS(p); };
+    mFunctions[ECMA48_SRS] = [=](const std::string& p) { ProcessSRS(p); };
     mFunctions[ECMA48_SSA] = [=](const std::string& p) { ProcessSSA(p); };
     mFunctions[ECMA48_SSU] = [=](const std::string& p) { ProcessSSU(p); };
     mFunctions[ECMA48_SSW] = [=](const std::string& p) { ProcessSSW(p); };
@@ -224,7 +231,7 @@ void SerialConnEcma48::ProcessSTX(const std::string&)
 void SerialConnEcma48::ProcessETX(const std::string&)
 {
 }
-void SerialConnEcma48::ProcessEQT(const std::string&)
+void SerialConnEcma48::ProcessEOT(const std::string&)
 {
 }
 void SerialConnEcma48::ProcessENQ(const std::string&)
@@ -322,47 +329,194 @@ void SerialConnEcma48::ProcessAPC(const std::string& p)
 void SerialConnEcma48::ProcessBPH(const std::string& p)
 {
 }
+void SerialConnEcma48::ProcessCBT(const std::string& p)
+{
+	int tabsz = mFontW*8;
+	int pn = atoi(p.c_str());
+	if (pn <= 0) pn = 1;
+	//
+	int rn = mPx % tabsz;
+	if (rn)
+		pn -= 1;
+	mPx -= rn + 8*pn;
+}
 void SerialConnEcma48::ProcessCCH(const std::string& p)
 {
+	if (mVy >= 0) {
+		VTLine& vline = mLines[mVy];
+		if (mVx > 0) {
+			vline[mVx] = mBlankChar;
+			mVx--;
+		} else if (mVy > 0) {
+			VTLine& vline = mLines[mVy-1];
+			*vline.rbegin() = mBlankChar;
+			mVy -= 1;
+			mVx = (int)vline.size() - 2;
+		}
+	}
 }
 void SerialConnEcma48::ProcessCHA(const std::string& p)
 {
+	int pn = atoi(p.c_str());
+	if (pn <= 0) pn = 1;
+	mPx = mFontW*pn;
 }
 void SerialConnEcma48::ProcessCHT(const std::string& p)
 {
+	int tabsz = mFontW*8;
+	int pn = atoi(p.c_str());
+	if (pn <= 0) pn = 1;
+	//
+	int rn = 8 - (mPx % tabsz);
+	if (rn)
+		pn -= 1;
+	mPx += rn + 8*pn;
 }
 void SerialConnEcma48::ProcessCMD(const std::string& p)
 {
 }
 void SerialConnEcma48::ProcessCNL(const std::string& p)
 {
+	Size csz = GetConsoleSize();
+	int pn = atoi(p.c_str());
+	if (pn <= 0) pn = 1;
+	mVy += pn;
+	if (mVy >= csz.cy)
+		mVy = csz.cy - 1;
+	mVx = 0;
 }
 void SerialConnEcma48::ProcessCPL(const std::string& p)
 {
+	int pn = atoi(p.c_str());
+	if (pn <= 0) pn = 1;
+	mVy -= pn;
+	if (mVy < 0)
+		mVy = 0;
+	mVx = 0;
 }
 void SerialConnEcma48::ProcessCPR(const std::string& p)
 {
+	// this seq was used to report cursor position of terminal
 }
+
 void SerialConnEcma48::ProcessCTC(const std::string& p)
 {
+	SplitString(p.c_str(), ';', [=](const char* token) {
+		int ps = atoi(token);
+		switch (ps) {
+		case 0:
+			mLines[mVy][mVx] = '\t';
+			mVx++;
+			break;
+		case 1:
+			mLines[mVy][mVx] = '\v';
+			mVy += 1;
+			break;
+		case 2: if (1) {
+			VTLine& vline = mLines[mVy];
+			if (vline[mVx] == '\t') {
+				vline.erase(vline.begin() + mVx);
+				vline.push_back(mBlankChar);
+			}
+		} break;
+		case 3: if (1) {
+			Size csz = GetConsoleSize();
+			VTLine& vline = mLines[mVy];
+			if (vline[mVx] == '\v') {
+				vline[mVx] = ' ';
+				if (mVy < (int)mLines.size() - 1) {
+					VTLine& vline_next = mLines[mVy+1];
+					vline.insert(vline.begin() + mVx,
+						vline_next.begin(), vline_next.end());
+					mLines.erase(mLines.begin() + mVy);
+					mLines.push_back(VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
+				}
+			}
+		} break;
+		case 4: if (1) {
+			int ntabs = 0;
+			VTLine& vline = mLines[mVy];
+			for (auto it = vline.begin(); it != vline.end(); ) {
+				if (*it == '\t') {
+					it = vline.erase(it);
+					ntabs++;
+				} else ++it;
+			}
+			if (ntabs)
+				vline.insert(vline.end(), ntabs, mBlankChar);
+		} break;
+		case 5: if (1) {
+			ProcessCTC("6;4");
+		} break;
+		case 6: if (1) {
+			Size csz = GetConsoleSize();
+			int ntabs = 0;
+			for (auto it = mLines.begin(); it != mLines.end(); ) {
+				if (*it->rbegin() == '\v') {
+					if (it + 1 != mLines.end()) {
+						VTLine& vline = *it;
+						vline.pop_back();
+						VTLine& vline_next = *(it+1);
+						vline.insert(vline.end(), vline_next.begin(), vline_next.end());
+						ntabs++;
+						it = mLines.erase(it+1);
+					}
+				} else ++it;
+			}
+			mLines.insert(mLines.end(), ntabs, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
+		} break;
+		}
+	});
 }
 void SerialConnEcma48::ProcessCUB(const std::string& p)
 {
+	int pn = atoi(p.c_str());
+	if (pn <= 0) pn = 1;
+	mPx -= mFontW*pn;
+	if (mPx < 0)
+		mPx = 0;
 }
 void SerialConnEcma48::ProcessCUD(const std::string& p)
 {
+	Size csz = GetConsoleSize();
+	int pn = atoi(p.c_str());
+	if (pn <= 0) pn = 1;
+	mVy += pn;
+	if (mVy >= csz.cy)
+		mVy = csz.cy-1;
 }
 void SerialConnEcma48::ProcessCUF(const std::string& p)
 {
+	int pn = atoi(p.c_str());
+	if (pn <= 0) pn = 1;
+	mPx += mFontW*pn;
 }
 void SerialConnEcma48::ProcessCUP(const std::string& p)
 {
+	int idx = 0;
+	int pn[2] = {0, 0};
+	SplitString(p.c_str(), ';', [=, &idx, &pn](const char* token) {
+		if (idx < 2)
+			pn[idx++] = atoi(token);
+	});
+	mPx = mFontW*pn[1];
+	mVy = pn[0];
 }
 void SerialConnEcma48::ProcessCUU(const std::string& p)
 {
+	int pn = atoi(p.c_str());
+	if (pn <= 0) pn = 1;
+	mVy -= pn;
+	if (mVy < 0)
+		mVy = 0;
 }
 void SerialConnEcma48::ProcessCVT(const std::string& p)
 {
+	Size csz = GetConsoleSize();
+	int pn = atoi(p.c_str());
+	mVy += pn;
+	if (mVy >= csz.cy)
+		mVy = csz.cy - 1;
 }
 void SerialConnEcma48::ProcessDA(const std::string& p)
 {
@@ -372,12 +526,30 @@ void SerialConnEcma48::ProcessDAQ(const std::string& p)
 }
 void SerialConnEcma48::ProcessDCH(const std::string& p)
 {
+	int pn = atoi(p.c_str());
+	if (pn <= 0) pn = 1;
+	// TODO: process modes
+	VTLine& vline = mLines[mVy];
+	if (mVx + pn >= (int)vline.size()) {
+		pn = (int)vline.size() - mVx;
+	}
+	vline.erase(vline.begin() + mVx, vline.begin() + mVx+pn);
+	vline.insert(vline.end(), pn, mBlankChar);
 }
 void SerialConnEcma48::ProcessDCS(const std::string& p)
 {
 }
 void SerialConnEcma48::ProcessDL(const std::string& p)
 {
+	int pn = atoi(p.c_str());
+	if (pn <= 0) pn = 1;
+	// TODO: process modes
+	if (mVy + pn >= (int)mLines.size()) {
+		pn = (int)mLines.size() - mVy;
+	}
+	mLines.erase(mLines.begin() + mVy, mLines.begin() + mVy+pn);
+	Size csz = GetConsoleSize();
+	mLines.insert(mLines.end(), pn, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
 }
 void SerialConnEcma48::ProcessDMI(const std::string& p)
 {
@@ -577,8 +749,134 @@ void SerialConnEcma48::ProcessSEE(const std::string& p)
 void SerialConnEcma48::ProcessSEF(const std::string& p)
 {
 }
-void SerialConnEcma48::ProcessGSR(const std::string& p)
+void SerialConnEcma48::ProcessSGR(const std::string& p)
 {
+	SplitString(p.c_str(), ';', [=](const char* token) {
+		int ps = atoi(token);
+		switch (ps) {
+		case 0:
+			this->SetDefaultStyle();
+			break;
+		case 1: break;
+		case 2: break;
+		case 3:
+			mStyle.FontStyle |= VTStyle::eItalic;
+			break;
+		case 4:
+			mStyle.FontStyle |= VTStyle::eUnderline;
+			break;
+		case 5:
+		case 6:
+			mStyle.FontStyle |= VTStyle::eBlink;
+			break;
+		case 7:
+			std::swap(mStyle.FgColorId, mStyle.BgColorId);
+			break;
+		case 8:
+			mStyle.FontStyle &= ~VTStyle::eVisible;
+			break;
+		case 9:
+			mStyle.FontStyle |= VTStyle::eStrikeout;
+			break;
+		case 10:
+		case 11:
+		case 12:
+		case 13:
+		case 14:
+		case 15:
+		case 16:
+		case 17:
+		case 18:
+		case 19:
+		case 20:
+		case 21:
+			mStyle.FontStyle |= VTStyle::eUnderline;
+			break;
+		case 22:
+			mStyle.FgColorId = VTColorTable::kColorId_Texts;
+			mStyle.BgColorId = VTColorTable::kColorId_Paper;
+			mStyle.FontStyle &= ~VTStyle::eBold;
+			break;
+		case 23:
+			mStyle.FontStyle &= ~VTStyle::eItalic;
+			break;
+		case 24:
+			mStyle.FontStyle &= ~VTStyle::eUnderline;
+			break;
+		case 25:
+			mStyle.FontStyle &= ~VTStyle::eBlink;
+			break;
+		case 26: break;
+		case 27:
+			std::swap(mStyle.FgColorId, mStyle.BgColorId);
+			break;
+		case 28:
+			mStyle.FontStyle |= VTStyle::eVisible;
+			break;
+		case 29:
+			mStyle.FontStyle &= ~VTStyle::eStrikeout;
+			break;
+		case 30:
+			mStyle.FgColorId = VTColorTable::kColorId_Black;
+			break;
+		case 31:
+			mStyle.FgColorId = VTColorTable::kColorId_Red;
+			break;
+		case 32:
+			mStyle.FgColorId = VTColorTable::kColorId_Green;
+			break;
+		case 33:
+			mStyle.FgColorId = VTColorTable::kColorId_Yellow;
+			break;
+		case 34:
+			mStyle.FgColorId = VTColorTable::kColorId_Blue;
+			break;
+		case 35:
+			mStyle.FgColorId = VTColorTable::kColorId_Magenta;
+			break;
+		case 36:
+			mStyle.FgColorId = VTColorTable::kColorId_Cyan;
+			break;
+		case 37:
+			mStyle.FgColorId = VTColorTable::kColorId_White;
+			break;
+		case 38: break;
+		case 39:
+			mStyle.FgColorId = VTColorTable::kColorId_Texts;
+			break;
+		case 40:
+			mStyle.BgColorId = VTColorTable::kColorId_Black;
+			break;
+		case 41:
+			mStyle.BgColorId = VTColorTable::kColorId_Red;
+			break;
+		case 42:
+			mStyle.BgColorId = VTColorTable::kColorId_Green;
+			break;
+		case 43:
+			mStyle.BgColorId = VTColorTable::kColorId_Yellow;
+			break;
+		case 44:
+			mStyle.BgColorId = VTColorTable::kColorId_Blue;
+			break;
+		case 45:
+			mStyle.BgColorId = VTColorTable::kColorId_Magenta;
+			break;
+		case 46:
+			mStyle.BgColorId = VTColorTable::kColorId_Cyan;
+			break;
+		case 47:
+			mStyle.BgColorId = VTColorTable::kColorId_White;
+			break;
+		case 48: break;
+		case 49:
+			mStyle.BgColorId = VTColorTable::kColorId_Paper;
+			break;
+		case 50: break;
+		// dose not support others.
+		default: break;
+		}
+	});
 }
 void SerialConnEcma48::ProcessSHS(const std::string& p)
 {
@@ -625,9 +923,15 @@ void SerialConnEcma48::ProcessSPQR(const std::string& p)
 void SerialConnEcma48::ProcessSR(const std::string& p)
 {
 }
+
+void SerialConnEcma48::ProcessSRS(const std::string& p)
+{
+}
+
 void SerialConnEcma48::ProcessSRCS(const std::string& p)
 {
 }
+
 void SerialConnEcma48::ProcessSSA(const std::string& p)
 {
 }

@@ -248,21 +248,28 @@ void SerialConnVT::RenderSeqs()
     while (!mSeqs.empty()) {
         auto seq = mSeqs.front();
         switch (seq.Type) {
-        case Seq::CTRL_SEQ:
+        case Seq::CTRL_SEQ: if (1) {
+            int px = mPx, py = mPy;
             if (ProcessControlSeq(seq.Ctrl.first, seq.Ctrl.second)) {
-                UpdateDataPos();
-                ProcessOverflowLines();
+                if (px != mPx && py != mPy)
+                    UpdateDataPos();
+                else if (px != mPx)
+                    UpdateDataPos(0x1);
+                else if (py != mPy)
+                    UpdateDataPos(0x2);
             } else {
                 LOGF("Unprocessed:%s\n", seq.Ctrl.second.c_str());
             }
-            break;
+        } break;
         case Seq::TEXT_SEQ:
             RenderText(seq.Text);
             break;
         }
         mSeqs.pop();
+        //
+        ProcessOverflowLines();
+        UpdatePresentation();
     }
-    UpdatePresentation();
 }
 // receiver
 void SerialConnVT::RxProc()
@@ -286,8 +293,13 @@ void SerialConnVT::RxProc()
         std::vector<byte> buff = GetIo()->ReadRaw(sz);
         for (size_t k = 0; k < sz; ++k) {
             // C0 ?
-            if (buff[k] >= 0 && buff[k] <= 0x1f || buff[k] == 0x7f) {
+            if (buff[k] <= 0x1f || buff[k] == 0x7f) {
                 pending = true;
+                if (buff[k] == 0x0) { // NUL.
+                    // TODO: Process NUL
+                    pending = false;
+                    continue;
+                }
             }
             if (pending) {
                 if (!raw.empty()) {
@@ -308,7 +320,7 @@ void SerialConnVT::RxProc()
                 size_t p_begin, p_sz;
                 int type = IsControlSeq(pattern, p_begin, p_sz);
                 if (type == SEQ_NONE) {
-                    LOGF("Unrecognized:%s", pattern);
+                    LOGF("Unrecognized:%s", pattern.c_str());
                 }
                 else if (type == SEQ_PENDING) continue;
                 else {
@@ -1195,7 +1207,7 @@ void SerialConnVT::DrawCursor(Draw& draw)
     if (px >= 0 && py < usz.cx && py >= 0 && py < usz.cy) {
         draw.DrawRect(px, py, mFontW, mFontH, Color(0, 255, 0));
         // a visible char.
-        if (mVx < (int)mLines[mVy].size() && mVy < (int)mLines.size()
+        if (mVy < (int)mLines.size() && mVx < (int)mLines[mVy].size()
             && mLines[mVy][mVx].Code() != ' ' && mLines[mVy][mVx].Code() != '\t') {
             this->DrawVTChar(draw, px, py, mLines[mVy][mVx], mFont, \
                 mColorTbl.GetColor(VTColorTable::kColorId_Paper));
@@ -1274,16 +1286,17 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
     }
 }
 
-void SerialConnVT::UpdateDataPos()
+void SerialConnVT::UpdateDataPos(int flags)
 {
 	int px, py, next_px, next_py;
 	Point vpos = this->LogicToVirtual(mLines, mPx, mPy, px, next_px, py, next_py, false);
-	mVx = vpos.x;
-	mVy = vpos.y;
+	if (flags & 0x1) mVx = vpos.x;
+	if (flags & 0x2) mVy = vpos.y;
 }
 
-void SerialConnVT::UpdatePresentationPos()
+void SerialConnVT::UpdatePresentationPos(int flags)
 {
+	if (mLines.empty()) return;
 	int buff_height = 0;
 	int posl_height = 0;
 	for (size_t k = 0; k < mLinesBuffer.size(); ++k) {
@@ -1293,8 +1306,8 @@ void SerialConnVT::UpdatePresentationPos()
 	for (size_t k = 0; k < mVy; ++k) {
 		posl_height += mLines[k].GetHeight();
 	}
-	mPy = posl_height - buff_height;
-    mPx = this->VirtualToLogic(mLines[mVy], mVx, false);
+	if (flags & 0x1) mPy = posl_height - buff_height;
+    if (flags & 0x2) mPx = this->VirtualToLogic(mLines[mVy], mVx, false);
 }
 
 void SerialConnVT::UpdateVScrollbar()

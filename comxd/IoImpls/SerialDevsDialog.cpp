@@ -101,7 +101,7 @@ void SerialDevsDialog::ChangeSettings(SerialPort* port)
             serial->setStopbits((serial::stopbits_t)mStopBits.GetKey(mStopBits.GetIndex()).To<int>());
             serial->setFlowcontrol((serial::flowcontrol_t)mFlowCtrl.GetKey(mFlowCtrl.GetIndex()).To<int>());
         } catch (const std::exception&) {
-            Upp::PromptOK(t_("Can't change settings!"));
+            Upp::PromptOK(DeQtf(t_("Can't change settings!")));
         }
     }
 }
@@ -125,7 +125,7 @@ SerialConn* SerialDevsDialog::RequestConn()
 	            port->Start();
 	            auto conn = ConnFactory::Inst()->CreateInst(~mTypes, port);
 	            if (!conn) {
-	                Upp::PromptOK(t_("Dose not support:") + ~mTypes);
+	                Upp::PromptOK(DeQtf(t_("Dose not support:") + ~mTypes));
 	            } else {
 	                conn->SetCodec(mCodecs.Get().ToString());
 	                conn->Start();

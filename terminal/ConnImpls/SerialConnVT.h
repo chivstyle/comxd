@@ -243,8 +243,8 @@ protected:
     //
     int GetVTLinesHeight(const std::vector<VTLine>& lines) const;
     //
-    virtual void UpdatePresentationPos(); // Vx,Vy -> Px,Py
-    virtual void UpdateDataPos(); // Px,Py -> Vx,Vy
+    virtual void UpdatePresentationPos(int flags = -1); // Vx,Vy -> Px,Py
+    virtual void UpdateDataPos(int flags = -1); // Px,Py -> Vx,Vy
     virtual void UpdateHScrollbar();
     virtual void UpdateVScrollbar();
     virtual void UpdatePresentation();

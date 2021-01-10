@@ -14,7 +14,7 @@ protected:
     virtual void ProcessSOH(const std::string&);
     virtual void ProcessSTX(const std::string&);
     virtual void ProcessETX(const std::string&);
-    virtual void ProcessEQT(const std::string&);
+    virtual void ProcessEOT(const std::string&);
     virtual void ProcessENQ(const std::string&);
     virtual void ProcessACK(const std::string&);
     virtual void ProcessBEL(const std::string&);
@@ -45,6 +45,7 @@ protected:
     // C1
     virtual void ProcessAPC(const std::string& p);
     virtual void ProcessBPH(const std::string& p);
+    virtual void ProcessCBT(const std::string& p);
     virtual void ProcessCCH(const std::string& p);
     virtual void ProcessCHA(const std::string& p);
     virtual void ProcessCHT(const std::string& p);
@@ -130,7 +131,7 @@ protected:
     virtual void ProcessSDS(const std::string& p);
     virtual void ProcessSEE(const std::string& p);
     virtual void ProcessSEF(const std::string& p);
-    virtual void ProcessGSR(const std::string& p);
+    virtual void ProcessSGR(const std::string& p);
     virtual void ProcessSHS(const std::string& p);
     virtual void ProcessSIMD(const std::string& p);
     virtual void ProcessSL(const std::string& p);
@@ -147,6 +148,7 @@ protected:
     virtual void ProcessSPQR(const std::string& p);
     virtual void ProcessSR(const std::string& p);
     virtual void ProcessSRCS(const std::string& p);
+    virtual void ProcessSRS(const std::string& p);
     virtual void ProcessSSA(const std::string& p);
     virtual void ProcessSSU(const std::string& p);
     virtual void ProcessSSW(const std::string& p);
@@ -250,5 +252,6 @@ private:
 		{
 		}
 	};
+	struct Ecma48Modes mModes;
 	void InstallFunctions();
 };

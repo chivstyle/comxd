@@ -5,7 +5,7 @@
 /// return - <0 Failed
 ///        - =0 Need more
 ///        - >0 End of pn
-static inline int PassPs(const std::string& seq, size_t p_begin)
+static inline int ParsePs(const std::string& seq, size_t p_begin)
 {
     while (seq[p_begin] >= '0' && seq[p_begin] <= '9' || seq[p_begin] == ';') {
         p_begin++;
@@ -18,7 +18,7 @@ static inline int PassPs(const std::string& seq, size_t p_begin)
 /// return - <0 Failed
 ///        - =0 Need more
 ///        - >0 End of pn
-static inline int PassPn(const std::string& seq, size_t p_begin)
+static inline int ParsePn(const std::string& seq, size_t p_begin)
 {
     while (seq[p_begin] >= '0' && seq[p_begin] <= '9') {
         p_begin++;
@@ -28,9 +28,9 @@ static inline int PassPn(const std::string& seq, size_t p_begin)
         return (int)p_begin;
     }
 }
-static inline int PassPn(const std::string& seq, size_t p_begin, int pn_count)
+static inline int ParsePn(const std::string& seq, size_t p_begin, int pn_count)
 {
-    int p = PassPn(seq, p_begin);
+    int p = ParsePn(seq, p_begin);
     if (p == 0) return 0;
     else {
         pn_count--;
@@ -39,7 +39,7 @@ static inline int PassPn(const std::string& seq, size_t p_begin, int pn_count)
                 p++;
                 if (p >= seq.length()) return 0; // need more
                 //
-                p = PassPn(seq, p);
+                p = ParsePn(seq, p);
                 if (p == 0) return 0;
             } else return -1;
         }
@@ -47,9 +47,9 @@ static inline int PassPn(const std::string& seq, size_t p_begin, int pn_count)
     }
 }
 // Valid chars, from 0x20~0x74
-static inline int PassGs(const std::string& seq, size_t p_begin)
+static inline int ParseGs(const std::string& seq, size_t p_begin)
 {
-    while (seq[p_begin] >= 0x20 && seq[p_begin] <= 0x74) {
+    while (seq[p_begin] >= 0x20 && seq[p_begin] < 0x7f) {
         p_begin++;
     }
     return (int)p_begin;
@@ -59,6 +59,7 @@ int ControlSeqFactory::IsControlSeq(const std::string& seq, size_t& p_begin, siz
 {
     int type = SEQ_NONE;
     for (auto it = mSeqs.begin(); it != mSeqs.end(); ++it) {
+        const ControlSeq& pat = *it;
         // match head.
         size_t k = 0;
         for (; k < seq.length() && k < it->Head.length(); ++k) {
@@ -74,18 +75,20 @@ int ControlSeqFactory::IsControlSeq(const std::string& seq, size_t& p_begin, siz
         // pass parameters
         int ret = -1; // Not matched
         switch (it->Ptyp) {
-        case ControlSeq::Pn: ret = PassPn(seq, k, it->Pnum); break;
-        case ControlSeq::Ps: ret = PassPs(seq, k); break;
-        case ControlSeq::Gs: ret = PassGs(seq, k); break;
+        case ControlSeq::Pn: ret = ParsePn(seq, k, it->Pnum); break;
+        case ControlSeq::Ps: ret = ParsePs(seq, k); break;
+        case ControlSeq::Gs: ret = ParseGs(seq, k); break;
         case ControlSeq::No: ret = (int)k; break;
         default:break;
         }
         if (ret < 0) { type = SEQ_NONE; continue; } // Bad parameters, try next
         if (!it->Tail.empty()) {
             if (ret == 0) { type = SEQ_PENDING; break; } // need more to define tail.
-            if (seq[ret] == '\r') { type = SEQ_NONE; break; } // CR will break any seq.
+            if (seq[ret] == '\r') { type = SEQ_UNKNOWN; break; } // CR will break any seq.
+            if (it->Ptyp == ControlSeq::Gs && (seq[ret] < 0x20 || seq[ret] >= 0x7f)) { type = SEQ_UNKNOWN; break; }
 	        // match tail
 	        size_t ln = seq.length() - (size_t)ret; // Tail seq...
+
 	        for (k = 0; k < ln && k < it->Tail.length(); ++k) {
 	            if (seq[(size_t)ret+k] != it->Tail[k])
 	                break;

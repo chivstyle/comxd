@@ -3,7 +3,6 @@
 //
 #include "ConnFactory.h"
 #include "terminal_rc.h"
-#include "ConnImpls/SerialConnRaw.h"
 
 ConnFactory::ConnFactory()
 {
