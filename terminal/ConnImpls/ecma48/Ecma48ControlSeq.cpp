@@ -3,16 +3,15 @@
 //
 #include "Ecma48ControlSeq.h"
 
-static const char* kESC = "\x1b";
-static const char* kCSI = "\x1b\x5b";
-//
-static const char* kAPC = "\x1b\x5f";
-static const char* kCMD = "\x1b\x64";
-static const char* kDCS = "\x1b\x50";
-static const char* kOSC = "\x1b\x5d";
-static const char* kPM  = "\x1b\x5e";
-static const char* kSOS = "\x1b\x58";
-static const char* kST  = "\x1b\x5c";
+#define kESC   "\x1b"
+#define kCSI   "\x1b\x5b"
+#define kAPC   "\x1b\x5f"
+#define kCMD   "\x1b\x64"
+#define kDCS   "\x1b\x50"
+#define kOSC   "\x1b\x5d"
+#define kPM    "\x1b\x5e"
+#define kSOS   "\x1b\x58"
+#define kST    "\x1b\x5c"
 
 void AddEcma48ControlSeqs(ControlSeqFactory* factory)
 {

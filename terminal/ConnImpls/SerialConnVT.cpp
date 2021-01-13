@@ -320,7 +320,9 @@ void SerialConnVT::RxProc()
                 size_t p_begin, p_sz;
                 int type = IsControlSeq(pattern, p_begin, p_sz);
                 if (type == SEQ_NONE) {
-                    LOGF("Unrecognized:%s", pattern.c_str());
+                    // TODO: unrecognized seq
+                    pattern.clear();
+                    pending = false;
                 }
                 else if (type == SEQ_PENDING) continue;
                 else {
@@ -1201,7 +1203,7 @@ void SerialConnVT::DrawCursor(Draw& draw)
 	if (!mShowCursor) return;
 	
 	int px = mPx - mSbH.Get();
-	int py = mPy + mSbH.Get();
+	int py = mPy + (mSbV.GetTotal() - mSbV.Get() - mSbV.GetPage());
 	
     Size usz = GetSize();
     if (px >= 0 && py < usz.cx && py >= 0 && py < usz.cy) {

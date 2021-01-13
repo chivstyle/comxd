@@ -172,8 +172,8 @@ enum Ecma48SeqType {
     ECMA48_VPR,
     ECMA48_VTS,
     
-    ECMA48_SEQ_COUNT
+    ECMA48_SEQ_MAX
 };
-static_assert(ECMA48_SEQ_COUNT < ECMA48_SEQ_MAX_COUNT, "You should define ECMA48_SEQ_MAX_COUNT big enough");
+static_assert(ECMA48_SEQ_MAX < ECMA48_SEQ_END, "You should define ECMA48_SEQ_MAX_COUNT big enough");
 
 void AddEcma48ControlSeqs(ControlSeqFactory* factory);

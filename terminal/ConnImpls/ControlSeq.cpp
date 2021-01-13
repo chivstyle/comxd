@@ -57,6 +57,8 @@ static inline int ParseGs(const std::string& seq, size_t p_begin)
 
 int ControlSeqFactory::IsControlSeq(const std::string& seq, size_t& p_begin, size_t& p_sz)
 {
+	if (*seq.rbegin() == ';' || *seq.rbegin() == ' ' ||
+		*seq.rbegin() >= '0' && *seq.rbegin() <= '9') return SEQ_PENDING;
     int type = SEQ_NONE;
     for (auto it = mSeqs.begin(); it != mSeqs.end(); ++it) {
         const ControlSeq& pat = *it;
@@ -83,7 +85,13 @@ int ControlSeqFactory::IsControlSeq(const std::string& seq, size_t& p_begin, siz
         }
         if (ret < 0) { type = SEQ_NONE; continue; } // Bad parameters, try next
         if (!it->Tail.empty()) {
-            if (ret == 0) { type = SEQ_PENDING; break; } // need more to define tail.
+            if (ret == 0) {
+                if (p_begin == seq.length()-1) { type = SEQ_PENDING; break; }
+                else {
+                    type = SEQ_NONE;
+                    continue;
+                }
+            }
             if (seq[ret] == '\r') { type = SEQ_UNKNOWN; break; } // CR will break any seq.
             if (it->Ptyp == ControlSeq::Gs && (seq[ret] < 0x20 || seq[ret] >= 0x7f)) { type = SEQ_UNKNOWN; break; }
 	        // match tail
@@ -97,6 +105,7 @@ int ControlSeqFactory::IsControlSeq(const std::string& seq, size_t& p_begin, siz
 	            type = SEQ_PENDING;
 	            break;
 	        } else if (k < it->Tail.length()) { type = SEQ_NONE;  continue; } // Not this, try next
+	        k += (size_t)ret;
         }
         // p_sz
         p_sz = k - it->Tail.length() - p_begin;

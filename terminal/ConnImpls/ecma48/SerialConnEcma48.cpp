@@ -255,6 +255,7 @@ void SerialConnEcma48::ProcessHT(const std::string&)
 void SerialConnEcma48::ProcessLF(const std::string&)
 {
 	mVy += 1;
+	mVx = 0; // LMN is deprecated, so we use NewLine default.
 }
 void SerialConnEcma48::ProcessVT(const std::string&)
 {
@@ -493,8 +494,7 @@ void SerialConnEcma48::ProcessCUF(const std::string& p)
 }
 void SerialConnEcma48::ProcessCUP(const std::string& p)
 {
-	int idx = 0;
-	int pn[2] = {0, 0};
+	int idx = 0, pn[2] = {0, 0};
 	SplitString(p.c_str(), ';', [=, &idx, &pn](const char* token) {
 		if (idx < 2)
 			pn[idx++] = atoi(token);
@@ -568,12 +568,67 @@ void SerialConnEcma48::ProcessECH(const std::string& p)
 }
 void SerialConnEcma48::ProcessED(const std::string& p)
 {
+	int ps = atoi(p.c_str());
+	switch (ps) {
+	case 0: if (1) {
+		VTLine& vline = mLines[mVy];
+		for (int i = mVx; i < (int)vline.size(); ++i) {
+			vline[i] = mBlankChar;
+		}
+		for (int j = mVy+1; j < (int)mLines.size(); ++j) {
+			VTLine& vline = mLines[j];
+			for (int i = 0; i < (int)vline.size(); ++i) {
+				vline[i] = mBlankChar;
+			}
+		}
+	} break;
+	case 1: if (1) {
+		VTLine& vline = mLines[mVy];
+		for (int i = 0; i < (int)vline.size() && i <= mVx; ++i) {
+			vline[i] = mBlankChar;
+		}
+		for (int j = mVy-1; j >= 0; --j) {
+			VTLine& vline = mLines[j];
+			for (int i = 0; i < (int)vline.size(); ++i) {
+				vline[i] = mBlankChar;
+			}
+		}
+	} break;
+	case 2: if (1) {
+		for (int j = 0; j < (int)mLines.size(); ++j) {
+			VTLine& vline = mLines[j];
+			for (int i = 0; i < (int)vline.size(); ++i) {
+				vline[i] = mBlankChar;
+			}
+		}
+	} break;
+	}
 }
 void SerialConnEcma48::ProcessEF(const std::string& p)
 {
 }
 void SerialConnEcma48::ProcessEL(const std::string& p)
 {
+	int ps = atoi(p.c_str());
+	switch (ps) {
+	case 0: if (1) {
+		VTLine& vline = mLines[mVy];
+		for (int i = mVx; i < (int)vline.size(); ++i) {
+			vline[i] = mBlankChar;
+		}
+	} break;
+	case 1: if (1) {
+		VTLine& vline = mLines[mVy];
+		for (int i = 0; i < (int)vline.size() && i <= mVx; ++i) {
+			vline[i] = mBlankChar;
+		}
+	} break;
+	case 2: if (1) {
+		Size csz = GetConsoleSize();
+		mLines[mVy] = VTLine(csz.cx, mBlankChar).SetHeight(mFontH);
+		break;
+	} break;
+	}
 }
 void SerialConnEcma48::ProcessEMI(const std::string& p)
 {
