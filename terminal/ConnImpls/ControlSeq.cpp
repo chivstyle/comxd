@@ -100,7 +100,7 @@ int ControlSeqFactory::IsControlSeq(const std::string& seq, size_t& p_begin, siz
 	if (*seq.rbegin() == ';' || *seq.rbegin() == ' ' ||
 		*seq.rbegin() >= '0' && *seq.rbegin() <= '9') return SEQ_PENDING;
     int type = SEQ_NONE;
-    int head_max = 0;
+    size_t head_max = 0;
     for (auto it = mSeqs.begin(); it != mSeqs.end(); ++it) {
         // match head.
         if (head_max > 0 && it->Head.length() < head_max) continue;

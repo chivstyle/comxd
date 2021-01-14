@@ -59,6 +59,7 @@ file
 	connimpls\vt100\VT102ControlSeq.cpp,
 	connimpls\vt100\VT102ControlSeq.h,
 	connimpls\vt100\SerialConnVT102.cpp,
+	connimpls\vt100\VT102Charsets.h,
 	connimpls\vt100\SerialConnVT102.h,
 	connimpls/SerialConnXterm.cpp,
 	connimpls/ecma48/Ecma48ControlSeq.cpp,

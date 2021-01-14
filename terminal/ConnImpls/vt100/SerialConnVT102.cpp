@@ -4,6 +4,7 @@
 */
 #include "SerialConnVT102.h"
 #include "VT102ControlSeq.h"
+#include "VT102Charsets.h"
 #include "ConnFactory.h"
 
 REGISTER_CONN_INSTANCE("VT102,chiv", "vt102", SerialConnVT102);
@@ -35,6 +36,17 @@ void SerialConnVT102::InstallFunctions()
 	mFunctions[VT102_MODE_RESET] = [=](const std::string& p) { ProcessVT102_MODE_RESET(p); };
 	mFunctions[VT102_DSR] = [=](const std::string& p) { ProcessVT102_DSR(p); };
 	//
+	mFunctions[VT102_G0_UK]           = [=](const std::string& p) { ProcessVT102_G0_UK(p); };
+    mFunctions[VT102_G0_US]           = [=](const std::string& p) { ProcessVT102_G0_US(p); };
+    mFunctions[VT102_G0_LINE_DRAWING] = [=](const std::string& p) { ProcessVT102_G0_LINE_DRAWING(p); };
+    mFunctions[VT102_G0_ROM]          = [=](const std::string& p) { ProcessVT102_G0_ROM(p); };
+    mFunctions[VT102_G0_ROM_SPECIAL]  = [=](const std::string& p) { ProcessVT102_G0_ROM_SPECIAL(p); };
+    mFunctions[VT102_G1_UK]           = [=](const std::string& p) { ProcessVT102_G1_UK(p); };
+    mFunctions[VT102_G1_US]           = [=](const std::string& p) { ProcessVT102_G1_US(p); };
+    mFunctions[VT102_G1_LINE_DRAWING] = [=](const std::string& p) { ProcessVT102_G1_LINE_DRAWING(p); };
+    mFunctions[VT102_G1_ROM]          = [=](const std::string& p) { ProcessVT102_G1_ROM(p); };
+    mFunctions[VT102_G1_ROM_SPECIAL]  = [=](const std::string& p) { ProcessVT102_G1_ROM_SPECIAL(p); };
+	//
 	mFunctions[DECSTBM] = [=](const std::string& p) { ProcessDECSTBM(p); };
 	mFunctions[DECSC] = [=](const std::string& p) { ProcessDECSC(p); };
 	mFunctions[DECRC] = [=](const std::string& p) { ProcessDECRC(p); };
@@ -65,6 +77,87 @@ void SerialConnVT102::ProcessDSR(const std::string& p)
 		GetIo()->Write(cpr);
 	} break;
 	}
+}
+//
+void SerialConnVT102::ProcessVT102_G0_UK(const std::string& p)
+{
+    mCharset = VT102_G0_UK;
+}
+void SerialConnVT102::ProcessVT102_G1_UK(const std::string& p)
+{
+    mCharset = VT102_G1_UK;
+}
+void SerialConnVT102::ProcessVT102_G0_US(const std::string& p)
+{
+    mCharset = VT102_G0_US;
+}
+void SerialConnVT102::ProcessVT102_G1_US(const std::string& p)
+{
+    mCharset = VT102_G1_US;
+}
+void SerialConnVT102::ProcessVT102_G0_LINE_DRAWING(const std::string& p)
+{
+    mCharset = VT102_G0_LINE_DRAWING;
+}
+void SerialConnVT102::ProcessVT102_G1_LINE_DRAWING(const std::string& p)
+{
+    mCharset = VT102_G1_LINE_DRAWING;
+}
+void SerialConnVT102::ProcessVT102_G0_ROM(const std::string& p)
+{
+    mCharset = VT102_G0_ROM;
+}
+void SerialConnVT102::ProcessVT102_G1_ROM(const std::string& p)
+{
+    mCharset = VT102_G1_ROM;
+}
+void SerialConnVT102::ProcessVT102_G0_ROM_SPECIAL(const std::string& p)
+{
+    mCharset = VT102_G0_ROM_SPECIAL;
+}
+void SerialConnVT102::ProcessVT102_G1_ROM_SPECIAL(const std::string& p)
+{
+    mCharset = VT102_G1_ROM_SPECIAL;
+}
+void SerialConnVT102::ProcessLS0(const std::string& p)
+{
+	switch (mCharset) {
+	case VT102_G1_UK:           mCharset = VT102_G0_UK; break;
+	case VT102_G1_US:           mCharset = VT102_G0_US; break;
+	case VT102_G1_LINE_DRAWING: mCharset = VT102_G0_LINE_DRAWING; break;
+	case VT102_G1_ROM:          mCharset = VT102_G0_ROM; break;
+	case VT102_G1_ROM_SPECIAL:  mCharset = VT102_G0_ROM_SPECIAL; break;
+	}
+}
+void SerialConnVT102::ProcessLS1(const std::string& p)
+{
+    switch (mCharset) {
+	case VT102_G0_UK:           mCharset = VT102_G1_UK; break;
+	case VT102_G0_US:           mCharset = VT102_G1_US; break;
+	case VT102_G0_LINE_DRAWING: mCharset = VT102_G1_LINE_DRAWING; break;
+	case VT102_G0_ROM:          mCharset = VT102_G1_ROM; break;
+	case VT102_G0_ROM_SPECIAL:  mCharset = VT102_G1_ROM_SPECIAL; break;
+	}
+}
+Upp::WString SerialConnVT102::TranscodeToUTF16(const VTChar& cc) const
+{
+    uint32_t uc = cc.Code();
+    if (uc >= ' ' && uc < 0x7f) {
+        switch (mCharset) {
+        case VT102_G0_UK:           return G0_UK((uint8_t)uc);
+        case VT102_G0_US:           return G0_US((uint8_t)uc);
+        case VT102_G0_LINE_DRAWING: return G0_LINE_DRAWING((uint8_t)uc);
+        case VT102_G0_ROM:          return G0_ROM((uint8_t)uc);
+        case VT102_G0_ROM_SPECIAL:  return G0_ROM_SPECIAL((uint8_t)uc);
+        case VT102_G1_UK:           return G1_UK((uint8_t)uc);
+        case VT102_G1_US:           return G1_US((uint8_t)uc);
+        case VT102_G1_LINE_DRAWING: return G1_LINE_DRAWING((uint8_t)uc);
+        case VT102_G1_ROM:          return G1_ROM((uint8_t)uc);
+        case VT102_G1_ROM_SPECIAL:  return G1_ROM_SPECIAL((uint8_t)uc);
+        default: break;
+        }
+    }
+    return SerialConnVT::TranscodeToUTF16(cc);
 }
 
 void SerialConnVT102::ProcessVT102_MODE_SET(const std::string& p)

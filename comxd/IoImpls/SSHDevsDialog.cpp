@@ -31,7 +31,6 @@ SSHDevsDialog::SSHDevsDialog()
             mCodecs.SetIndex((int)k);
         }
     }
-	
 	CtrlLayout(*this);
 	
 	this->Acceptor(mBtnOk, IDOK).Rejector(mBtnCancel, IDCANCEL);
@@ -43,7 +42,8 @@ SerialConn* SSHDevsDialog::RequestConn()
 	if (Run(true) == IDOK) {
 		this->Disable(); // disable the dialog.
 		std::shared_ptr<SshSession> session = std::make_shared<SshSession>();
-		session->WhenWait = [=]() { this->Title("Connecting..."); ProcessEvents(); };
+		this->Title(t_("Connecting..."));
+		session->WhenWait = [=]() { if (IsMainThread()) ProcessEvents(); };
 		if (session->Timeout(2000).Connect(~mHost, ~mPort, ~mUser, ~mPassword)) {
 			try {
 				auto port = std::make_shared<SSHPort>(session, ~mHost,
@@ -61,8 +61,6 @@ SerialConn* SSHDevsDialog::RequestConn()
 		} else {
 			PromptOK(Upp::DeQtf(session->GetErrorDesc()));
 		}
-		// remove the callback before return.
-		session->WhenWait = Event<>();
 	}
 	return conn;
 }

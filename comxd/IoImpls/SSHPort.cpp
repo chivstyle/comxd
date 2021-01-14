@@ -20,31 +20,22 @@ SSHPort::SSHPort(std::shared_ptr<Upp::SshSession> session, String name, String t
 			mCond.notify_one();
 		}
 	};
-	mShell->WhenInput = [=]() {
-		std::unique_lock<std::mutex> _(mLock);
-		// block the thread for some time to yield cpu if queue is empty.
-		mCond.wait_for(_, std::chrono::milliseconds(10), [=]() { return !mQueue.IsEmpty(); });
-	};
 }
 
 SSHPort::~SSHPort()
 {
-	try {
-		mShell->Close();
-	} catch (...) {}
-	if (mThr.joinable()) {
-		mThr.join();
-	}
+	mShell->Abort();
+	mJob.Cancel();
+	//
 	delete mShell;
 }
 
 bool SSHPort::Start()
 {
-	mThr = std::thread([=]() {
-		try {
-			mShell->Run(mTerm, 80, 34, Null);
-		} catch (...) {}
-	});
+	mJob & [=]() {
+		mShell->Run(mTerm, 80, 34, Null);
+		LOGF("ex\n");
+	};
 	return true;
 }
 
