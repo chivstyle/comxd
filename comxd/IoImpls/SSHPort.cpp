@@ -29,7 +29,9 @@ SSHPort::SSHPort(std::shared_ptr<Upp::SshSession> session, String name, String t
 
 SSHPort::~SSHPort()
 {
-	mShell->Close();
+	try {
+		mShell->Close();
+	} catch (...) {}
 	if (mThr.joinable()) {
 		mThr.join();
 	}
@@ -39,7 +41,9 @@ SSHPort::~SSHPort()
 bool SSHPort::Start()
 {
 	mThr = std::thread([=]() {
-		mShell->Run(mTerm, 80, 34, Null);
+		try {
+			mShell->Run(mTerm, 80, 34, Null);
+		} catch (...) {}
 	});
 	return true;
 }

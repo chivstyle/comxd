@@ -31,27 +31,26 @@ static inline void SplitString(char* s, size_t s_len, char delim, std::function<
         func(s+p);
     }
 }
-static inline bool SplitString(const char* cs, char delim, std::function<void(const char*)> func)
+static inline void SplitString(const char* cs, char delim, std::function<void(const char*)> func)
 {
     static const size_t kCacheSize = 128; char _cache[kCacheSize];
     size_t cs_len = strlen(cs);
+    if (cs_len == 0) { func(""); return; } // return "" for empty string
     if (cs_len < kCacheSize) {
         strcpy(_cache, cs);
         SplitString(_cache, cs_len, delim, func);
-        return true;
     } else {
         char* s = strdup(cs);
         if (s) {
             SplitString(s, cs_len, delim, func);
             free(s);
-            return true;
         }
-        return false;
     }
 }
 static inline void SplitString(std::string&& s, char delim, std::function<void(const char*)> func)
 {
     size_t s_len = s.length();
+    if (s_len == 0) { func(""); return; } // return "" for empty string
     size_t p = 0, q = 0; // [p, q) defines a result
     for (; q < s_len && s[q] != delim; ++q);
     while (q < s_len) {

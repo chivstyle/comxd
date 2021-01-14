@@ -9,16 +9,19 @@
 class SerialConnVT102 : public SerialConnEcma48 {
 public:
 	SerialConnVT102(std::shared_ptr<SerialIo> io);
-	// override
+	// from ECMA48
 	virtual void ProcessDA(const std::string& p);
 	virtual void ProcessDSR(const std::string& p);
-	//
+	virtual void ProcessCUP(const std::string& p);
+	virtual void ProcessHVP(const std::string& p);
+	// VT102 specific DSR
 	virtual void ProcessVT102_DSR(const std::string& p);
-	//
+	// VT102 modes, DEC private
 	virtual void ProcessVT102_MODE_SET(const std::string& p);
 	virtual void ProcessVT102_MODE_RESET(const std::string& p);
-	virtual void ProcessVT102_HOME(const std::string& p);
-    //
+	// VT102 specific
+	virtual void ProcessVT102_IND(const std::string& p);
+    // VT102 specific, DEC private
     virtual void ProcessDECSTBM(const std::string& p);
 	virtual void ProcessDECSC(const std::string& p);
 	virtual void ProcessDECRC(const std::string& p);
@@ -26,7 +29,6 @@ public:
 	virtual void ProcessDECTST(const std::string& p);
 	virtual void ProcessDECLL(const std::string& p);
     //
-private:
     struct VT102Modes {
         enum DECCKM_Value {
             DECCKM_Cursor = 0,
@@ -94,6 +96,6 @@ private:
     void SaveCursor(CursorData& cd);
     void LoadCursor(const CursorData& cd);
     CursorData mCursorData;
-    //
+private:
     void InstallFunctions();
 };

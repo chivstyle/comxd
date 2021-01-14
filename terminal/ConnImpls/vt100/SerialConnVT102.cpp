@@ -15,6 +15,14 @@ SerialConnVT102::SerialConnVT102(std::shared_ptr<SerialIo> io)
 	, SerialConnEcma48(io)
 {
 	AddVT102ControlSeqs(this->mSeqsFactory);
+	// VT102, permanently selected modes
+	SerialConnEcma48::mModes.CRM = 0;
+	SerialConnEcma48::mModes.EBM = 0;
+	SerialConnEcma48::mModes.ERM = 1;
+	SerialConnEcma48::mModes.FEAM = 0;
+	SerialConnEcma48::mModes.PUM = 0;
+	SerialConnEcma48::mModes.SRTM = 0;
+	SerialConnEcma48::mModes.TSM = 0;
 	//
 	SaveCursor(mCursorData);
 	//
@@ -25,7 +33,6 @@ void SerialConnVT102::InstallFunctions()
 {
 	mFunctions[VT102_MODE_SET] = [=](const std::string& p) { ProcessVT102_MODE_SET(p); };
 	mFunctions[VT102_MODE_RESET] = [=](const std::string& p) { ProcessVT102_MODE_RESET(p); };
-	mFunctions[VT102_HOME] = [=](const std::string& p) { ProcessVT102_HOME(p); };
 	mFunctions[VT102_DSR] = [=](const std::string& p) { ProcessVT102_DSR(p); };
 	//
 	mFunctions[DECSTBM] = [=](const std::string& p) { ProcessDECSTBM(p); };
@@ -102,14 +109,38 @@ void SerialConnVT102::ProcessVT102_DSR(const std::string& p)
 	}
 }
 
-void SerialConnVT102::ProcessVT102_HOME(const std::string&)
+void SerialConnVT102::ProcessCUP(const std::string& p)
 {
-	if (mModes.DECOM == VT102Modes::DECOM_Absolute) {
-		mVx = 0;
-		mVy = 0;
+	if (p.empty()) {
+		if (mModes.DECOM == VT102Modes::DECOM_Absolute) {
+			mVx = 0;
+			mVy = 0;
+		} else {
+			mVx = 0;
+			mVy = mScrollingRegion.Top;
+		}
 	} else {
-		mVx = 0;
-		mVy = mScrollingRegion.Top;
+		SerialConnEcma48::ProcessCUP(p);
+	}
+}
+//
+void SerialConnVT102::ProcessHVP(const std::string& p)
+{
+	ProcessCUP(p);
+}
+//
+void SerialConnVT102::ProcessVT102_IND(const std::string&)
+{
+	int bot = mScrollingRegion.Bottom;
+	if (bot < 0) bot = (int)mLines.size()-1;
+	if (mVy == bot) { // scroll up
+		int top = mScrollingRegion.Top;
+		auto it_end = mLines.begin() + bot + 1;
+		Size csz = GetConsoleSize();
+		mLines.insert(it_end, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
+		mLines.erase(mLines.begin() + mVx);
+	} else {
+		mVy++;
 	}
 }
 

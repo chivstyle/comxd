@@ -170,10 +170,7 @@ protected:
     virtual void ProcessVPB(const std::string& p);
     virtual void ProcessVPR(const std::string& p);
     virtual void ProcessVTS(const std::string& p);
-    // utils
-	void Fill(int X0, int Y0, int X1, int Y1, const VTChar& c);
-    
-private:
+
 	struct EcmaDAQ {
 		Upp::Point From;
 		Upp::Point To;
@@ -216,7 +213,7 @@ private:
 		uint32_t KAM: 1;
 		enum MATMValue { MATM_Single = 0, MATM_Multiple };
 		uint32_t MATM: 1;
-		// uint32_t PUM: 1; // PUM was deprecated
+		uint32_t PUM: 1; // PUM was deprecated
 		enum SATMValue { SATM_Select = 0, SATM_All };
 		uint32_t SATM: 1;
 		enum SRMValue { SRM_Monitor = 0, SRM_Simultaneous };
@@ -229,7 +226,10 @@ private:
 		uint32_t TTM: 1;
 		enum VEMValue { VEM_Following = 0, VEM_Preceding };
 		uint32_t VEM: 1;
-		// uint32_t ZDM: 1; // ZDM was deprecated
+		uint32_t ZDM: 1; // ZDM was deprecated
+		uint32_t EBM: 1; // Elimited mode
+		enum LMNValue { LMN_LineFeed = 0, LMN_NewLine };
+		uint32_t LMN: 1; // Elimited mode, but VT102 will use it.
 		Ecma48Modes()
 			: BDSM(BDSM_Implicit)
 			, CRM(CRM_Control)
@@ -249,9 +249,13 @@ private:
 			, TSM(TSM_Single)
 			, TTM(TTM_All)
 			, VEM(VEM_Following)
+			, LMN(LMN_NewLine)
 		{
 		}
 	};
 	struct Ecma48Modes mModes;
+	// fill region with c
+	void Fill(int X0, int Y0, int X1, int Y1, const VTChar& c);
+private:
 	void InstallFunctions();
 };

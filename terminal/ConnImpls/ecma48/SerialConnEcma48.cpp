@@ -255,7 +255,9 @@ void SerialConnEcma48::ProcessHT(const std::string&)
 void SerialConnEcma48::ProcessLF(const std::string&)
 {
 	mVy += 1;
-	mVx = 0; // LMN is deprecated, so we use NewLine default.
+	if (mModes.LMN == Ecma48Modes::LMN_LineFeed) {
+	    mVx = 0;
+	}
 }
 void SerialConnEcma48::ProcessVT(const std::string&)
 {
@@ -494,13 +496,15 @@ void SerialConnEcma48::ProcessCUF(const std::string& p)
 }
 void SerialConnEcma48::ProcessCUP(const std::string& p)
 {
-	int idx = 0, pn[2] = {0, 0};
+	int idx = 0, pn[2] = {1, 1};
 	SplitString(p.c_str(), ';', [=, &idx, &pn](const char* token) {
 		if (idx < 2)
 			pn[idx++] = atoi(token);
 	});
-	mPx = mFontW*pn[1];
-	mVy = pn[0];
+	if (pn[0] <= 0) pn[0] = 1;
+	if (pn[1] <= 0) pn[1] = 1;
+	mPx = mFontW*(pn[1]-1);
+	mVy = pn[0]-1;
 }
 void SerialConnEcma48::ProcessCUU(const std::string& p)
 {
@@ -543,13 +547,16 @@ void SerialConnEcma48::ProcessDL(const std::string& p)
 {
 	int pn = atoi(p.c_str());
 	if (pn <= 0) pn = 1;
-	// TODO: process modes
-	if (mVy + pn >= (int)mLines.size()) {
-		pn = (int)mLines.size() - mVy;
-	}
-	mLines.erase(mLines.begin() + mVy, mLines.begin() + mVy+pn);
+	// scrolling region
+	int top = mScrollingRegion.Top;
+	int bot = mScrollingRegion.Bottom;
+	if (bot < 0) bot = (int)mLines.size()-1;
+	int ln = bot-mVy+1;
+	if (pn > ln) pn = ln;
+	auto it_end = mLines.begin() + bot + 1;
 	Size csz = GetConsoleSize();
-	mLines.insert(mLines.end(), pn, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
+	mLines.insert(it_end, pn, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
+	mLines.erase(mLines.begin()+mVy, mLines.begin()+mVy+pn);
 }
 void SerialConnEcma48::ProcessDMI(const std::string& p)
 {
@@ -671,6 +678,7 @@ void SerialConnEcma48::ProcessHTS(const std::string& p)
 }
 void SerialConnEcma48::ProcessHVP(const std::string& p)
 {
+	ProcessCUP(p);
 }
 void SerialConnEcma48::ProcessICH(const std::string& p)
 {
@@ -683,6 +691,23 @@ void SerialConnEcma48::ProcessIGS(const std::string& p)
 }
 void SerialConnEcma48::ProcessIL(const std::string& p)
 {
+	int pn = atoi(p.c_str());
+	if (pn <= 0) pn = 1;
+	// scrolling region
+	int top = mScrollingRegion.Top;
+	int bot = mScrollingRegion.Bottom;
+	if (bot < 0) bot = (int)mLines.size()-1;
+	auto it_end = mLines.begin()+bot+1;
+	int ln = bot-mVy+1;
+	if (pn > ln) pn = ln;
+	if (it_end == mLines.end()) {
+		for (int i = 0; i < pn; ++i)
+			mLines.pop_back();
+	} else {
+		mLines.erase(it_end - pn, it_end);
+	}
+	Size csz = GetConsoleSize();
+	mLines.insert(mLines.begin()+mVy, pn, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
 }
 void SerialConnEcma48::ProcessINT(const std::string& p)
 {
@@ -716,6 +741,21 @@ void SerialConnEcma48::ProcessNBH(const std::string& p)
 }
 void SerialConnEcma48::ProcessNEL(const std::string& p)
 {
+	int bot = mScrollingRegion.Bottom;
+	if (bot < 0) bot = (int)mLines.size()-1;
+	if (mVy < bot) {
+		mVy++;
+	} else { // scroll up
+		int top = mScrollingRegion.Top;
+		if (bot < 0) bot = (int)mLines.size()-1;
+		Size csz = GetConsoleSize();
+		auto it_end = mLines.begin() + bot + 1;
+		// insert new line
+		mLines.insert(it_end, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
+		// remove the top line
+		mLines.erase(mLines.begin() + top);
+	}
+	mVx = 0;
 }
 void SerialConnEcma48::ProcessNP(const std::string& p)
 {
@@ -767,12 +807,50 @@ void SerialConnEcma48::ProcessREP(const std::string& p)
 }
 void SerialConnEcma48::ProcessRI(const std::string& p)
 {
+	int top = mScrollingRegion.Top;
+	if (mVy > top) {
+		mVy--;
+	} else { // scroll down
+		int bot = mScrollingRegion.Bottom;
+		if (bot < 0) bot = (int)mLines.size()-1;
+		mLines.erase(mLines.begin()+bot); // remove the bottom line
+		// insert new line to top
+		Size csz = GetConsoleSize();
+		mLines.insert(mLines.begin() + top, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
+	}
 }
 void SerialConnEcma48::ProcessRIS(const std::string& p)
 {
 }
 void SerialConnEcma48::ProcessRM(const std::string& p)
 {
+    SplitString(p.c_str(), ';', [=](const char* token) {
+		int ps = atoi(token);
+		switch (ps) {
+		case 1:  mModes.GATM = 0; break;
+		case 2:  mModes.KAM  = 0; break;
+		case 3:  mModes.CRM  = 0; break;
+		case 4:  mModes.IRM  = 0; break;
+		case 5:  mModes.SRTM = 0; break;
+		case 6:  mModes.ERM  = 0; break;
+		case 7:  mModes.BDSM = 0; break;
+		case 8:  mModes.BDSM = 0; break;
+        case 9:  mModes.DCSM = 0; break;
+        case 10: mModes.HEM  = 0; break;
+        case 11: mModes.PUM  = 0; break;
+        case 12: mModes.SRM  = 0; break;
+        case 13: mModes.FEAM = 0; break;
+        case 14: mModes.FETM = 0; break;
+        case 15: mModes.MATM = 0; break;
+        case 16: mModes.TTM  = 0; break;
+        case 17: mModes.SATM = 0; break;
+        case 18: mModes.TSM  = 0; break;
+        case 19: mModes.EBM  = 0; break;
+        case 20: mModes.LMN  = 0; break;
+        case 21: mModes.GRCM = 0; break;
+        case 22: mModes.ZDM  = 0; break;
+		}
+	});
 }
 void SerialConnEcma48::ProcessSACS(const std::string& p)
 {
@@ -953,6 +1031,33 @@ void SerialConnEcma48::ProcessSLS(const std::string& p)
 }
 void SerialConnEcma48::ProcessSM(const std::string& p)
 {
+	SplitString(p.c_str(), ';', [=](const char* token) {
+		int ps = atoi(token);
+		switch (ps) {
+		case 1:  mModes.GATM = 1; break;
+		case 2:  mModes.KAM  = 1; break;
+		case 3:  mModes.CRM  = 1; break;
+		case 4:  mModes.IRM  = 1; break;
+		case 5:  mModes.SRTM = 1; break;
+		case 6:  mModes.ERM  = 1; break;
+		case 7:  mModes.BDSM = 1; break;
+		case 8:  mModes.BDSM = 1; break;
+        case 9:  mModes.DCSM = 1; break;
+        case 10: mModes.HEM  = 1; break;
+        case 11: mModes.PUM  = 1; break;
+        case 12: mModes.SRM  = 1; break;
+        case 13: mModes.FEAM = 1; break;
+        case 14: mModes.FETM = 1; break;
+        case 15: mModes.MATM = 1; break;
+        case 16: mModes.TTM  = 1; break;
+        case 17: mModes.SATM = 1; break;
+        case 18: mModes.TSM  = 1; break;
+        case 19: mModes.EBM  = 1; break;
+        case 20: mModes.LMN  = 1; break;
+        case 21: mModes.GRCM = 1; break;
+        case 22: mModes.ZDM  = 1; break;
+		}
+	});
 }
 void SerialConnEcma48::ProcessSOS(const std::string& p)
 {

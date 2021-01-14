@@ -27,9 +27,9 @@ void AddVT102ControlSeqs(ControlSeqFactory* factory)
     REGISTER_SEQ(factory, VT102_G1_ROM,            "\x1b)",  No, 0, "1");
     REGISTER_SEQ(factory, VT102_G1_ROM_SPECIAL,    "\x1b)",  No, 0, "2");
     //
-    REGISTER_SEQ(factory, VT102_MC,  "\x1b[?", Pn, 1, "i");
-    REGISTER_SEQ(factory, VT102_HOME, kCSI,    No, 0, "H");
-    REGISTER_SEQ(factory, VT102_DSR, "\x1b[?", Ps, 1, "n");
+    REGISTER_SEQ(factory, VT102_MC,  "\x1b[?", Pn, 0, "i");
+    REGISTER_SEQ(factory, VT102_DSR, "\x1b[?", Ps, 0, "n");
+    REGISTER_SEQ(factory, VT102_IND, kESC,     No, 0, "D");
     //
     REGISTER_SEQ(factory, DECID,   kESC,     No, 0, "Z");
     REGISTER_SEQ(factory, DECSTBM, kCSI,     Pn, 2, "r");
@@ -51,8 +51,8 @@ void AddVT102ControlSeqs(ControlSeqFactory* factory)
     REGISTER_SEQ(factory, VT52_CUR,  kESC, No, 0, "C");
     REGISTER_SEQ(factory, VT52_CUL,  kESC, No, 0, "D");
     REGISTER_SEQ(factory, VT52_CUH,  kESC, No, 0, "H");
-    REGISTER_SEQ(factory, VT52_CUP,  "\x1bY", Pn, 2, "\037");
-    REGISTER_SEQ(factory, VT52_RLF,  kESC, No, 0, "\111");
+    REGISTER_SEQ(factory, VT52_CUP,  "\x1bY", Pn, 0, "\037");
+    REGISTER_SEQ(factory, VT52_RI,   kESC, No, 0, "\111");
     //
     REGISTER_SEQ(factory, VT52_ERASE_TO_END_OF_LINE,          kESC, No, 0, "K");
     REGISTER_SEQ(factory, VT52_ERASE_TO_END_OF_SCREEN,        kESC, No, 0, "J");

@@ -258,7 +258,7 @@ void SerialConnVT::RenderSeqs()
                 else if (py != mPy)
                     UpdateDataPos(0x2);
             } else {
-                LOGF("Unprocessed:%s\n", seq.Ctrl.second.c_str());
+                // LOGF("Unprocessed:%d\n", seq.Ctrl.first);
             }
         } break;
         case Seq::TEXT_SEQ:
@@ -321,6 +321,8 @@ void SerialConnVT::RxProc()
                 int type = IsControlSeq(pattern, p_begin, p_sz);
                 if (type == SEQ_NONE) {
                     // TODO: unrecognized seq
+                    LOGF("Unrecognized:%s\n", pattern.c_str());
+                    //
                     pattern.clear();
                     pending = false;
                 }

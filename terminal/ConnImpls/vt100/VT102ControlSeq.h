@@ -7,6 +7,7 @@
 #include <string>
 //
 enum VT102SeqType {
+	// ANSI-Compatible Private Modes, others were included in ECMA-48
     VT102_MODE_SET = VT102_SEQ_BEGIN,
     VT102_MODE_RESET,
     //
@@ -20,8 +21,8 @@ enum VT102SeqType {
     VT102_G0_ROM_SPECIAL, VT102_G1_ROM_SPECIAL,
     //
     VT102_MC,
-    VT102_HOME,
     VT102_DSR,
+    VT102_IND,
     //
     DECID,
     //
@@ -47,7 +48,7 @@ enum VT102SeqType {
     VT52_CUL,
     VT52_CUH,
     VT52_CUP,
-    VT52_RLF,
+    VT52_RI,
     VT52_ERASE_TO_END_OF_LINE,
     VT52_ERASE_TO_END_OF_SCREEN,
     VT52_ENTER_AUTO_PRINT_MODE,
