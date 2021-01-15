@@ -641,11 +641,15 @@ void SerialConnVT::ProcessOverflowLines()
     }
 }
 //
+uint32_t SerialConnVT::RemapCharacter(uint32_t uc)
+{
+	return uc;
+}
 void SerialConnVT::RenderText(const std::vector<uint32_t>& s)
 {
     Size csz = GetConsoleSize();
     for (size_t k = 0; k < s.size(); ++k) {
-        VTChar chr = s[k];
+        VTChar chr = RemapCharacter(s[k]);
         chr.SetStyle(mStyle);
         // Unfortunately, UPP does not support complete UNICODE, support UCS-16 instead. So
         // we should ignore those out of range

@@ -14,8 +14,8 @@ public:
 	virtual void ProcessDSR(const std::string& p);
 	virtual void ProcessCUP(const std::string& p);
 	virtual void ProcessHVP(const std::string& p);
-	virtual void ProcessLS0(const std::string& p);
-	virtual void ProcessLS1(const std::string& p);
+	virtual void ProcessLS0(const std::string& p); // LS0, i.e SI
+	virtual void ProcessLS1(const std::string& p); // LS1, i.e SO
 	// VT102 specific DSR
 	virtual void ProcessVT102_DSR(const std::string& p);
 	// VT102 modes, DEC private
@@ -41,8 +41,7 @@ public:
     virtual void ProcessVT102_G1_ROM(const std::string& p);
     virtual void ProcessVT102_G0_ROM_SPECIAL(const std::string& p);
     virtual void ProcessVT102_G1_ROM_SPECIAL(const std::string& p);
-    //
-    virtual Upp::WString TranscodeToUTF16(const VTChar& cc) const;
+    virtual uint32_t RemapCharacter(uint32_t uc);
     //
     struct VT102Modes {
         enum DECCKM_Value {
@@ -102,8 +101,9 @@ public:
         }
     };
     VT102Modes mModes;
-    //
-    int mCharset;
+    // VT102 char sets
+    int mCharsetInUsed;
+    int mCharsets[2];
     //
     struct CursorData {
         int Vx, Vy;

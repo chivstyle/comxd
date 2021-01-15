@@ -24,8 +24,8 @@ protected:
     virtual void ProcessVT(const std::string&);
     virtual void ProcessFF(const std::string&);
     virtual void ProcessCR(const std::string&);
-    virtual void ProcessSO(const std::string&);
-    virtual void ProcessSI(const std::string&);
+    virtual void ProcessLS0(const std::string&);
+    virtual void ProcessLS1(const std::string&);
     virtual void ProcessDLE(const std::string&);
     virtual void ProcessDC1(const std::string&);
     virtual void ProcessDC2(const std::string&);

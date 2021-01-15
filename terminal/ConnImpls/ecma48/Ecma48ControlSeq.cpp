@@ -89,8 +89,8 @@ void AddEcma48ControlSeqs(ControlSeqFactory* factory)
     REGISTER_SEQ(factory, ECMA48_FS, "\x1c",  No, 0, ""); // IS4
     REGISTER_SEQ(factory, ECMA48_JFY, kCSI,   Ps, 0, "\x20\x46");
     REGISTER_SEQ(factory, ECMA48_LF,  "\x0a", No, 0, "");
-    REGISTER_SEQ(factory, ECMA48_SI,  "\x0f", No, 0, ""); // LS0
-    REGISTER_SEQ(factory, ECMA48_SO,  "\x0e", No, 0, ""); // LS1
+    REGISTER_SEQ(factory, ECMA48_LS0,  "\x0f", No, 0, ""); // LS0
+    REGISTER_SEQ(factory, ECMA48_LS1,  "\x0e", No, 0, ""); // LS1
     REGISTER_SEQ(factory, ECMA48_LS1R, kESC,  No, 0, "\x7e");
     REGISTER_SEQ(factory, ECMA48_LS2,  kESC,  No, 0, "\x6e");
     REGISTER_SEQ(factory, ECMA48_LS2R, kESC,  No, 0, "\x7d");

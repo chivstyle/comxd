@@ -4,7 +4,7 @@
 */
 #include "SerialConnVT102.h"
 #include "VT102ControlSeq.h"
-#include "VT102Charsets.h"
+#include "VT102Charset.h"
 #include "ConnFactory.h"
 
 REGISTER_CONN_INSTANCE("VT102,chiv", "vt102", SerialConnVT102);
@@ -14,6 +14,7 @@ using namespace Upp;
 SerialConnVT102::SerialConnVT102(std::shared_ptr<SerialIo> io)
 	: SerialConnVT(io)
 	, SerialConnEcma48(io)
+	, mCharsetInUsed(0)
 {
 	AddVT102ControlSeqs(this->mSeqsFactory);
 	// VT102, permanently selected modes
@@ -24,6 +25,9 @@ SerialConnVT102::SerialConnVT102(std::shared_ptr<SerialIo> io)
 	SerialConnEcma48::mModes.PUM = 0;
 	SerialConnEcma48::mModes.SRTM = 0;
 	SerialConnEcma48::mModes.TSM = 0;
+	// default charsets
+	mCharsets[0] = CS_US;
+	mCharsets[1] = CS_UK;
 	//
 	SaveCursor(mCursorData);
 	//
@@ -81,83 +85,58 @@ void SerialConnVT102::ProcessDSR(const std::string& p)
 //
 void SerialConnVT102::ProcessVT102_G0_UK(const std::string& p)
 {
-    mCharset = VT102_G0_UK;
+    mCharsets[0] = CS_UK;
 }
 void SerialConnVT102::ProcessVT102_G1_UK(const std::string& p)
 {
-    mCharset = VT102_G1_UK;
+    mCharsets[1] = CS_UK;
 }
 void SerialConnVT102::ProcessVT102_G0_US(const std::string& p)
 {
-    mCharset = VT102_G0_US;
+    mCharsets[0] = CS_US;
 }
 void SerialConnVT102::ProcessVT102_G1_US(const std::string& p)
 {
-    mCharset = VT102_G1_US;
+    mCharsets[1] = CS_US;
 }
 void SerialConnVT102::ProcessVT102_G0_LINE_DRAWING(const std::string& p)
 {
-    mCharset = VT102_G0_LINE_DRAWING;
+    mCharsets[0] = CS_LINE_DRAWING;
 }
 void SerialConnVT102::ProcessVT102_G1_LINE_DRAWING(const std::string& p)
 {
-    mCharset = VT102_G1_LINE_DRAWING;
+    mCharsets[1] = CS_LINE_DRAWING;
 }
 void SerialConnVT102::ProcessVT102_G0_ROM(const std::string& p)
 {
-    mCharset = VT102_G0_ROM;
+    mCharsets[0] = CS_ROM;
 }
 void SerialConnVT102::ProcessVT102_G1_ROM(const std::string& p)
 {
-    mCharset = VT102_G1_ROM;
+    mCharsets[1] = CS_ROM;
 }
 void SerialConnVT102::ProcessVT102_G0_ROM_SPECIAL(const std::string& p)
 {
-    mCharset = VT102_G0_ROM_SPECIAL;
+    mCharsets[0] = CS_ROM_SPECIAL;
 }
 void SerialConnVT102::ProcessVT102_G1_ROM_SPECIAL(const std::string& p)
 {
-    mCharset = VT102_G1_ROM_SPECIAL;
+    mCharsets[1] = CS_ROM_SPECIAL;
 }
 void SerialConnVT102::ProcessLS0(const std::string& p)
 {
-	switch (mCharset) {
-	case VT102_G1_UK:           mCharset = VT102_G0_UK; break;
-	case VT102_G1_US:           mCharset = VT102_G0_US; break;
-	case VT102_G1_LINE_DRAWING: mCharset = VT102_G0_LINE_DRAWING; break;
-	case VT102_G1_ROM:          mCharset = VT102_G0_ROM; break;
-	case VT102_G1_ROM_SPECIAL:  mCharset = VT102_G0_ROM_SPECIAL; break;
-	}
+	mCharsetInUsed = 0;
 }
 void SerialConnVT102::ProcessLS1(const std::string& p)
 {
-    switch (mCharset) {
-	case VT102_G0_UK:           mCharset = VT102_G1_UK; break;
-	case VT102_G0_US:           mCharset = VT102_G1_US; break;
-	case VT102_G0_LINE_DRAWING: mCharset = VT102_G1_LINE_DRAWING; break;
-	case VT102_G0_ROM:          mCharset = VT102_G1_ROM; break;
-	case VT102_G0_ROM_SPECIAL:  mCharset = VT102_G1_ROM_SPECIAL; break;
-	}
+    mCharsetInUsed = 1;
 }
-Upp::WString SerialConnVT102::TranscodeToUTF16(const VTChar& cc) const
+uint32_t SerialConnVT102::RemapCharacter(uint32_t uc)
 {
-    uint32_t uc = cc.Code();
     if (uc >= ' ' && uc < 0x7f) {
-        switch (mCharset) {
-        case VT102_G0_UK:           return G0_UK((uint8_t)uc);
-        case VT102_G0_US:           return G0_US((uint8_t)uc);
-        case VT102_G0_LINE_DRAWING: return G0_LINE_DRAWING((uint8_t)uc);
-        case VT102_G0_ROM:          return G0_ROM((uint8_t)uc);
-        case VT102_G0_ROM_SPECIAL:  return G0_ROM_SPECIAL((uint8_t)uc);
-        case VT102_G1_UK:           return G1_UK((uint8_t)uc);
-        case VT102_G1_US:           return G1_US((uint8_t)uc);
-        case VT102_G1_LINE_DRAWING: return G1_LINE_DRAWING((uint8_t)uc);
-        case VT102_G1_ROM:          return G1_ROM((uint8_t)uc);
-        case VT102_G1_ROM_SPECIAL:  return G1_ROM_SPECIAL((uint8_t)uc);
-        default: break;
-        }
+        return VT102_RemapCharacter(uc, mCharsets[mCharsetInUsed]);
     }
-    return SerialConnVT::TranscodeToUTF16(cc);
+    return SerialConnVT::RemapCharacter(uc);
 }
 
 void SerialConnVT102::ProcessVT102_MODE_SET(const std::string& p)

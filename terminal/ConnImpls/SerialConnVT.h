@@ -120,7 +120,10 @@ protected:
     /// Active position
     int mVx, mVy;      //<! Active position of data component
     int mPx, mPy;      //<! Active position of presentation component
-    /// \brief Render text on virtual screen
+    /// \brief Before rendering text, the program will remap the character,
+    ///        the derived class could modify the character to override this method
+    virtual uint32_t RemapCharacter(uint32_t uc);
+    /// \brief render text to VTChar
     /// \param seq complete VT characters
     virtual void RenderText(const std::vector<uint32_t>& s);
     // push to lines buffer and check
