@@ -7,7 +7,7 @@
 #include "VT102Charset.h"
 #include "ConnFactory.h"
 
-REGISTER_CONN_INSTANCE("VT102,chiv", "vt102", SerialConnVT102);
+REGISTER_CONN_INSTANCE("VT100 by chiv", "vt100", SerialConnVT102);
 
 using namespace Upp;
 
@@ -138,7 +138,52 @@ uint32_t SerialConnVT102::RemapCharacter(uint32_t uc)
     }
     return SerialConnVT::RemapCharacter(uc);
 }
-
+//
+bool SerialConnVT102::ProcessKeyDown(Upp::dword key, Upp::dword flags)
+{
+	bool processed = false;
+	if (flags == 0) {
+		processed = true;
+		switch (key) {
+		case K_UP: if (1) {
+			if (mModes.DECCKM == VT102Modes::DECCKM_Cursor) {
+				GetIo()->Write("\033[A");
+			} else {
+				GetIo()->Write("\033OA");
+			}
+		} break;
+		case K_DOWN:if (1) {
+			if (mModes.DECCKM == VT102Modes::DECCKM_Cursor) {
+				GetIo()->Write("\033[B");
+			} else {
+				GetIo()->Write("\033OB");
+			}
+		} break;
+		case K_LEFT:if (1) {
+			if (mModes.DECCKM == VT102Modes::DECCKM_Cursor) {
+				GetIo()->Write("\033[D");
+			} else {
+				GetIo()->Write("\033OD");
+			}
+		} break;
+		case K_RIGHT:if (1) {
+			if (mModes.DECCKM == VT102Modes::DECCKM_Cursor) {
+				GetIo()->Write("\033[C");
+			} else {
+				GetIo()->Write("\033OC");
+			}
+		} break;
+		case K_HOME:if (1) {
+				GetIo()->Write("\033[H");
+		} break;
+		default:
+			processed = false;
+			break;
+		}
+	}
+	return processed ? true : SerialConnVT::ProcessKeyDown(key, flags);
+}
+//
 void SerialConnVT102::ProcessVT102_MODE_SET(const std::string& p)
 {
     int ps = atoi(p.c_str());

@@ -249,7 +249,7 @@ void SerialConnEcma48::ProcessBS(const std::string&)
 }
 void SerialConnEcma48::ProcessHT(const std::string&)
 {
-	int tabsz = mFontW*8;
+	int tabsz = mFontW*mTabWidth;
 	mPx += tabsz - (mPx % tabsz);
 }
 void SerialConnEcma48::ProcessLF(const std::string&)
@@ -262,10 +262,16 @@ void SerialConnEcma48::ProcessLF(const std::string&)
 void SerialConnEcma48::ProcessVT(const std::string&)
 {
 	mVy += 1;
+	if (mModes.LMN == Ecma48Modes::LMN_LineFeed) {
+	    mVx = 0;
+	}
 }
 void SerialConnEcma48::ProcessFF(const std::string&)
 {
 	mVy += 1;
+	if (mModes.LMN == Ecma48Modes::LMN_LineFeed) {
+	    mVx = 0;
+	}
 }
 void SerialConnEcma48::ProcessCR(const std::string&)
 {
@@ -334,14 +340,14 @@ void SerialConnEcma48::ProcessBPH(const std::string& p)
 }
 void SerialConnEcma48::ProcessCBT(const std::string& p)
 {
-	int tabsz = mFontW*8;
+	int tabsz = mFontW*mTabWidth;
 	int pn = atoi(p.c_str());
 	if (pn <= 0) pn = 1;
 	//
 	int rn = mPx % tabsz;
 	if (rn)
 		pn -= 1;
-	mPx -= rn + 8*pn;
+	mPx -= rn + tabsz*pn;
 }
 void SerialConnEcma48::ProcessCCH(const std::string& p)
 {
@@ -366,14 +372,14 @@ void SerialConnEcma48::ProcessCHA(const std::string& p)
 }
 void SerialConnEcma48::ProcessCHT(const std::string& p)
 {
-	int tabsz = mFontW*8;
+	int tabsz = mFontW*mTabWidth;
 	int pn = atoi(p.c_str());
 	if (pn <= 0) pn = 1;
 	//
-	int rn = 8 - (mPx % tabsz);
+	int rn = tabsz - (mPx % tabsz);
 	if (rn)
 		pn -= 1;
-	mPx += rn + 8*pn;
+	mPx += rn + tabsz*pn;
 }
 void SerialConnEcma48::ProcessCMD(const std::string& p)
 {
@@ -551,6 +557,7 @@ void SerialConnEcma48::ProcessDL(const std::string& p)
 	int top = mScrollingRegion.Top;
 	int bot = mScrollingRegion.Bottom;
 	if (bot < 0) bot = (int)mLines.size()-1;
+	if (mVy < top || mVy > bot) return; // invalid
 	int ln = bot-mVy+1;
 	if (pn > ln) pn = ln;
 	auto it_end = mLines.begin() + bot + 1;
@@ -697,6 +704,7 @@ void SerialConnEcma48::ProcessIL(const std::string& p)
 	int top = mScrollingRegion.Top;
 	int bot = mScrollingRegion.Bottom;
 	if (bot < 0) bot = (int)mLines.size()-1;
+	if (mVy < top || mVy > bot) return; // Invalid
 	auto it_end = mLines.begin()+bot+1;
 	int ln = bot-mVy+1;
 	if (pn > ln) pn = ln;
@@ -890,7 +898,9 @@ void SerialConnEcma48::ProcessSGR(const std::string& p)
 		case 0:
 			this->SetDefaultStyle();
 			break;
-		case 1: break;
+		case 1:
+			mStyle.FontStyle |= VTStyle::eBold;
+			break;
 		case 2: break;
 		case 3:
 			mStyle.FontStyle |= VTStyle::eItalic;

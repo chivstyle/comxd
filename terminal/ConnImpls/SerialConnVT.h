@@ -185,7 +185,7 @@ protected:
     Upp::VScrollBar mSbV;
     Upp::HScrollBar mSbH;
     //
-    virtual int GetCharWidth(const VTChar& c, int vx) const;
+    virtual int GetCharWidth(const VTChar& c) const;
     // vy - absolute position
     virtual int GetLineHeight(int vy) const;
     // calculate the size of console
@@ -267,6 +267,7 @@ protected:
     ScrollingRegion mScrollingRegion;
     void CheckAndFix(ScrollingRegion& span);
     //------------------------------------------------------------------------------------------
+    int mTabWidth;
 private:
     // receiver
     volatile bool mRxShouldStop;

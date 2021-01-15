@@ -23,13 +23,14 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
     , mShowCursor(true)
     , mMaxLinesBufferSize(5000)
     , mSeqsFactory(new ControlSeqFactory())
+    , mTabWidth(8)
 {
     // double buffer
     BackPaint();
     // default font
     mFont = VTOptionsDialog::DefaultFont();
     // handlers
-    mFontW = mFont.GetAveWidth();
+    mFontW = std::max(mFont.GetWidth('M'), mFont.GetWidth('W'));
     mFontH = mFont.GetLineHeight();
     // default style
     mBlankChar = ' ';
@@ -119,7 +120,7 @@ void SerialConnVT::InstallUserActions()
             this->mColorTbl.SetColor(VTColorTable::kColorId_Paper, options.PaperColor);
             //
             bool vscr_modified = false; // lines buffer or virtual screen was modified ?
-            int fontw = mFont.GetAveWidth(), fonth = mFont.GetLineHeight();
+            int fontw = std::max(mFont.GetWidth('M'), mFont.GetWidth('W')), fonth = mFont.GetLineHeight();
             if (fontw != mFontW || fonth != mFontH) {
                 int shrink_cnt = (int)mLinesBuffer.size() - options.LinesBufferSize;
                 if (shrink_cnt > 0) {
@@ -350,12 +351,12 @@ void SerialConnVT::RxProc()
     }
 }
 
-int SerialConnVT::GetCharWidth(const VTChar& c, int vx) const
+int SerialConnVT::GetCharWidth(const VTChar& c) const
 {
     int cx = mFontW;
     switch (c.Code()) {
     case '\t': if (1) {
-        int tabsz = mFontW*8;
+        int tabsz = mFontW*mTabWidth;
         cx = tabsz - (mPx % tabsz);
     } break;
     case '\v':
@@ -418,7 +419,7 @@ Point SerialConnVT::VirtualToLogic(const std::vector<VTLine>& lines, int vx, int
     int nchars = ignore_tail_blanks ?
         (int)lines[vy].size() - this->CalculateNumberOfPureBlankCharsFromEnd(lines[vy]) : (int)lines[vy].size();
     for (int k = 0; k < vx && k < nchars; ++k) {
-        lx += GetCharWidth(lines[vy][k], (int)k);
+        lx += GetCharWidth(lines[vy][k]);
     }
     return Point(lx, ly);
 }
@@ -441,7 +442,7 @@ Point SerialConnVT::VirtualToLogic(int vx, int vy, bool ignore_tail_blanks)
     int nchars = ignore_tail_blanks ?
         (int)vline->size() - this->CalculateNumberOfPureBlankCharsFromEnd(*vline) : (int)vline->size();
     for (int k = 0; k < vx && k < nchars; ++k) {
-        lx += GetCharWidth(vline->at(k), (int)k);
+        lx += GetCharWidth(vline->at(k));
     }
     return Point(lx, ly);
 }
@@ -452,7 +453,7 @@ int SerialConnVT::VirtualToLogic(const VTLine& vline, int vx, bool ignore_tail_b
     int nchars = ignore_tail_blanks ?
         (int)vline.size() - this->CalculateNumberOfPureBlankCharsFromEnd(vline) : (int)vline.size();
     for (int i = 0; i < vx && i < nchars; ++i) {
-        lx += GetCharWidth(vline[i], (int)i);
+        lx += GetCharWidth(vline[i]);
     }
     return lx;
 }
@@ -464,7 +465,7 @@ int SerialConnVT::GetLogicWidth(const VTLine& vline, int count, bool ignore_tail
         count = ignore_tail_blanks ?
             (int)vline.size() - this->CalculateNumberOfPureBlankCharsFromEnd(vline) : (int)vline.size();
     for (int k = 0; k < count; ++k) {
-        x += GetCharWidth(vline[k], (int)k);
+        x += GetCharWidth(vline[k]);
     }
     return x;
 }
@@ -496,7 +497,7 @@ Point SerialConnVT::LogicToVirtual(const std::vector<VTLine>& lines, int lx, int
     px = 0;
     next_px = 0;
     for (int i = 0; i < nchars; ++i) {
-        int vchar_sz = GetCharWidth(lines[vy][i], i);
+        int vchar_sz = GetCharWidth(lines[vy][i]);
         next_px += vchar_sz;
         // [px, px+vchar_sz]
         if (lx >= px && lx < next_px) {
@@ -550,7 +551,7 @@ Point SerialConnVT::LogicToVirtual(int lx, int ly, int& px, int& next_px,
     px = 0;
     next_px = 0;
     for (int k = 0; k < nchars; ++k) {
-        int vchar_sz = GetCharWidth(vline->at(k), (int)k);
+        int vchar_sz = GetCharWidth(vline->at(k));
         next_px += vchar_sz;
         // [px, px+vchar_sz]
         if (lx >= px && lx < next_px) {
@@ -573,7 +574,7 @@ int SerialConnVT::LogicToVirtual(const VTLine& vline, int lx, int& px, int& next
     px = 0;
     next_px = 0;
     for (int i = 0; i < nchars; ++i) {
-        int vchar_sz = GetCharWidth(vline[i], i);
+        int vchar_sz = GetCharWidth(vline[i]);
         next_px += vchar_sz;
         // [px, px+vchar_sz]
         if (lx >= px && lx < next_px) {
@@ -1259,7 +1260,7 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
         if (is_selected) {
             std::swap(bg_color, fg_color);
         }
-        int vchar_cx = GetCharWidth(vline[i], i);
+        int vchar_cx = GetCharWidth(vline[i]);
         if (blink) {
             if (mBlinkSignal) {
                 draw.DrawRect(x, y, vchar_cx, vline.GetHeight(), paper_color);

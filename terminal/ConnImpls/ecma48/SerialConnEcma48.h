@@ -228,7 +228,7 @@ protected:
 		uint32_t VEM: 1;
 		uint32_t ZDM: 1; // ZDM was deprecated
 		uint32_t EBM: 1; // Elimited mode
-		enum LMNValue { LMN_LineFeed = 0, LMN_NewLine };
+		enum LMNValue { LMN_NewLine = 0, LMN_LineFeed };
 		uint32_t LMN: 1; // Elimited mode, but VT102 will use it.
 		Ecma48Modes()
 			: BDSM(BDSM_Implicit)

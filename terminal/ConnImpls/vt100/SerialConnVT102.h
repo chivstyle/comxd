@@ -43,6 +43,8 @@ public:
     virtual void ProcessVT102_G1_ROM_SPECIAL(const std::string& p);
     virtual uint32_t RemapCharacter(uint32_t uc);
     //
+    virtual bool ProcessKeyDown(Upp::dword key, Upp::dword flags);
+    //
     struct VT102Modes {
         enum DECCKM_Value {
             DECCKM_Cursor = 0,
