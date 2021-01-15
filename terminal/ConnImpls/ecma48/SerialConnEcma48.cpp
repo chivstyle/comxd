@@ -1165,3 +1165,11 @@ void SerialConnEcma48::ProcessVPR(const std::string& p)
 void SerialConnEcma48::ProcessVTS(const std::string& p)
 {
 }
+bool SerialConnEcma48::ProcessChar(Upp::dword cc)
+{
+	std::vector<uint32_t> ss(1, cc);
+	if (mModes.SRM == Ecma48Modes::SRM_Monitor) {
+		this->RenderText(ss);
+	}
+	return SerialConnVT::ProcessChar(cc);
+}

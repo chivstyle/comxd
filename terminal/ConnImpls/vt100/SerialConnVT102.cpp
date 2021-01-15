@@ -136,7 +136,7 @@ uint32_t SerialConnVT102::RemapCharacter(uint32_t uc)
     if (uc >= ' ' && uc < 0x7f) {
         return VT102_RemapCharacter(uc, mCharsets[mCharsetInUsed]);
     }
-    return SerialConnVT::RemapCharacter(uc);
+    return SerialConnEcma48::RemapCharacter(uc);
 }
 //
 bool SerialConnVT102::ProcessKeyDown(Upp::dword key, Upp::dword flags)
@@ -181,7 +181,7 @@ bool SerialConnVT102::ProcessKeyDown(Upp::dword key, Upp::dword flags)
 			break;
 		}
 	}
-	return processed ? true : SerialConnVT::ProcessKeyDown(key, flags);
+	return processed ? true : SerialConnEcma48::ProcessKeyDown(key, flags);
 }
 //
 void SerialConnVT102::ProcessVT102_MODE_SET(const std::string& p)

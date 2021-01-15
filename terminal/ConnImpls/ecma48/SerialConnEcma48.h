@@ -170,6 +170,8 @@ protected:
     virtual void ProcessVPB(const std::string& p);
     virtual void ProcessVPR(const std::string& p);
     virtual void ProcessVTS(const std::string& p);
+    //
+    virtual bool ProcessChar(Upp::dword cc);
 
 	struct EcmaDAQ {
 		Upp::Point From;

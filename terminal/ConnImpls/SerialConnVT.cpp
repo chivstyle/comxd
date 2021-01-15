@@ -30,7 +30,7 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
     // default font
     mFont = VTOptionsDialog::DefaultFont();
     // handlers
-    mFontW = std::max(mFont.GetWidth('M'), mFont.GetWidth('W'));
+    mFontW = mFont.GetAveWidth();
     mFontH = mFont.GetLineHeight();
     // default style
     mBlankChar = ' ';
@@ -120,7 +120,7 @@ void SerialConnVT::InstallUserActions()
             this->mColorTbl.SetColor(VTColorTable::kColorId_Paper, options.PaperColor);
             //
             bool vscr_modified = false; // lines buffer or virtual screen was modified ?
-            int fontw = std::max(mFont.GetWidth('M'), mFont.GetWidth('W')), fonth = mFont.GetLineHeight();
+            int fontw = mFont.GetAveWidth(), fonth = mFont.GetLineHeight();
             if (fontw != mFontW || fonth != mFontH) {
                 int shrink_cnt = (int)mLinesBuffer.size() - options.LinesBufferSize;
                 if (shrink_cnt > 0) {
@@ -258,8 +258,6 @@ void SerialConnVT::RenderSeqs()
                     UpdateDataPos(0x1);
                 else if (py != mPy)
                     UpdateDataPos(0x2);
-            } else {
-                // LOGF("Unprocessed:%d\n", seq.Ctrl.first);
             }
         } break;
         case Seq::TEXT_SEQ:
@@ -350,7 +348,8 @@ void SerialConnVT::RxProc()
         PostCallback([=]() { RenderSeqs(); });
     }
 }
-
+// This routine guarantee that the width of any char is integral multiple
+// of mFontW.
 int SerialConnVT::GetCharWidth(const VTChar& c) const
 {
     int cx = mFontW;
@@ -366,6 +365,7 @@ int SerialConnVT::GetCharWidth(const VTChar& c) const
             Font font = mFont; bool blink, visible;
             c.UseFontStyle(font, blink, visible);
             cx = font.GetWidth(c.Code());
+            cx = (cx + mFontW-1) / mFontW * mFontW;
         } break;
     }
     return cx;
@@ -1316,7 +1316,13 @@ void SerialConnVT::UpdatePresentationPos(int flags)
 		posl_height += mLines[k].GetHeight();
 	}
 	if (flags & 0x1) mPy = posl_height - buff_height;
-    if (flags & 0x2) mPx = this->VirtualToLogic(mLines[mVy], mVx, false);
+    if (flags & 0x2) {
+        int x0 = this->VirtualToLogic(mLines[mVy], mVx, false);
+        int x1 = x0 + GetCharWidth(mLines[mVy][mVx]);
+        // If mPx is out of range [x0,x1], update it.
+        if (mPx <= x0 || mPx >= x1)
+            mPx = x0;
+    }
 }
 
 void SerialConnVT::UpdateVScrollbar()
