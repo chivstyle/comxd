@@ -8,31 +8,31 @@
 
 class SerialConnVT102 : public SerialConnEcma48 {
 public:
-	SerialConnVT102(std::shared_ptr<SerialIo> io);
-	// from ECMA48
-	virtual void ProcessDA(const std::string& p);
-	virtual void ProcessDSR(const std::string& p);
-	virtual void ProcessCUP(const std::string& p);
-	virtual void ProcessHVP(const std::string& p);
-	virtual void ProcessLS0(const std::string& p); // LS0, i.e SI
-	virtual void ProcessLS1(const std::string& p); // LS1, i.e SO
-	// VT102 specific DSR
-	virtual void ProcessVT102_DSR(const std::string& p);
-	// VT102 modes, DEC private
-	virtual void ProcessVT102_MODE_SET(const std::string& p);
-	virtual void ProcessVT102_MODE_RESET(const std::string& p);
-	// VT102 specific
-	virtual void ProcessVT102_IND(const std::string& p);
+    SerialConnVT102(std::shared_ptr<SerialIo> io);
+    // from ECMA48
+    virtual void ProcessDA(const std::string& p);
+    virtual void ProcessDSR(const std::string& p);
+    virtual void ProcessCUP(const std::string& p);
+    virtual void ProcessHVP(const std::string& p);
+    virtual void ProcessLS0(const std::string& p); // LS0, i.e SI
+    virtual void ProcessLS1(const std::string& p); // LS1, i.e SO
+    // VT102 specific DSR
+    virtual void ProcessVT102_DSR(const std::string& p);
+    // VT102 modes, DEC private
+    virtual void ProcessVT102_MODE_SET(const std::string& p);
+    virtual void ProcessVT102_MODE_RESET(const std::string& p);
+    // VT102 specific
+    virtual void ProcessVT102_IND(const std::string& p);
     // VT102 specific, DEC private
     virtual void ProcessDECSTBM(const std::string& p);
-	virtual void ProcessDECSC(const std::string& p);
-	virtual void ProcessDECRC(const std::string& p);
-	virtual void ProcessDECALN(const std::string& p);
-	virtual void ProcessDECTST(const std::string& p);
-	virtual void ProcessDECLL(const std::string& p);
-	// charset
-	virtual void ProcessVT102_G0_UK(const std::string& p);
-	virtual void ProcessVT102_G1_UK(const std::string& p);
+    virtual void ProcessDECSC(const std::string& p);
+    virtual void ProcessDECRC(const std::string& p);
+    virtual void ProcessDECALN(const std::string& p);
+    virtual void ProcessDECTST(const std::string& p);
+    virtual void ProcessDECLL(const std::string& p);
+    // charset
+    virtual void ProcessVT102_G0_UK(const std::string& p);
+    virtual void ProcessVT102_G1_UK(const std::string& p);
     virtual void ProcessVT102_G0_US(const std::string& p);
     virtual void ProcessVT102_G1_US(const std::string& p);
     virtual void ProcessVT102_G0_LINE_DRAWING(const std::string& p);

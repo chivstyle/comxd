@@ -30,9 +30,9 @@ std::string ProtoSs::GetDescription() const
 static inline std::vector<unsigned char> MakeCommand(const String& part,
                                                      const String& action, const Value& params)
 {
-	std::vector<unsigned char> command;
-	command.push_back(ss::ENQ);
-	command.push_back(ss::STX);
+    std::vector<unsigned char> command;
+    command.push_back(ss::ENQ);
+    command.push_back(ss::STX);
     // No check
     for (int i = 0; i < part.GetLength(); ++i) {
         command.push_back(part[i]);
@@ -69,7 +69,7 @@ static inline std::vector<unsigned char> MakeCommand(const String& part,
 //
 static inline void operator += (std::vector<unsigned char>& out, const std::vector<unsigned char>& in)
 {
-	for (size_t k = 0; k < in.size(); ++k) out.push_back(in[k]);
+    for (size_t k = 0; k < in.size(); ++k) out.push_back(in[k]);
 }
 // use this proto to pack the data
 std::vector<unsigned char> ProtoSs::Pack(const std::string& json_, std::string& errmsg)
@@ -187,21 +187,21 @@ std::string ProtoSs::Unpack(const std::vector<unsigned char>& buf, std::string& 
             if (eqns.size() > 1) {
                 report += "[\n";
                 for (size_t k = 0; k < eqns.size(); ++k) {
-	                if (k+1 == eqns.size()) {
-	                    report += GenerateReport(eqns[k], "    ");
-	                } else {
-	                    report += GenerateReport(eqns[k], "    ") + ",\n";
-	                }
-	            }
-	            report += "\n]";
+                    if (k+1 == eqns.size()) {
+                        report += GenerateReport(eqns[k], "    ");
+                    } else {
+                        report += GenerateReport(eqns[k], "    ") + ",\n";
+                    }
+                }
+                report += "\n]";
             } else {
-	            for (size_t k = 0; k < eqns.size(); ++k) {
-	                if (k+1 == eqns.size()) {
-	                    report += GenerateReport(eqns[k]);
-	                } else {
-	                    report += GenerateReport(eqns[k]) + "\n";
-	                }
-	            }
+                for (size_t k = 0; k < eqns.size(); ++k) {
+                    if (k+1 == eqns.size()) {
+                        report += GenerateReport(eqns[k]);
+                    } else {
+                        report += GenerateReport(eqns[k]) + "\n";
+                    }
+                }
             }
         }
     }

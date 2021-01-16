@@ -5,9 +5,9 @@
 #include "ColorTable.h"
 // default style
 VTStyle::VTStyle()
-	: FontStyle(eVisible)
-	, FgColorId(VTColorTable::kColorId_Texts)
-	, BgColorId(VTColorTable::kColorId_Paper)
+    : FontStyle(eVisible)
+    , FgColorId(VTColorTable::kColorId_Texts)
+    , BgColorId(VTColorTable::kColorId_Paper)
 {
 }
 

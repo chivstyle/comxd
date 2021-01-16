@@ -7,14 +7,14 @@
 using namespace Upp;
 //
 struct FontFaceDisplay : Display {
-	virtual void Paint(Draw& w, const Rect& r, const Value& q,
-		               Color ink, Color paper, dword style) const
-	{
-		Font fnt = Font(q, 14);
-		String txt = Font::GetFaceName(q);
-		w.DrawRect(r, paper);
-		w.DrawText(r.left + 2, r.top + (r.Height() - GetTextSize(txt, fnt).cy) / 2, txt, fnt, ink);
-	}
+    virtual void Paint(Draw& w, const Rect& r, const Value& q,
+                       Color ink, Color paper, dword style) const
+    {
+        Font fnt = Font(q, 14);
+        String txt = Font::GetFaceName(q);
+        w.DrawRect(r, paper);
+        w.DrawText(r.left + 2, r.top + (r.Height() - GetTextSize(txt, fnt).cy) / 2, txt, fnt, ink);
+    }
 };
 
 static const int kFontSizes[] = {
@@ -31,24 +31,24 @@ VTOptionsDialog::VTOptionsDialog()
     this->Icon(terminal::vt_options());
     // list fixed-width fonts
     mFontList.SetDisplay(Single<FontFaceDisplay>());
-	for(int i = 0; i < Font::GetFaceCount(); i++) {
-		// set a fixed-pitch font as default
-		if (Font::GetFaceInfo(i) & Font::FIXEDPITCH) {
-		    mFontList.Add(i);
-		}
-	}
-	mFontList.SetIndex(0);
-	for (int i = 0; i < ARRAYSIZE(kFontSizes); ++i) {
+    for(int i = 0; i < Font::GetFaceCount(); i++) {
+        // set a fixed-pitch font as default
+        if (Font::GetFaceInfo(i) & Font::FIXEDPITCH) {
+            mFontList.Add(i);
+        }
+    }
+    mFontList.SetIndex(0);
+    for (int i = 0; i < ARRAYSIZE(kFontSizes); ++i) {
         mFontSize.AddList(kFontSizes[i]);
     }
     mFontSize.SetData(11);
     //
     PreviewFont();
-	//
-	mLinesBufferSize.SetData(5000);
-	//
-	InstallActions();
-	//
+    //
+    mLinesBufferSize.SetData(5000);
+    //
+    InstallActions();
+    //
     Acceptor(mOk, IDOK).Rejector(mCancel, IDCANCEL);
 }
 
@@ -84,13 +84,13 @@ Font VTOptionsDialog::DefaultFont()
 {
     int sel = -1;
     for(int i = 0; i < Font::GetFaceCount(); i++) {
-		// set a fixed-pitch font as default
-		if (sel == -1 && (Font::GetFaceInfo(i) & Font::FIXEDPITCH)) {
-		    sel = i;
-		}
-	}
-	if (sel < 0) sel = 0;
-	return Font(sel, 12);
+        // set a fixed-pitch font as default
+        if (sel == -1 && (Font::GetFaceInfo(i) & Font::FIXEDPITCH)) {
+            sel = i;
+        }
+    }
+    if (sel < 0) sel = 0;
+    return Font(sel, 12);
 }
 
 void VTOptionsDialog::PreviewFont()

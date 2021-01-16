@@ -66,14 +66,14 @@ static inline void SplitString(std::string&& s, char delim, std::function<void(c
 }
 //----------------------------------------------------------------------------------------------
 struct VTStyle {
-	enum FontStyle {
-		eBold = 0x01,
-		eItalic = 0x02,
-		eStrikeout = 0x04,
-		eUnderline = 0x08,
-		eBlink = 0x10,
-		eVisible = 0x20
-	};
+    enum FontStyle {
+        eBold = 0x01,
+        eItalic = 0x02,
+        eStrikeout = 0x04,
+        eUnderline = 0x08,
+        eBlink = 0x10,
+        eVisible = 0x20
+    };
     uint16_t FontStyle; // lowest 11 bits was used
     uint16_t FgColorId;
     uint16_t BgColorId;
@@ -139,12 +139,12 @@ public:
     }
 
 private:
-	struct {
-		uint32_t Code : 21; // CODE POINT
-		uint32_t FontStyle: 11;
-		uint16_t BgColorId;
-		uint16_t FgColorId;
-	} mBits;
+    struct {
+        uint32_t Code : 21; // CODE POINT
+        uint32_t FontStyle: 11;
+        uint16_t BgColorId;
+        uint16_t FgColorId;
+    } mBits;
 };
 /// warning: You should set height manually.
 class VTLine : public std::vector<VTChar> {

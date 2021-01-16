@@ -23,10 +23,10 @@ SerialConnRaw::SerialConnRaw(std::shared_ptr<SerialIo> io)
     : mRxShouldStop(false)
     , mTxProto(nullptr)
 {
-	this->mIo = io; //!< Important, let this as the first sentence.
-	//
-	this->mRx.SetFrame(FieldFrame());
-	this->mTx.SetFrame(FieldFrame());
+    this->mIo = io; //!< Important, let this as the first sentence.
+    //
+    this->mRx.SetFrame(FieldFrame());
+    this->mTx.SetFrame(FieldFrame());
     this->mVsp.Vert(mRx.SetEditable(false), mTx);
     this->mVsp.SetMin(0, 2000); // min is 2/10
     this->mVsp.SetMin(1, 2000); // min is 2/10
@@ -67,8 +67,8 @@ SerialConnRaw::~SerialConnRaw()
 
 bool SerialConnRaw::Start()
 {
-	mRxThr = std::thread([=] { RxProc(); });
-	return true;
+    mRxThr = std::thread([=] { RxProc(); });
+    return true;
 }
 
 void SerialConnRaw::InstallUsrActions()
@@ -520,8 +520,8 @@ void SerialConnRaw::UpdateAsHex()
 
 void SerialConnRaw::Update()
 {
-	std::lock_guard<std::mutex> _(mRxBufferLock);
-	this->mRxHex.Get() ? UpdateAsHex() : UpdateAsTxt();
+    std::lock_guard<std::mutex> _(mRxBufferLock);
+    this->mRxHex.Get() ? UpdateAsHex() : UpdateAsTxt();
 }
 
 void SerialConnRaw::RxProc()

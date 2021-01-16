@@ -10,7 +10,7 @@
 // CONTROl SEQ
 #define SEQ_NONE                      0
 #define SEQ_PENDING                   1
-#define SEQ_UNKNOWN                   2
+#define SEQ_CORRUPTED                 2
 // ECMA-048
 #define ECMA48_SEQ_BEGIN              3
 #define ECMA48_SEQ_MAX_COUNT          200
@@ -21,7 +21,7 @@
 #define VT102_SEQ_END                 VT102_SEQ_BEGIN+VT102_SEQ_MAX_COUNT // 304
 //
 struct ControlSeq {
-	int         Type;
+    int         Type;
     std::string Head; // Begin with this string.
     std::string Tail; // End
     short       Pnum;   // Number of parameters

@@ -9,13 +9,13 @@
 // COLOR TABLE
 class VTColorTable {
 public:
-	VTColorTable();
-	virtual ~VTColorTable();
-	//
-	void SetFallbackColor(const Upp::Color& color);
-	//
-	enum ColorId {
-		kColorId_Texts,
+    VTColorTable();
+    virtual ~VTColorTable();
+    //
+    void SetFallbackColor(const Upp::Color& color);
+    //
+    enum ColorId {
+        kColorId_Texts,
         kColorId_Paper,
         kColorId_Red,
         kColorId_Green,
@@ -26,18 +26,18 @@ public:
         kColorId_Cyan,
         kColorId_Yellow
     };
-	
-	const Upp::Color& GetColor(int color_id);
-	
-	void SetColor(int color_id, const Upp::Color& color)
-	{
-		mTbl[color_id] = color;
-	}
+    
+    const Upp::Color& GetColor(int color_id);
+    
+    void SetColor(int color_id, const Upp::Color& color)
+    {
+        mTbl[color_id] = color;
+    }
 
 private:
-	std::unordered_map<int, Upp::Color> mTbl;
-	//
-	Upp::Color mFallbackColor;
+    std::unordered_map<int, Upp::Color> mTbl;
+    //
+    Upp::Color mFallbackColor;
 };
 
 

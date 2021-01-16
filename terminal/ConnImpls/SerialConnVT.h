@@ -58,9 +58,9 @@ public:
     //
     Upp::Event<Upp::Bar&> WhenBar;
 protected:
-	ControlSeqFactory* mSeqsFactory;
-	std::map<int, std::function<void(const std::string&)> > mFunctions;
-	//------------------------------------------------------------------------------------------
+    ControlSeqFactory* mSeqsFactory;
+    std::map<int, std::function<void(const std::string&)> > mFunctions;
+    //------------------------------------------------------------------------------------------
     // Font
     virtual void Paint(Upp::Draw& draw);
     virtual void Layout();

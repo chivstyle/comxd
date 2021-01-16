@@ -29,20 +29,20 @@ std::vector<String> ConnFactory::GetSupportedConnNames() const
 
 String ConnFactory::GetConnType(const String& name) const
 {
-	auto it = mInsts.find(name);
-	if (it != mInsts.end()) {
-		return it->second.first;
-	}
-	return "";
+    auto it = mInsts.find(name);
+    if (it != mInsts.end()) {
+        return it->second.first;
+    }
+    return "";
 }
 
 ConnFactory::CreateInstFunc ConnFactory::GetConnInstFunc(const String& name) const
 {
-	auto it = mInsts.find(name);
-	if (it != mInsts.end()) {
-		return it->second.second;
-	}
-	return nullptr;
+    auto it = mInsts.find(name);
+    if (it != mInsts.end()) {
+        return it->second.second;
+    }
+    return nullptr;
 }
 
 bool ConnFactory::RegisterCreateInstFunc(const String& name, const String& type,

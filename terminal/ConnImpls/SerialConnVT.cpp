@@ -71,8 +71,8 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
     InstallUserActions();
     //
     this->PostCallback([=]() {
-		this->SetFocus();
-	});
+        this->SetFocus();
+    });
 }
 
 SerialConnVT::~SerialConnVT()
@@ -86,9 +86,9 @@ SerialConnVT::~SerialConnVT()
 //
 bool SerialConnVT::Start()
 {
-	mRxThr = std::thread([=]() { RxProc(); });
-	//
-	return true;
+    mRxThr = std::thread([=]() { RxProc(); });
+    //
+    return true;
 }
 //
 void SerialConnVT::InstallUserActions()
@@ -229,7 +229,7 @@ void SerialConnVT::Clear()
 //
 int SerialConnVT::IsControlSeq(const std::string& seq, size_t& p_begin, size_t& p_sz)
 {
-	return mSeqsFactory->IsControlSeq(seq, p_begin, p_sz);
+    return mSeqsFactory->IsControlSeq(seq, p_begin, p_sz);
 }
 //
 bool SerialConnVT::ProcessControlSeq(int seq_type, const std::string& p)
@@ -302,36 +302,39 @@ void SerialConnVT::RxProc()
             }
             if (pending) {
                 if (!raw.empty()) {
-		            size_t ep;
-		            auto s = this->TranscodeToUTF32(raw, ep);
-		            raw = raw.substr(ep);
-		            if (!s.empty()) {
-		                AddSeq(std::move(s));
-		            }
-		            // clear raw, because the next is control-seq. Totally, it's not a part of
-		            // characters absolutely.
-		            if (!raw.empty()) {
-		                raw.clear();
-		                LOGF("Incompleted inputs\n");
-		            }
-		        }
+                    size_t ep;
+                    auto s = this->TranscodeToUTF32(raw, ep);
+                    raw = raw.substr(ep);
+                    if (!s.empty()) {
+                        AddSeq(std::move(s));
+                    }
+                    // clear raw, because the next is control-seq. Totally, it's not a part of
+                    // characters absolutely.
+                    if (!raw.empty()) {
+                        LOGF("Incompleted inputs:");
+                        for (size_t k = 0; k < raw.size(); ++k) {
+                            LOGF("%d", raw[k]);
+                        }
+                        LOGF("\n");
+                        raw.clear();
+                    }
+                }
                 pattern.push_back(buff[k]);
                 size_t p_begin, p_sz;
                 int type = IsControlSeq(pattern, p_begin, p_sz);
                 if (type == SEQ_NONE) {
                     // TODO: unrecognized seq
                     LOGF("Unrecognized:%s\n", pattern.c_str());
-                    //
-                    pattern.clear();
-                    pending = false;
+                }
+                else if (type == SEQ_CORRUPTED) {
+                    LOGF("Corrupted:%s\n", pattern.c_str());
                 }
                 else if (type == SEQ_PENDING) continue;
                 else {
                     AddSeq(type, pattern.substr(p_begin, p_sz));
-                    //
-                    pattern.clear();
-                    pending = false;
                 }
+                pattern.clear();
+                pending = false;
             } else {
                 raw.push_back(buff[k]);
             }
@@ -386,11 +389,11 @@ VTLine* SerialConnVT::GetVTLine(int vy)
 {
     VTLine* vline = nullptr;
     if (vy >= 0 && vy < (int)(mLinesBuffer.size() + mLines.size())) {
-	    if (vy < (int)mLinesBuffer.size()) {
-	        vline = &mLinesBuffer[vy];
-	    } else {
-	        vline = &mLines[vy - (int)mLinesBuffer.size()];
-	    }
+        if (vy < (int)mLinesBuffer.size()) {
+            vline = &mLinesBuffer[vy];
+        } else {
+            vline = &mLines[vy - (int)mLinesBuffer.size()];
+        }
     }
     return vline;
 }
@@ -398,11 +401,11 @@ const VTLine* SerialConnVT::GetVTLine(int vy) const
 {
     const VTLine* vline = nullptr;
     if (vy >= 0 && vy < (int)(mLinesBuffer.size() + mLines.size())) {
-	    if (vy < (int)mLinesBuffer.size()) {
-	        vline = &mLinesBuffer[vy];
-	    } else {
-	        vline = &mLines[vy - (int)mLinesBuffer.size()];
-	    }
+        if (vy < (int)mLinesBuffer.size()) {
+            vline = &mLinesBuffer[vy];
+        } else {
+            vline = &mLines[vy - (int)mLinesBuffer.size()];
+        }
     }
     return vline;
 }
@@ -589,12 +592,12 @@ int SerialConnVT::LogicToVirtual(const VTLine& vline, int lx, int& px, int& next
 //
 void SerialConnVT::PushToLinesBufferAndCheck(const VTLine& vline)
 {
-	int nchars = (int)vline.size() - CalculateNumberOfBlankCharsFromEnd(vline);
-	VTLine buff = VTLine(nchars).SetHeight(vline.GetHeight());
-	for (int i = 0; i < nchars; ++i) {
-		buff[i] = vline[i];
-	}
-	mLinesBuffer.push_back(buff);
+    int nchars = (int)vline.size() - CalculateNumberOfBlankCharsFromEnd(vline);
+    VTLine buff = VTLine(nchars).SetHeight(vline.GetHeight());
+    for (int i = 0; i < nchars; ++i) {
+        buff[i] = vline[i];
+    }
+    mLinesBuffer.push_back(buff);
     if (mLinesBuffer.size() > mMaxLinesBufferSize) {
         mLinesBuffer.erase(mLinesBuffer.begin());
     }
@@ -602,15 +605,15 @@ void SerialConnVT::PushToLinesBufferAndCheck(const VTLine& vline)
 //
 void SerialConnVT::CheckAndFix(ScrollingRegion& span)
 {
-	if (span.Top < 0) span.Top = 0;
-	if (span.Top >= span.Bottom) {
-		span.Top = 0;
-		span.Bottom = -1;
-	} else {
-		if (span.Bottom >= (int)mLines.size()) {
-			span.Bottom = -1;
-		}
-	}
+    if (span.Top < 0) span.Top = 0;
+    if (span.Top >= span.Bottom) {
+        span.Top = 0;
+        span.Bottom = -1;
+    } else {
+        if (span.Bottom >= (int)mLines.size()) {
+            span.Bottom = -1;
+        }
+    }
 }
 // If the scrolling region was set, we should ignore those lines out of region
 void SerialConnVT::ProcessOverflowLines()
@@ -628,9 +631,9 @@ void SerialConnVT::ProcessOverflowLines()
     if (dy > 0) {
         mLines.insert(mLines.begin() + bottom + 1, dy, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
         if (span.Top == 0) { // If span.Top == 0, buffer the lines out of scrolling region.
-	        for (int i = span.Top; i < span.Top + dy; ++i) {
-	            PushToLinesBufferAndCheck(mLines[i]);
-	        }
+            for (int i = span.Top; i < span.Top + dy; ++i) {
+                PushToLinesBufferAndCheck(mLines[i]);
+            }
         }
         mLines.erase(mLines.begin() + span.Top, mLines.begin() + span.Top + dy);
         // fixed
@@ -644,7 +647,7 @@ void SerialConnVT::ProcessOverflowLines()
 //
 uint32_t SerialConnVT::RemapCharacter(uint32_t uc)
 {
-	return uc;
+    return uc;
 }
 void SerialConnVT::RenderText(const std::vector<uint32_t>& s)
 {
@@ -1207,11 +1210,11 @@ bool SerialConnVT::IsCharInSelectionSpan(int vx, int vy) const
 
 void SerialConnVT::DrawCursor(Draw& draw)
 {
-	if (!mShowCursor) return;
-	
-	int px = mPx - mSbH.Get();
-	int py = mPy + (mSbV.GetTotal() - mSbV.Get() - mSbV.GetPage());
-	
+    if (!mShowCursor) return;
+    
+    int px = mPx - mSbH.Get();
+    int py = mPy + (mSbV.GetTotal() - mSbV.Get() - mSbV.GetPage());
+    
     Size usz = GetSize();
     if (px >= 0 && py < usz.cx && py >= 0 && py < usz.cy) {
         draw.DrawRect(px, py, mFontW, mFontH, Color(0, 255, 0));
@@ -1236,10 +1239,10 @@ int SerialConnVT::GetVTLinesHeight(const std::vector<VTLine>& lines) const
 void SerialConnVT::UseStyle(const VTChar& c, Upp::Font& font, Upp::Color& fg_color, Upp::Color& bg_color,
     bool& blink, bool& visible)
 {
-	uint16_t fgcolor_id, bgcolor_id;
-	c.UseStyle(font, fgcolor_id, bgcolor_id, blink, visible);
-	fg_color = mColorTbl.GetColor(fgcolor_id);
-	bg_color = mColorTbl.GetColor(bgcolor_id);
+    uint16_t fgcolor_id, bgcolor_id;
+    c.UseStyle(font, fgcolor_id, bgcolor_id, blink, visible);
+    fg_color = mColorTbl.GetColor(fgcolor_id);
+    bg_color = mColorTbl.GetColor(bgcolor_id);
 }
 
 void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
@@ -1297,25 +1300,25 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
 
 void SerialConnVT::UpdateDataPos(int flags)
 {
-	int px, py, next_px, next_py;
-	Point vpos = this->LogicToVirtual(mLines, mPx, mPy, px, next_px, py, next_py, false);
-	if (flags & 0x1) mVx = vpos.x;
-	if (flags & 0x2) mVy = vpos.y;
+    int px, py, next_px, next_py;
+    Point vpos = this->LogicToVirtual(mLines, mPx, mPy, px, next_px, py, next_py, false);
+    if (flags & 0x1) mVx = vpos.x;
+    if (flags & 0x2) mVy = vpos.y;
 }
 
 void SerialConnVT::UpdatePresentationPos(int flags)
 {
-	if (mLines.empty()) return;
-	int buff_height = 0;
-	int posl_height = 0;
-	for (size_t k = 0; k < mLinesBuffer.size(); ++k) {
-		buff_height += mLinesBuffer[k].GetHeight();
-	}
-	posl_height = buff_height;
-	for (size_t k = 0; k < mVy; ++k) {
-		posl_height += mLines[k].GetHeight();
-	}
-	if (flags & 0x1) mPy = posl_height - buff_height;
+    if (mLines.empty()) return;
+    int buff_height = 0;
+    int posl_height = 0;
+    for (size_t k = 0; k < mLinesBuffer.size(); ++k) {
+        buff_height += mLinesBuffer[k].GetHeight();
+    }
+    posl_height = buff_height;
+    for (size_t k = 0; k < mVy; ++k) {
+        posl_height += mLines[k].GetHeight();
+    }
+    if (flags & 0x1) mPy = posl_height - buff_height;
     if (flags & 0x2) {
         int x0 = this->VirtualToLogic(mLines[mVy], mVx, false);
         int x1 = x0 + GetCharWidth(mLines[mVy][mVx]);

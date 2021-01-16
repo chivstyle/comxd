@@ -8,7 +8,7 @@
 SerialConn::SerialConn(std::shared_ptr<SerialIo> io)
     : mIo(io)
 {
-	// default: UTF-8
+    // default: UTF-8
     mCodec = std::make_shared<CodecUTF8>();
 }
 

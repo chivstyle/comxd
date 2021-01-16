@@ -39,8 +39,8 @@ protected:
     void Update();
     //
 private:
-	Upp::LineEdit mRx;
-	Upp::LineEdit mTx;
+    Upp::LineEdit mRx;
+    Upp::LineEdit mTx;
     Proto* mTxProto;
     void InstallUsrActions();
 };
