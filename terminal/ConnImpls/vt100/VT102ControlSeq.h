@@ -3,11 +3,11 @@
 //
 #pragma once
 
-#include "connimpls/ControlSeq.h"
+#include "ConnImpls/ControlSeq.h"
 #include <string>
 //
 enum VT102SeqType {
-	// ANSI-Compatible Private Modes, others were included in ECMA-48
+    // ANSI-Compatible Private Modes, others were included in ECMA-48
     VT102_MODE_SET = VT102_SEQ_BEGIN,
     VT102_MODE_RESET,
     //
@@ -26,16 +26,16 @@ enum VT102SeqType {
     //
     DECID,
     //
-	DECSTBM,
-	DECSC,
-	DECRC,
-	DECDHT,
+    DECSTBM,
+    DECSC,
+    DECRC,
+    DECDHT,
     DECDHB,
     DECSWL,
     DECDWL,
-	DECALN,
-	DECTST,
-	DECLL,
+    DECALN,
+    DECTST,
+    DECLL,
     // VT52 Compatible
     VT52_ENTER_ANSI_MODE,
     VT52_ENTER_ALTERNATE_KEYPAD_MODE,

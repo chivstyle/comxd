@@ -4,7 +4,7 @@
 */
 #pragma once
 
-#include "connimpls/ecma48/SerialConnEcma48.h"
+#include "ConnImpls/ecma48/SerialConnEcma48.h"
 
 class SerialConnVT102 : public SerialConnEcma48 {
 public:

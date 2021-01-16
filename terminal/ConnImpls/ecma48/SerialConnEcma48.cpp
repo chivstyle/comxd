@@ -34,9 +34,7 @@ void SerialConnEcma48::InstallFunctions()
     mFunctions[ECMA48_LF] = [=](const std::string& p) { ProcessLF(p); };
     mFunctions[ECMA48_VT] = [=](const std::string& p) { ProcessVT(p); };
     mFunctions[ECMA48_FF] = [=](const std::string& p) { ProcessFF(p); };
-    mFunctions[ECMA48_CR] = [=](const std::string& p) {
-        ProcessCR(p);
-    };
+    mFunctions[ECMA48_CR] = [=](const std::string& p) { ProcessCR(p); };
     mFunctions[ECMA48_LS0] = [=](const std::string& p) { ProcessLS0(p); };
     mFunctions[ECMA48_LS1] = [=](const std::string& p) { ProcessLS1(p); };
     mFunctions[ECMA48_DLE] = [=](const std::string& p) { ProcessDLE(p); };
@@ -144,9 +142,7 @@ void SerialConnEcma48::InstallFunctions()
     mFunctions[ECMA48_SDS] = [=](const std::string& p) { ProcessSDS(p); };
     mFunctions[ECMA48_SEE] = [=](const std::string& p) { ProcessSEE(p); };
     mFunctions[ECMA48_SEF] = [=](const std::string& p) { ProcessSEF(p); };
-    mFunctions[ECMA48_SGR] = [=](const std::string& p) {
-        ProcessSGR(p);
-    };
+    mFunctions[ECMA48_SGR] = [=](const std::string& p) { ProcessSGR(p); };
     mFunctions[ECMA48_SHS] = [=](const std::string& p) { ProcessSHS(p); };
     mFunctions[ECMA48_SIMD] = [=](const std::string& p) { ProcessSIMD(p); };
     mFunctions[ECMA48_SL ] = [=](const std::string& p) { ProcessSL(p); };

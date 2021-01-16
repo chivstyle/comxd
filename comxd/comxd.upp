@@ -4,8 +4,7 @@ uses
 	CtrlLib,
 	serial,
 	terminal,
-	Painter,
-	CtrlLib/Terminal;
+	Painter;
 
 options
 	;
