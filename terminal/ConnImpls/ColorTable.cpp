@@ -8,16 +8,16 @@ using namespace Upp;
 VTColorTable::VTColorTable()
     : mFallbackColor(Upp::White())
 {
-    mTbl[kColorId_Texts] = Upp::Black();
-    mTbl[kColorId_Paper] = Upp::LtGray();
-    mTbl[kColorId_Red] = Upp::Red();
-    mTbl[kColorId_Green] = Upp::Green();
-    mTbl[kColorId_Blue] = Upp::Blue();
-    mTbl[kColorId_Black] = Upp::Black();
-    mTbl[kColorId_White] = Upp::White();
-    mTbl[kColorId_Magenta] = Upp::Magenta();
-    mTbl[kColorId_Cyan] = Upp::Cyan();
-    mTbl[kColorId_Yellow] = Upp::Yellow();
+    mTbl[kColorId_Texts]   = Color(223, 223, 223);
+    mTbl[kColorId_Paper]   = Color( 30,  30,  30);
+    mTbl[kColorId_Red]     = Color(200,  47,  47);
+    mTbl[kColorId_Green]   = Color( 35, 209, 139);
+    mTbl[kColorId_Blue]    = Color( 59, 142, 234);
+    mTbl[kColorId_Black]   = Color( 30,  30,  30);
+    mTbl[kColorId_White]   = Color(223, 223, 223);
+    mTbl[kColorId_Magenta] = Color(188,  63, 188);
+    mTbl[kColorId_Cyan]    = Color( 16, 223, 223);
+    mTbl[kColorId_Yellow]  = Color(225, 225,  15);
 }
 
 VTColorTable::~VTColorTable()

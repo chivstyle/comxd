@@ -701,15 +701,10 @@ void SerialConnEcma48::ProcessIL(const std::string& p)
     int bot = mScrollingRegion.Bottom;
     if (bot < 0) bot = (int)mLines.size()-1;
     if (mVy < top || mVy > bot) return; // Invalid
-    auto it_end = mLines.begin()+bot+1;
     int ln = bot-mVy+1;
     if (pn > ln) pn = ln;
-    if (it_end == mLines.end()) {
-        for (int i = 0; i < pn; ++i)
-            mLines.pop_back();
-    } else {
-        mLines.erase(it_end - pn, it_end);
-    }
+    auto it_bot = mLines.begin()+bot;
+    mLines.erase(it_bot - pn+1, it_bot+1);
     Size csz = GetConsoleSize();
     mLines.insert(mLines.begin()+mVy, pn, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
 }
@@ -876,6 +871,14 @@ void SerialConnEcma48::ProcessSCS(const std::string& p)
 }
 void SerialConnEcma48::ProcessSD(const std::string& p)
 {
+	int pn = atoi(p.c_str());
+	if (pn <= 0) pn = 1;
+	Size csz = GetConsoleSize();
+	int top = mScrollingRegion.Top;
+	int bot = mScrollingRegion.Bottom;
+	mLines.insert(mLines.begin() + top, pn, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
+	auto it_bot = mLines.begin() + bot + pn;
+	mLines.erase(it_bot - pn + 1, it_bot + 1);
 }
 void SerialConnEcma48::ProcessSDS(const std::string& p)
 {
@@ -1023,8 +1026,16 @@ void SerialConnEcma48::ProcessSHS(const std::string& p)
 void SerialConnEcma48::ProcessSIMD(const std::string& p)
 {
 }
+// scroll left
 void SerialConnEcma48::ProcessSL(const std::string& p)
 {
+	int pn = atoi(p.c_str());
+	if (pn <= 0) pn = 1;
+	for (size_t k = 0; k < mLines.size(); ++k) {
+		VTLine& vline = mLines[k];
+		vline.erase(vline.begin(), vline.begin()+pn);
+		vline.insert(vline.end(), pn, mBlankChar);
+	}
 }
 void SerialConnEcma48::ProcessSLH(const std::string& p)
 {
@@ -1086,8 +1097,17 @@ void SerialConnEcma48::ProcessSPL(const std::string& p)
 void SerialConnEcma48::ProcessSPQR(const std::string& p)
 {
 }
+// scroll right
 void SerialConnEcma48::ProcessSR(const std::string& p)
 {
+	int pn = atoi(p.c_str());
+	if (pn <= 0) pn = 1;
+	for (size_t k = 0; k < mLines.size(); ++k) {
+		VTLine& vline = mLines[k];
+		vline.insert(vline.begin(), pn, mBlankChar);
+		for (int i = 0; i < pn; ++i)
+			vline.pop_back();
+	}
 }
 
 void SerialConnEcma48::ProcessSRS(const std::string& p)
@@ -1124,6 +1144,15 @@ void SerialConnEcma48::ProcessSTS(const std::string& p)
 }
 void SerialConnEcma48::ProcessSU(const std::string& p)
 {
+	int pn = atoi(p.c_str());
+	if (pn <= 0) pn = 1;
+	int top = mScrollingRegion.Top;
+	int bot = mScrollingRegion.Bottom;
+	if (bot < 0) bot = (int)mLines.size()-1;
+	Size csz = GetConsoleSize();
+	auto it_end = mLines.begin()+bot+1;
+	mLines.insert(it_end, pn, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
+	mLines.erase(mLines.begin()+top, mLines.begin()+top+pn);
 }
 void SerialConnEcma48::ProcessSVS(const std::string& p)
 {

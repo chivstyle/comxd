@@ -41,7 +41,8 @@ bool SSHPort::Start()
 
 void SSHPort::SetConsoleSize(const Size& csz)
 {
-	mShell->PageSize(csz);
+	if (mShell->GetPageSize() != csz)
+		mShell->PageSize(csz);
 }
 
 int SSHPort::Available() const

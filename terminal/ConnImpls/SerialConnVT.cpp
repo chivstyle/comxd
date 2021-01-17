@@ -267,6 +267,7 @@ void SerialConnVT::RenderSeqs()
         mSeqs.pop();
         //
         ProcessOverflowLines();
+        ProcessOverflowChars();
         UpdatePresentation();
     }
 }
@@ -616,33 +617,31 @@ void SerialConnVT::CheckAndFix(ScrollingRegion& span)
     }
 }
 // If the scrolling region was set, we should ignore those lines out of region
+void SerialConnVT::ProcessOverflowChars()
+{
+    if (mVy < (int)mLines.size()) {
+	    int dx = mVx - (int)mLines[mVy].size() + 1;
+	    if (dx > 0) {
+	        mLines[mVy].insert(mLines[mVy].end(), dx, mBlankChar);
+	    }
+    } else {
+        // set vy to bottom if it is wrong
+        mVy = (int)mLines.size()-1;
+    }
+}
 void SerialConnVT::ProcessOverflowLines()
 {
-    auto& span = mScrollingRegion;
-    Size csz = GetConsoleSize();
-    int bottom = span.Bottom;
-    if (bottom < 0 || bottom >= csz.cy)
-        bottom = csz.cy - 1;
-    ASSERT(span.Top < bottom);
-    if (mVx < 0) mVx = 0;
-    if (mVy < 0) mVy = 0;
-    // scrolling region.
-    int dy = mVy - bottom;
-    if (dy > 0) {
-        mLines.insert(mLines.begin() + bottom + 1, dy, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
-        if (span.Top == 0) { // If span.Top == 0, buffer the lines out of scrolling region.
-            for (int i = span.Top; i < span.Top + dy; ++i) {
-                PushToLinesBufferAndCheck(mLines[i]);
-            }
-        }
-        mLines.erase(mLines.begin() + span.Top, mLines.begin() + span.Top + dy);
-        // fixed
-        mVy = bottom;
-    }
-    int dx = mVx - (int)mLines[mVy].size() + 1;
-    if (dx > 0) {
-        mLines[mVy].insert(mLines[mVy].end(), dx, mBlankChar);
-    }
+	int top = mScrollingRegion.Top;
+	int bot = mScrollingRegion.Bottom;
+	if (bot < 0) bot = (int)mLines.size()-1;
+	int yn = mVy - bot;
+	if (yn == 1) {
+		Size csz = GetConsoleSize();
+		mLines.insert(mLines.begin() + bot+1, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
+		mLines.erase(mLines.begin() + top);
+		// fix
+		mVy = bot;
+	}
 }
 //
 uint32_t SerialConnVT::RemapCharacter(uint32_t uc)
@@ -1084,10 +1083,10 @@ void SerialConnVT::DoLayout()
     } else {
         ShrinkVirtualScreen(csz.cx, csz.cy);
     }
+    // screen size was changed
+    mScrollingRegion.Top = 0; mScrollingRegion.Bottom = -1;
     //
     WhenSizeChanged(GetConsoleSize());
-    //
-    this->ProcessOverflowLines();
 }
 
 void SerialConnVT::Layout()

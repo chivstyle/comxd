@@ -191,8 +191,12 @@ void SerialConnVT102::ProcessVT102_MODE_SET(const std::string& p)
     case 1:  mModes.DECCKM  = 1; break;
     case 3:  mModes.DECCOLM = 1; break;
     case 4:  mModes.DECSCLM = 1; break;
-    case 5:  mModes.DECSCNM = 1; break;
-    case 6:  mModes.DECOM   = 1; break;
+    case 5:
+        mModes.DECSCNM = 1; // white screen background with black characters
+        mColorTbl.SetColor(VTColorTable::kColorId_Paper, mColorTbl.GetColor(VTColorTable::kColorId_White));
+        mColorTbl.SetColor(VTColorTable::kColorId_Texts, mColorTbl.GetColor(VTColorTable::kColorId_Black));
+        break;
+    case 6:  mModes.DECOM   = 1; ProcessCUP(""); /*! home */ break;
     case 7:  mModes.DECAWM  = 1; break;
     case 8:  mModes.DECARM  = 1; break;
     case 18: mModes.DECPFF  = 1; break;
@@ -207,8 +211,12 @@ void SerialConnVT102::ProcessVT102_MODE_RESET(const std::string& p)
     case 2:  mModes.DECANM  = 0; break;
     case 3:  mModes.DECCOLM = 0; break;
     case 4:  mModes.DECSCLM = 0; break;
-    case 5:  mModes.DECSCNM = 0; break;
-    case 6:  mModes.DECOM   = 0; break;
+    case 5:
+        mModes.DECSCNM = 0;
+        mColorTbl.SetColor(VTColorTable::kColorId_Paper, mColorTbl.GetColor(VTColorTable::kColorId_Black));
+        mColorTbl.SetColor(VTColorTable::kColorId_Texts, mColorTbl.GetColor(VTColorTable::kColorId_White));
+        break;
+    case 6:  mModes.DECOM   = 0; ProcessCUP(""); /*! home */ break;
     case 7:  mModes.DECAWM  = 0; break;
     case 8:  mModes.DECARM  = 0; break;
     case 18: mModes.DECPFF  = 0; break;
@@ -228,16 +236,24 @@ void SerialConnVT102::ProcessVT102_DSR(const std::string& p)
 
 void SerialConnVT102::ProcessCUP(const std::string& p)
 {
-    if (p.empty()) {
-        if (mModes.DECOM == VT102Modes::DECOM_Absolute) {
-            mVx = 0;
-            mVy = 0;
-        } else {
-            mVx = 0;
-            mVy = mScrollingRegion.Top;
-        }
+    int idx = 0, pn[2] = {1, 1};
+    SplitString(p.c_str(), ';', [&](const char* token) {
+        if (idx < 2)
+            pn[idx++] = atoi(token);
+    });
+    if (pn[0] <= 0) pn[0] = 1;
+    if (pn[1] <= 0) pn[1] = 1;
+    if (mModes.DECOM == VT102Modes::DECOM_Absolute) {
+        mPx = mFontW*(pn[1]-1);
+        mVy = pn[0]-1;
     } else {
-        SerialConnEcma48::ProcessCUP(p);
+        int top = mScrollingRegion.Top;
+        int bot = mScrollingRegion.Bottom;
+        if (bot < 0) bot = (int)mLines.size()-1;
+        if (pn[0]-1 >= top && pn[0]-1 <= bot) {
+            mPx = mFontW*(pn[1]-1);
+            mVy = pn[0]-1;
+        }
     }
 }
 //
@@ -274,6 +290,9 @@ void SerialConnVT102::ProcessDECSTBM(const std::string& p)
     if (pn[0] < pn[1] && pn[1] <= csz.cy) {
         mScrollingRegion.Top = pn[0]-1;
         mScrollingRegion.Bottom = pn[1]-1;
+        // To the home position
+        mVx = 0;
+        mVy = pn[0]-1;
     }
 }
 void SerialConnVT102::SaveCursor(CursorData& cd)
