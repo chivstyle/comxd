@@ -1302,25 +1302,36 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
 void SerialConnVT::UpdateDataPos(int flags)
 {
     int px, py, next_px, next_py;
-    Point vpos = this->LogicToVirtual(mLines, mPx, mPy, px, next_px, py, next_py, false);
-    if (flags & 0x1) mVx = vpos.x;
-    if (flags & 0x2) mVy = vpos.y;
+    if ((flags & 0x3) == 0x3) {
+        Point vpos = this->LogicToVirtual(mLines, mPx, mPy, px, next_px, py, next_py, false);
+        mVx = vpos.x;
+        mVy = vpos.y;
+    }
+    else if (flags & 0x1) {
+        mVx = this->LogicToVirtual(mLines[mVy], mPx, px, next_px, false);
+    }
+    else if (flags & 0x2) {
+        mVx = this->LogicToVirtual(mLines, 0, mPy, px, next_px, py, next_py, false).y;
+    }
 }
 
 void SerialConnVT::UpdatePresentationPos(int flags)
 {
     if (mLines.empty()) return;
-    int buff_height = 0;
-    int posl_height = 0;
-    for (size_t k = 0; k < mLinesBuffer.size(); ++k) {
-        buff_height += mLinesBuffer[k].GetHeight();
-    }
-    posl_height = buff_height;
-    for (size_t k = 0; k < mVy; ++k) {
-        posl_height += mLines[k].GetHeight();
-    }
-    if (flags & 0x1) mPy = posl_height - buff_height;
     if (flags & 0x2) {
+        // cache to avoid multiple calculating
+        int buff_height = 0;
+	    int posl_height = 0;
+	    for (size_t k = 0; k < mLinesBuffer.size(); ++k) {
+	        buff_height += mLinesBuffer[k].GetHeight();
+	    }
+	    posl_height = buff_height;
+	    for (size_t k = 0; k < mVy; ++k) {
+	        posl_height += mLines[k].GetHeight();
+	    }
+        mPy = posl_height - buff_height;
+    }
+    if (flags & 0x1) {
         int x0 = this->VirtualToLogic(mLines[mVy], mVx, false);
         int x1 = x0 + GetCharWidth(mLines[mVy][mVx]);
         // If mPx is out of range [x0,x1], update it.

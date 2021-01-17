@@ -9,7 +9,7 @@
 #include <functional>
 #include <stdio.h>
 
-REGISTER_CONN_INSTANCE("Assistant", "xterm", SerialConnRaw);
+REGISTER_CONN_INSTANCE("Assistant", "vt100", SerialConnRaw);
 
 namespace {
 enum LineBreak_ {
