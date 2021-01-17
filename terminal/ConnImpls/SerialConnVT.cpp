@@ -366,11 +366,12 @@ int SerialConnVT::GetCharWidth(const VTChar& c) const
     case ' ':
         break;
     default: if (1) {
-            Font font = mFont; bool blink, visible;
-            c.UseFontStyle(font, blink, visible);
-            cx = font.GetWidth(c.Code());
-            cx = (cx + mFontW-1) / mFontW * mFontW;
-        } break;
+        Font font = mFont; bool blink, visible;
+        c.UseFontStyle(font, blink, visible);
+        cx = font.GetWidth(c.Code());
+        cx = (cx + mFontW-1) / mFontW * mFontW;
+        return cx;
+    } break;
     }
     return cx;
 }
@@ -637,6 +638,7 @@ void SerialConnVT::ProcessOverflowLines()
 	int yn = mVy - bot;
 	if (yn == 1) {
 		Size csz = GetConsoleSize();
+		this->PushToLinesBufferAndCheck(mLines[top]);
 		mLines.insert(mLines.begin() + bot+1, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
 		mLines.erase(mLines.begin() + top);
 		// fix
