@@ -14,4 +14,7 @@ public:
     SSHDevsDialog();
     // create a serialconn from current settings.
     SerialConn* RequestConn();
+    //
+protected:
+	bool Key(Upp::dword key, int count);
 };

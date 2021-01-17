@@ -12,4 +12,7 @@ public:
     virtual ~TextCodecsDialog();
     // Set
     Upp::String GetCodecName() const;
+    //
+protected:
+    virtual bool Key(Upp::dword key, int count);
 };

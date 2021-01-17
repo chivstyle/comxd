@@ -17,4 +17,7 @@ public:
     SerialConn* RequestConn();
     //
     void ChangeSettings(SerialPort* port);
+    //
+protected:
+	bool Key(Upp::dword key, int count);
 };

@@ -94,7 +94,7 @@ public:
 	    if (mDevsTab.GetCount()) {
             auto conn = dynamic_cast<SerialConn*>(mDevsTab.GetItem(mDevsTab.Get()).GetSlave());
             if (conn) {
-                //conn->Activate();
+                conn->SetFocus();
             }
 	    }
 	}

@@ -56,6 +56,20 @@ VTOptionsDialog::~VTOptionsDialog()
 {
 }
 
+bool VTOptionsDialog::Key(Upp::dword key, int count)
+{
+	dword flags = K_CTRL | K_ALT | K_SHIFT;
+    dword d_key = key & ~(flags | K_KEYUP); // key with delta
+    flags = key & flags;
+    if (key & Upp::K_KEYUP) {
+        if (flags == 0 && d_key == Upp::K_ESCAPE) {
+            Close();
+            return true;
+        }
+    }
+	return TopWindow::Key(key, count);
+}
+
 void VTOptionsDialog::InstallActions()
 {
     mFontList.WhenAction = [=]() {
