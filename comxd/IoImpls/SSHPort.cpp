@@ -34,7 +34,6 @@ bool SSHPort::Start()
 {
 	mJob & [=]() {
 		mShell->Run(mTerm, 80, 34, Null);
-		LOGF("ex\n");
 	};
 	return true;
 }

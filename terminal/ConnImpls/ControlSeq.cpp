@@ -89,17 +89,16 @@ static inline int ParsePn(const std::string& seq, size_t p_begin, int pn_count)
 // Valid chars, from 0x20~0x74
 static inline int ParseGs(const std::string& seq, size_t p_begin)
 {
-    while (seq[p_begin] >= 0x20 && seq[p_begin] < 0x7f) {
+	// we should accept anything except the ASCII control chars
+    while ((unsigned char)seq[p_begin] >= 0x20 && seq[p_begin] != 0x7f) {
         p_begin++;
     }
     return (int)p_begin;
 }
 
-int ControlSeqFactory::IsControlSeq(const std::string& seq, size_t& p_begin, size_t& p_sz)
+int ControlSeqFactory::IsControlSeq(const std::string& seq, size_t& p_begin, size_t& p_sz, size_t& s_end)
 {
-    if (*seq.rbegin() == ';' || *seq.rbegin() == ' ' ||
-        *seq.rbegin() >= '0' && *seq.rbegin() <= '9') return SEQ_PENDING;
-    int type = SEQ_NONE;
+    int type = SEQ_NONE; s_end = seq.length();
     size_t head_max = 0;
     for (auto it = mSeqs.begin(); it != mSeqs.end(); ++it) {
         // match head.
@@ -113,47 +112,35 @@ int ControlSeqFactory::IsControlSeq(const std::string& seq, size_t& p_begin, siz
             type = SEQ_PENDING; // Need more chars
             break;
         } else if (k < it->Head.length()) { type = SEQ_NONE; continue; } // Not this, try next.
-        if (k >= head_max) head_max = k;
-        else continue;
-        // p_begin
-        p_begin = k;
-        // pass parameters
-        int ret = -1; // Not matched
+        if (k >= head_max) head_max = k; else continue;
+        // save p_begin, parameter begins here
+        p_begin = k; s_end = p_begin;
+        // match tail.
+        int ret = -1; // 0 - Need more, >0 the end of parameter, <0 parameter was wrong
         switch (it->Ptyp) {
-        case ControlSeq::Pn: ret = ParsePn(seq, k, it->Pnum); break;
-        case ControlSeq::Ps: ret = ParsePs(seq, k, it->Pnum); break;
-        case ControlSeq::Gs: ret = ParseGs(seq, k); break;
-        case ControlSeq::No: ret = (int)k; break;
-        default:break;
+        case ControlSeq::Pn: ret = ParsePn(seq, p_begin, it->Pnum); break;
+        case ControlSeq::Ps: ret = ParsePn(seq, p_begin, it->Pnum); break;
+        case ControlSeq::Gs: ret = ParseGs(seq, p_begin); break;
+        case ControlSeq::No: ret = (int)p_begin; break;
+        default: s_end = p_begin; return SEQ_CORRUPTED;
         }
-        if (ret < 0) { type = SEQ_NONE; continue; } // Bad parameters, try next
-        if (!it->Tail.empty()) {
-            if (ret == 0) {
-                if (p_begin >= seq.length()-1) { type = SEQ_PENDING; break; }
-                else {
-                    type = SEQ_NONE;
-                    continue;
-                }
-            }
-            if (seq[ret] == '\r') { type = SEQ_CORRUPTED; break; } // CR will break any seq.
-            // match tail
-            size_t ln = seq.length() - (size_t)ret; // Tail seq...
-
-            for (k = 0; k < ln && k < it->Tail.length(); ++k) {
-                if (seq[(size_t)ret+k] != it->Tail[k])
+        if (ret < 0) return SEQ_CORRUPTED;
+        else if (ret == 0) return SEQ_PENDING;
+        else {
+            size_t ln = seq.length() - (size_t)ret, i = 0;
+            for (; i < ln; ++i) {
+                if (seq[ret+i] != it->Tail[i])
                     break;
             }
-            if (k == ln &&  k < it->Tail.length()) {
-                type = SEQ_PENDING;
+            if (i == it->Tail.length()) {
+                type = it->Type;
+                p_sz = ret + i - p_begin;
+                s_end = ret + i;
                 break;
-            } else if (k < it->Tail.length()) { type = SEQ_NONE;  continue; } // Not this, try next
-            k += (size_t)ret;
+            }
+            else if (i == ln && i < it->Tail.length()) { type = SEQ_PENDING; break; }
+            else { type = SEQ_NONE; continue; }
         }
-        // p_sz
-        p_sz = k - it->Tail.length() - p_begin;
-        // reach here, assert
-        type = it->Type;
-        break;
     }
     return type;
 }

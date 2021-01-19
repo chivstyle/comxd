@@ -4,7 +4,7 @@
 #ifndef _comxd_ControlSeq_h_
 #define _comxd_ControlSeq_h_
 
-#include <list>
+#include <vector>
 #include <string>
 //----------------------------------------------------------------------------------------------
 // CONTROl SEQ
@@ -57,14 +57,14 @@ public:
     ///     SEQ_NONE
     ///     SEQ_PENDING
     ///     Valid Sequence Type
-    int IsControlSeq(const std::string& seq, size_t& p_begin, size_t& p_sz);
+    int IsControlSeq(const std::string& seq, size_t& p_begin, size_t& p_sz, size_t& s_end);
     //
     void Add(int type, const std::string& head, int ptyp, int pnum, const std::string& tail)
     {
         mSeqs.emplace_back(type, head, ptyp, pnum, tail);
     }
 protected:
-    std::list<ControlSeq> mSeqs;
+    std::vector<ControlSeq> mSeqs;
 };
 
 #define REGISTER_SEQ(factory, type, head, ptyp, pnum, tail) \

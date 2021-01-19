@@ -130,8 +130,8 @@ protected:
     // NOTE: If you want push one line to lines buffer, please use this routine.
     //       DO NOT use push_back directly.
     void PushToLinesBufferAndCheck(const VTLine& vline);
-    virtual void ProcessOverflowLines();
-    virtual void ProcessOverflowChars();
+    virtual bool ProcessOverflowLines();
+    virtual bool ProcessOverflowChars();
     //
     // calcualte blank lines from end of lines
     int CalculateNumberOfBlankLinesFromEnd(const std::vector<VTLine>& lines) const;
@@ -219,7 +219,7 @@ protected:
     ///   it will be processed later.
     ///   If IsControlSeq returns true, it should set the p_begin, p_sz to tell the receiver
     ///   the location and size of the parameter.
-    virtual int IsControlSeq(const std::string& seq, size_t& p_begin, size_t& p_sz);
+    virtual int IsControlSeq(const std::string& seq, size_t& p_begin, size_t& p_sz, size_t& s_end);
     /// process the seq
     /// @param seq_type Type of sequence
     /// @param p Parameter of this sequence
