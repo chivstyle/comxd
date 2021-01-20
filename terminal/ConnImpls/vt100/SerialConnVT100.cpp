@@ -19,6 +19,7 @@ bool SerialConnVT100::ProcessKeyDown(Upp::dword key, Upp::dword flags)
 {
 	bool processed = true;
 	if (flags == 0) {
+		processed = true;
 		switch (key) {
 		case K_F1:  GetIo()->Write("\x1bOP"); break;
 		case K_F2:  GetIo()->Write("\x1bOQ"); break;
