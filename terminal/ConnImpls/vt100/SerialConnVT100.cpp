@@ -17,7 +17,7 @@ SerialConnVT100::SerialConnVT100(std::shared_ptr<SerialIo> io)
 
 bool SerialConnVT100::ProcessKeyDown(Upp::dword key, Upp::dword flags)
 {
-	bool processed = true;
+	bool processed = false;
 	if (flags == 0) {
 		processed = true;
 		switch (key) {
