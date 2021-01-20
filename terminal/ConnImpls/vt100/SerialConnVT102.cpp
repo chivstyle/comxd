@@ -7,8 +7,6 @@
 #include "VT102Charset.h"
 #include "ConnFactory.h"
 
-REGISTER_CONN_INSTANCE("VT100 by chiv", "vt100", SerialConnVT102);
-
 using namespace Upp;
 
 SerialConnVT102::SerialConnVT102(std::shared_ptr<SerialIo> io)
@@ -301,6 +299,7 @@ void SerialConnVT102::SaveCursor(CursorData& cd)
     cd.Vy = mVy;
     cd.Px = mPx;
     cd.Py = mPy;
+    cd.Charset = mCharsetInUsed;
     cd.Style = mStyle;
 }
 void SerialConnVT102::LoadCursor(const CursorData& cd)
@@ -309,6 +308,7 @@ void SerialConnVT102::LoadCursor(const CursorData& cd)
     mVy = cd.Vy;
     mPx = cd.Px;
     mPy = cd.Py;
+    mCharsetInUsed = cd.Charset;
     mStyle = cd.Style;
 }
 void SerialConnVT102::ProcessDECSC(const std::string&)

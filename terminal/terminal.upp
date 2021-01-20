@@ -9,6 +9,8 @@ library
 options
 	;
 
+link(MSVC) /NODEFAULTLIB:LIBCMT;
+
 include
 	.;
 
@@ -59,6 +61,8 @@ file
 	ConnImpls/SerialConnRaw.cpp,
 	ConnImpls\vt100\VT102ControlSeq.cpp,
 	ConnImpls\vt100\VT102ControlSeq.h,
+	connimpls\vt100\SerialConnVT100.cpp,
+	connimpls\vt100\SerialConnVT100.h,
 	ConnImpls\vt100\SerialConnVT102.cpp,
 	ConnImpls\vt100\SerialConnVT102.h,
 	ConnImpls/ecma48/Ecma48ControlSeq.cpp,

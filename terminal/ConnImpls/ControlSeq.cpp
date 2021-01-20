@@ -122,12 +122,13 @@ int ControlSeqFactory::IsControlSeq(const std::string& seq, size_t& p_begin, siz
         case ControlSeq::Ps: ret = ParsePn(seq, p_begin, it->Pnum); break;
         case ControlSeq::Gs: ret = ParseGs(seq, p_begin); break;
         case ControlSeq::No: ret = (int)p_begin; break;
-        default: s_end = p_begin; return SEQ_CORRUPTED;
+        default: abort(); break;
         }
         if (ret < 0) return SEQ_CORRUPTED;
         else if (ret == 0) return SEQ_PENDING;
         else {
-            size_t ln = seq.length() - (size_t)ret, i = 0;
+            if (ret >= (int)seq.length()) return SEQ_PENDING;
+            size_t ln = std::min(seq.length() - (size_t)ret, it->Tail.length()), i = 0;
             for (; i < ln; ++i) {
                 if (seq[ret+i] != it->Tail[i])
                     break;
@@ -139,7 +140,7 @@ int ControlSeqFactory::IsControlSeq(const std::string& seq, size_t& p_begin, siz
                 break;
             }
             else if (i == ln && i < it->Tail.length()) { type = SEQ_PENDING; break; }
-            else { type = SEQ_NONE; continue; }
+            s_end = ret + i;
         }
     }
     return type;

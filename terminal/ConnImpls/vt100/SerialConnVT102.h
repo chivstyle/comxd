@@ -106,10 +106,11 @@ public:
     // VT102 char sets
     int mCharsetInUsed;
     int mCharsets[2];
-    //
+    // cursor position, graphics rendition, character set
     struct CursorData {
         int Vx, Vy;
         int Px, Py;
+        int Charset;
         VTStyle Style;
     };
     void SaveCursor(CursorData& cd);

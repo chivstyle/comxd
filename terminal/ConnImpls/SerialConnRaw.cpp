@@ -296,13 +296,22 @@ static std::string TranslateEscapeChars(const std::string& text)
                 break;
             } else {
                 switch (text[k]) {
+                case 'A':
                 case 'a': out.push_back(0x07); break;
+                case 'B':
                 case 'b': out.push_back(0x08); break;
+                case 'F':
                 case 'f': out.push_back(0x0c); break;
+                case 'N':
                 case 'n': out.push_back(0x0a); break;
+                case 'R':
                 case 'r': out.push_back(0x0d); break;
+                case 'T':
                 case 't': out.push_back(0x09); break;
+                case 'V':
                 case 'v': out.push_back(0x0b); break;
+                case 'E':
+                case 'e': out.push_back(0x1b); break;
                 case '0':
                 case '1':
                 case '2':
