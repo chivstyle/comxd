@@ -127,7 +127,7 @@ int ControlSeqFactory::IsControlSeq(const std::string& seq, size_t& p_begin, siz
         if (ret < 0) return SEQ_CORRUPTED;
         else if (ret == 0) return SEQ_PENDING;
         else {
-            if (ret >= (int)seq.length()) return SEQ_PENDING;
+            if (ret >= (int)seq.length() && !it->Tail.empty()) return SEQ_PENDING;
             size_t ln = std::min(seq.length() - (size_t)ret, it->Tail.length()), i = 0;
             for (; i < ln; ++i) {
                 if (seq[ret+i] != it->Tail[i])

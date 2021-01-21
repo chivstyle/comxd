@@ -172,6 +172,7 @@ protected:
     virtual void ProcessVTS(const std::string& p);
     //
     virtual bool ProcessChar(Upp::dword cc);
+    virtual bool ProcessOverflowLines(const struct Seq&);
 
     struct EcmaDAQ {
         Upp::Point From;

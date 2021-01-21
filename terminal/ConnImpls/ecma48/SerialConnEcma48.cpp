@@ -1194,7 +1194,15 @@ bool SerialConnEcma48::ProcessChar(Upp::dword cc)
 {
     std::vector<uint32_t> ss(1, cc);
     if (mModes.SRM == Ecma48Modes::SRM_Monitor) {
-        this->RenderText(ss);
+        RenderText(ss);
     }
     return SerialConnVT::ProcessChar(cc);
+}
+bool SerialConnEcma48::ProcessOverflowLines(const struct Seq& seq)
+{
+	if (seq.Type == Seq::CTRL_SEQ) {
+		if (seq.Ctrl.first == ECMA48_LF || seq.Ctrl.first == ECMA48_FF || seq.Ctrl.first == ECMA48_VT)
+			return SerialConnVT::ProcessOverflowLines(seq);
+	}
+	return false;
 }

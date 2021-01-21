@@ -82,7 +82,8 @@ protected:
     struct Seq {
         enum SeqType {
             CTRL_SEQ,
-            TEXT_SEQ
+            TEXT_SEQ,
+            NULL_SEQ
         };
         int Type;
         std::pair<int, std::string> Ctrl;
@@ -101,6 +102,10 @@ protected:
         {
             Type = TEXT_SEQ;
             Text = text;
+        }
+        Seq()
+        {
+            Type = NULL_SEQ;
         }
     };
     std::queue<Seq> mSeqs;
@@ -130,8 +135,8 @@ protected:
     // NOTE: If you want push one line to lines buffer, please use this routine.
     //       DO NOT use push_back directly.
     void PushToLinesBufferAndCheck(const VTLine& vline);
-    virtual bool ProcessOverflowLines();
-    virtual bool ProcessOverflowChars();
+    virtual bool ProcessOverflowLines(const struct Seq& seq);
+    virtual bool ProcessOverflowChars(const struct Seq& seq);
     //
     // calcualte blank lines from end of lines
     int CalculateNumberOfBlankLinesFromEnd(const std::vector<VTLine>& lines) const;

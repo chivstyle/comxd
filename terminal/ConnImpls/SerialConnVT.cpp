@@ -251,22 +251,22 @@ void SerialConnVT::RenderSeqs()
         mLockSeqs.lock();
         if (mSeqs.empty()) { mLockSeqs.unlock(); break; }
         int px = mPx, py = mPy, vx = mVx, vy = mVy;
-        auto seq = mSeqs.front();
+        Seq seq = mSeqs.front();
         switch (seq.Type) {
         case Seq::CTRL_SEQ:
-            ProcessControlSeq(seq.Ctrl.first, seq.Ctrl.second);
+            ProcessControlSeq(seq.Ctrl.first, seq.Ctrl.second); // will change vx,vy,px,py
         break;
         case Seq::TEXT_SEQ: if (1) {
             int cx = (int)mLines[mVy].size();
-            RenderText(seq.Text);
+            RenderText(seq.Text); // will change vx
             if (mVx > cx) flags |= 0x2; // the line was extended
         } break;
         }
         mSeqs.pop();
         mLockSeqs.unlock();
         //--------------------------------------------------------------------------------------
-        if (ProcessOverflowLines()) { flags |= 0x1; }
-        if (ProcessOverflowChars()) { flags |= 0x2; }
+        if (ProcessOverflowLines(seq)) { flags |= 0x1; }
+        if (ProcessOverflowChars(seq)) { flags |= 0x2; } // fix vx/vy
         if (flags & 0x1) { UpdateVScrollbar(); }
         if (flags & 0x2) { UpdateHScrollbar(); }
         // Update vx/vy
@@ -617,7 +617,7 @@ void SerialConnVT::CheckAndFix(ScrollingRegion& span)
     }
 }
 // If the scrolling region was set, we should ignore those lines out of region
-bool SerialConnVT::ProcessOverflowChars()
+bool SerialConnVT::ProcessOverflowChars(const struct Seq&)
 {
 	bool overflow = false;
     if (mVy < (int)mLines.size()) {
@@ -632,15 +632,18 @@ bool SerialConnVT::ProcessOverflowChars()
     }
     return overflow;
 }
-bool SerialConnVT::ProcessOverflowLines()
+bool SerialConnVT::ProcessOverflowLines(const struct Seq&)
 {
 	int top = mScrollingRegion.Top;
 	int bot = mScrollingRegion.Bottom;
 	if (bot < 0) bot = (int)mLines.size()-1;
 	int yn = mVy - bot;
+	// I tested mintty, we buffer lines like that.
 	if (yn == 1) {
 		Size csz = GetConsoleSize();
-		this->PushToLinesBufferAndCheck(mLines[top]);
+		if (top == 0) {
+		    this->PushToLinesBufferAndCheck(mLines[top]);
+		}
 		mLines.insert(mLines.begin() + bot+1, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
 		mLines.erase(mLines.begin() + top);
 		// fix
@@ -1093,7 +1096,7 @@ void SerialConnVT::DoLayout()
     } else {
         ShrinkVirtualScreen(csz.cx, csz.cy);
     }
-    ProcessOverflowChars();
+    ProcessOverflowChars(Seq());
     // screen size was changed
     mScrollingRegion.Top = 0; mScrollingRegion.Bottom = -1;
     //
@@ -1324,7 +1327,7 @@ void SerialConnVT::UpdateDataPos(int flags)
         mVx = this->LogicToVirtual(mLines[mVy], mPx, px, next_px, false);
     }
     else if (flags & 0x2) {
-        mVx = this->LogicToVirtual(mLines, 0, mPy, px, next_px, py, next_py, false).y;
+        mVy = this->LogicToVirtual(mLines, 0, mPy, px, next_px, py, next_py, false).y;
     }
 }
 
