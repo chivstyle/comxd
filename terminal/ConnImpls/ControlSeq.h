@@ -15,10 +15,10 @@
 #define ECMA48_SEQ_BEGIN              3
 #define ECMA48_SEQ_MAX_COUNT          200
 #define ECMA48_SEQ_END                ECMA48_SEQ_BEGIN+ECMA48_SEQ_MAX_COUNT // 203
-// vt102
-#define VT102_SEQ_BEGIN               ECMA48_SEQ_END+1 // 204
-#define VT102_SEQ_MAX_COUNT           100
-#define VT102_SEQ_END                 VT102_SEQ_BEGIN+VT102_SEQ_MAX_COUNT // 304
+// vt100
+#define VT100_SEQ_BEGIN               ECMA48_SEQ_END+1 // 204
+#define VT100_SEQ_MAX_COUNT           100
+#define VT100_SEQ_END                 VT100_SEQ_BEGIN+VT100_SEQ_MAX_COUNT // 304
 //
 struct ControlSeq {
     int         Type;

@@ -6,26 +6,26 @@
 #include "ConnImpls/ControlSeq.h"
 #include <string>
 //
-enum VT102SeqType {
+enum VT100SeqType {
     // ANSI-Compatible Private Modes, others were included in ECMA-48
-    VT102_MODE_SET = VT102_SEQ_BEGIN,
-    VT102_MODE_RESET,
-    //
+    VT100_MODE_SET = VT100_SEQ_BEGIN,
+    VT100_MODE_RESET,
+    // DEC Private mode
     DECKPAM,
     DECKPNM,
     //
-    VT102_G0_UK, VT102_G1_UK,
-    VT102_G0_US, VT102_G1_US,
-    VT102_G0_LINE_DRAWING, VT102_G1_LINE_DRAWING,
-    VT102_G0_ROM, VT102_G1_ROM,
-    VT102_G0_ROM_SPECIAL, VT102_G1_ROM_SPECIAL,
+    VT100_G0_UK,           VT100_G1_UK,
+    VT100_G0_US,           VT100_G1_US,
+    VT100_G0_LINE_DRAWING, VT100_G1_LINE_DRAWING,
+    VT100_G0_ROM,          VT100_G1_ROM,
+    VT100_G0_ROM_SPECIAL,  VT100_G1_ROM_SPECIAL,
     //
-    VT102_MC,
-    VT102_DSR,
-    VT102_IND,
+    VT100_MC,
+    VT100_DSR,
+    VT100_IND,
     //
+    DECREQTPARM,
     DECID,
-    //
     DECSTBM,
     DECSC,
     DECRC,
@@ -58,8 +58,8 @@ enum VT102SeqType {
     VT52_PRTSC, // print screen
     VT52_PRTCL, // print cursor line
     //
-    VT102_SEQ_MAX
+    VT100_SEQ_MAX
 };
-static_assert(VT102_SEQ_MAX < VT102_SEQ_END, "You should define VT102_SEQ_MAX_COUNT big enough");
+static_assert(VT100_SEQ_MAX < VT100_SEQ_END, "You should define VT100_SEQ_MAX_COUNT big enough");
 
-void AddVT102ControlSeqs(ControlSeqFactory* factory);
+void AddVT100ControlSeqs(ControlSeqFactory* factory);

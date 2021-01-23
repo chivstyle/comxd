@@ -1274,9 +1274,6 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
     for (i = vx; i < (int)vline.size() && x < usz.cx; ++i) {
         int vchar_cx = GetCharWidth(vline[i]);
         UseStyle(vline[i], mFont, fg_color, bg_color, blink, visible);
-        if (bg_color == paper_color && vline[i].Code() == ' ' && i > abc_cnt) {
-            x += vchar_cx; continue;
-        }
         bool is_selected = line_selected ? true : IsCharInSelectionSpan(i, vy);
         if (is_selected) {
             std::swap(bg_color, fg_color);
