@@ -30,7 +30,7 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
     // default font
     mFont = VTOptionsDialog::DefaultFont();
     // handlers
-    mFontW = mFont.GetAveWidth();
+    mFontW = std::max(mFont.GetWidth('M'), mFont.GetWidth('W'));
     mFontH = mFont.GetLineHeight();
     // default style
     mBlankChar = ' ';
@@ -120,7 +120,7 @@ void SerialConnVT::InstallUserActions()
             this->mColorTbl.SetColor(VTColorTable::kColorId_Paper, options.PaperColor);
             //
             bool vscr_modified = false; // lines buffer or virtual screen was modified ?
-            int fontw = mFont.GetAveWidth(), fonth = mFont.GetLineHeight();
+            int fontw = std::max(mFont.GetWidth('M'), mFont.GetWidth('W')), fonth = mFont.GetLineHeight();
             if (fontw != mFontW || fonth != mFontH) {
                 int shrink_cnt = (int)mLinesBuffer.size() - options.LinesBufferSize;
                 if (shrink_cnt > 0) {
@@ -371,7 +371,7 @@ int SerialConnVT::GetCharWidth(const VTChar& c) const
         Font font = mFont; bool blink, visible;
         c.UseFontStyle(font, blink, visible);
         cx = font.GetWidth(c.Code());
-        cx = (cx + mFontW-1) / mFontW * mFontW;
+        cx = (cx + mFontW-2) / mFontW * mFontW;
         return cx;
     } break;
     }
@@ -882,6 +882,9 @@ bool SerialConnVT::ProcessKeyDown(dword key, dword flags)
             d.push_back(1 + (uint8_t)(key - K_A));
         } else {
             switch (key) {
+            case K_SPACE:
+                d.push_back(0x00); // CTRL+Space
+                break;
             case K_LBRACKET: // CTRL+[
                 d.push_back(0x1b);
                 break;

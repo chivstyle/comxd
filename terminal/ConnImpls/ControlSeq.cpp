@@ -135,7 +135,7 @@ int ControlSeqFactory::IsControlSeq(const std::string& seq, size_t& p_begin, siz
             }
             if (i == it->Tail.length()) {
                 type = it->Type;
-                p_sz = ret + i - p_begin;
+                p_sz = ret - p_begin;
                 s_end = ret + i;
                 break;
             }

@@ -66,7 +66,7 @@ void SerialConnVT100::ProcessDA(const std::string& p)
     switch (ps) {
     case 0:
         // https://www.vt100.net/docs/vt100-ug/chapter3.html#DA
-        GetIo()->Write("\x1b[?1;0c"); // No options
+        GetIo()->Write("\x1b[?1;2c"); // Advanced video option
         break;
     }
 }

@@ -672,6 +672,9 @@ void SerialConnEcma48::ProcessHPB(const std::string& p)
 }
 void SerialConnEcma48::ProcessHPR(const std::string& p)
 {
+	int pn = atoi(p.c_str());
+	if (pn <= 0) pn = 1;
+	mVx += pn;
 }
 void SerialConnEcma48::ProcessHTJ(const std::string& p)
 {
@@ -803,6 +806,20 @@ void SerialConnEcma48::ProcessQUAD(const std::string& p)
 }
 void SerialConnEcma48::ProcessREP(const std::string& p)
 {
+	int pn = atoi(p.c_str());
+	if (pn <= 0) pn = 1;
+	VTLine& vline = mLines[mVy];
+	const VTChar& ch = vline[mVx];
+	int cn = 0;
+	for (int i = mVx+1; i < (int)vline.size() && cn < pn; ++i) {
+		vline[i] = ch;
+		cn++;
+	}
+	cn = pn - cn;
+	while (cn--)
+		vline.push_back(ch);
+	//
+	mVx += pn;
 }
 void SerialConnEcma48::ProcessRI(const std::string& p)
 {

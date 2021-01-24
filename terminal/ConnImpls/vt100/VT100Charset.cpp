@@ -8,7 +8,7 @@ uint32_t VT100_RemapCharacter(uint32_t uc, int type)
 {
     const uint32_t cs[] = {
         0x02666/* "♦" */,
-       0x02592/* "▒" */,
+        0x02592/* "▒" */,
         0x02192/* "→" */,
         0x00192/* "ƒ" */,
         0x0027c/* "ɼ" */,

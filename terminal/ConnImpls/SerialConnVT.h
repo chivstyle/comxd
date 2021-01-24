@@ -8,7 +8,7 @@
 
 #include "Conn.h"
 #include "ColorTable.h"
-#include "VTtypes.h"
+#include "VTTypes.h"
 #include <functional>
 #include <map>
 #include <queue>

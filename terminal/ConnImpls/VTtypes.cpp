@@ -1,7 +1,7 @@
 //
 // (c) 2020 chiv
 //
-#include "VTtypes.h"
+#include "VTTypes.h"
 #include "ColorTable.h"
 // default style
 VTStyle::VTStyle()
