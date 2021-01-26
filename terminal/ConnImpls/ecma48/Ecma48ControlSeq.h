@@ -5,7 +5,7 @@
 //
 #pragma once
 
-#include "ConnImpls/ControlSeq.h"
+#include "connimpls/ControlSeq.h"
 #include <string>
 //
 enum Ecma48SeqType {

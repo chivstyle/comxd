@@ -4,7 +4,7 @@
 */
 #pragma once
 
-#include "ConnImpls/ecma48/SerialConnEcma48.h"
+#include "connimpls/ecma48/SerialConnEcma48.h"
 
 class SerialConnVT100 : public SerialConnEcma48 {
 public:
@@ -99,8 +99,8 @@ public:
             , DECSCLM(DECSCLM_Smooth)
             , DECSCNM(DECSCNM_Normal)
             , DECOM(DECOM_Absolute)
-            , DECAWM(OFF)
-            , DECARM(OFF)
+            , DECAWM(ON)
+            , DECARM(OFF) // We ignore auto-repeat mode
             , DECPFF(OFF)
             , DECPEX(DECPEX_FullScreen)
         {

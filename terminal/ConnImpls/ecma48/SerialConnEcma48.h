@@ -1,7 +1,7 @@
 //
 // (c) 2020 chiv
 //
-#include "ConnImpls/SerialConnVT.h"
+#include "connimpls/SerialConnVT.h"
 
 class Ecma48ControlSeqFactory;
 class SerialConnEcma48 : public virtual SerialConnVT {

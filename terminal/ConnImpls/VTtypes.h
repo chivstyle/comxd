@@ -74,7 +74,7 @@ struct VTStyle {
         eBlink = 0x10,
         eVisible = 0x20
     };
-    uint16_t FontStyle; // lowest 11 bits was used
+    uint16_t FontStyle; // lowest 10 bits
     uint16_t FgColorId;
     uint16_t BgColorId;
     VTStyle();
@@ -96,13 +96,16 @@ public:
         SetCode(c);
         SetStyle(style);
     }
-    //
-    void operator=(const uint32_t& c)
+    
+    operator const uint32_t()
+    {
+        return mBits.Code;
+    }
+    VTChar& operator=(const uint32_t& c)
     {
         SetCode(c);
+        return *this;
     }
-    //
-    operator uint32_t() { return mBits.Code; }
     
     void SetCode(const uint32_t& c)
     {
@@ -141,7 +144,7 @@ public:
 private:
     struct {
         uint32_t Code : 21; // CODE POINT
-        uint32_t FontStyle: 11;
+        uint32_t FontStyle: 10;
         uint16_t BgColorId;
         uint16_t FgColorId;
     } mBits;

@@ -18,6 +18,7 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
     , mVy(0)
     , mRxShouldStop(false)
     , mBlinkSignal(true)
+    , mWrapLine(false)
     , mScrollToEnd(true)
     , mPressed(false)
     , mShowCursor(true)
@@ -33,7 +34,7 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
     mFontW = std::max(mFont.GetWidth('M'), mFont.GetWidth('W'));
     mFontH = mFont.GetLineHeight();
     // default style
-    mBlankChar = ' ';
+    mBlankChar.SetCode(' ');
     // enable scroll bar
     mSbH.SetLine(mFontW);
     mSbH.Set(0);
@@ -65,13 +66,14 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
         this->Refresh();
     });
     // initialize size
-    VTLine vline = VTLine(80, ' ').SetHeight(mFontH);
+    VTLine vline = VTLine(80, mBlankChar).SetHeight(mFontH);
     mLines.insert(mLines.begin(), 30, vline);
     //
     InstallUserActions();
     //
     this->PostCallback([=]() {
         this->SetFocus();
+        this->DoLayout();
     });
 }
 
@@ -158,6 +160,10 @@ void SerialConnVT::InstallUserActions()
             SelectAll();
         }).Key(K_CTRL | K_SHIFT | K_A);
     };
+}
+void SerialConnVT::WrapLine(bool b)
+{
+	mWrapLine = b;
 }
 //
 void SerialConnVT::SaveScr(ScreenData& sd)
@@ -299,7 +305,7 @@ void SerialConnVT::RxProc()
         int sz = GetIo()->Available();
         if (sz < 0) {
             PostCallback([=]() {
-                PromptOK(DeQtf(t_("Fatal error of I/O")));
+                PromptOK(DeQtf(t_("I/O device was disconnected")));
             });
             break;
         } else if (sz == 0) {
@@ -616,8 +622,7 @@ void SerialConnVT::CheckAndFix(ScrollingRegion& span)
         }
     }
 }
-// If the scrolling region was set, we should ignore those lines out of region
-bool SerialConnVT::ProcessOverflowChars(const struct Seq&)
+bool SerialConnVT::ProcessOverflowChars()
 {
 	bool overflow = false;
     if (mVy < (int)mLines.size()) {
@@ -632,7 +637,12 @@ bool SerialConnVT::ProcessOverflowChars(const struct Seq&)
     }
     return overflow;
 }
-bool SerialConnVT::ProcessOverflowLines(const struct Seq&)
+// If the scrolling region was set, we should ignore those lines out of region
+bool SerialConnVT::ProcessOverflowChars(const struct Seq&)
+{
+	return ProcessOverflowChars();
+}
+bool SerialConnVT::ProcessOverflowLines()
 {
 	int top = mScrollingRegion.Top;
 	int bot = mScrollingRegion.Bottom;
@@ -651,7 +661,14 @@ bool SerialConnVT::ProcessOverflowLines(const struct Seq&)
 		//
 		return true;
 	}
+	if (mVy >= (int)mLines.size()) {
+		mVy = (int)mLines.size()-1;
+	}
 	return false;
+}
+bool SerialConnVT::ProcessOverflowLines(const struct Seq&)
+{
+	return ProcessOverflowLines();
 }
 //
 uint32_t SerialConnVT::RemapCharacter(uint32_t uc)
@@ -668,6 +685,15 @@ void SerialConnVT::RenderText(const std::vector<uint32_t>& s)
         // we should ignore those out of range
         if (chr.Code() > 0xffff)
             chr.SetCode('?'); // replace chr with ?
+        if (mWrapLine) {
+	        if (mVx >= csz.cx || mPx >= mFontW*csz.cx) { // wrap line
+	            mVy++; mVx = 0;
+	            if (this->ProcessOverflowLines()) {
+		            this->UpdateVScrollbar();
+		            this->UpdatePresentationPos();
+	            }
+	        }
+        }
         VTLine& vline = mLines[mVy];
         if (mVx < vline.size()) {
             vline[mVx] = chr;
@@ -684,8 +710,10 @@ void SerialConnVT::RenderText(const std::vector<uint32_t>& s)
             // extend vline
             vline.insert(vline.end(), 8, mBlankChar);
         }
+        if (mWrapLine) {
+            UpdatePresentationPos(0x1);
+        }
     }
-    
 }
 
 Image SerialConnVT::CursorImage(Point p, dword keyflags)
@@ -1182,15 +1210,12 @@ String SerialConnVT::GetSelectedText() const
         size_t n = 0;
         while (n < lines[k].size()) {
             uint32_t c = lines[k][lines[k].size() - 1 - n];
-            if (c == ' ' || c == '\n' || c == '\v')
+            if (c == ' ')
                 n++;
             else
                 break;
         }
         out += lines[k].substr(0, lines[k].size() - n);
-        if (k + 1 != lines.size()) {
-            out += '\n';
-        }
     }
     return out;
 }

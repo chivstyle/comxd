@@ -3,8 +3,8 @@
 //
 #include "resource.h"
 // dialogs or forms
-#include "IoImpls/SerialDevsDialog.h"
-#include "IoImpls/SSHDevsDialog.h"
+#include "ioimpls/SerialDevsDialog.h"
+#include "ioimpls/SSHDevsDialog.h"
 // main window
 class MainWindow : public WithMainWindow<TopWindow> {
 	typedef MainWindow CLASSNAME;

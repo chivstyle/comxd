@@ -9,6 +9,8 @@ uses
 options
 	;
 
+link(MSVC) /NODEFAULTLIB:LIBCMT;
+
 include
 	.;
 
@@ -20,14 +22,14 @@ file
 	comxd.lay,
 	resource.cpp,
 	resource.h,
-	IoImpls/SerialPort.cpp,
-	IoImpls/SerialPort.h,
-	IoImpls/SSHPort.cpp,
-	IoImpls/SSHPort.h,
-	IoImpls/SSHDevsDialog.h,
-	IoImpls/SSHDevsDialog.cpp,
-	IoImpls/SerialDevsDialog.h,
-	IoImpls/SerialDevsDialog.cpp,
+	ioimpls/SerialPort.cpp,
+	ioimpls/SerialPort.h,
+	ioimpls/SSHPort.cpp,
+	ioimpls/SSHPort.h,
+	ioimpls/SSHDevsDialog.h,
+	ioimpls/SSHDevsDialog.cpp,
+	ioimpls/SerialDevsDialog.h,
+	ioimpls/SerialDevsDialog.cpp,
 	main.cpp;
 
 mainconfig

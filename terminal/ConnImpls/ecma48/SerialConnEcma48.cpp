@@ -250,6 +250,8 @@ void SerialConnEcma48::ProcessHT(const std::string&)
 }
 void SerialConnEcma48::ProcessLF(const std::string&)
 {
+	int tp = (int)mLines[mVy].size() - this->CalculateNumberOfBlankCharsFromEnd(mLines[mVy]);
+	mLines[mVy][tp] = '\n';
     mVy += 1;
     if (mModes.LMN == Ecma48Modes::LMN_LineFeed) {
         mVx = 0;
@@ -257,6 +259,8 @@ void SerialConnEcma48::ProcessLF(const std::string&)
 }
 void SerialConnEcma48::ProcessVT(const std::string&)
 {
+	int tp = (int)mLines[mVy].size() - this->CalculateNumberOfBlankCharsFromEnd(mLines[mVy]);
+	mLines[mVy][tp] = '\n';
     mVy += 1;
     if (mModes.LMN == Ecma48Modes::LMN_LineFeed) {
         mVx = 0;
@@ -264,6 +268,8 @@ void SerialConnEcma48::ProcessVT(const std::string&)
 }
 void SerialConnEcma48::ProcessFF(const std::string&)
 {
+	int tp = (int)mLines[mVy].size() - this->CalculateNumberOfBlankCharsFromEnd(mLines[mVy]);
+	mLines[mVy][tp] = '\n';
     mVy += 1;
     if (mModes.LMN == Ecma48Modes::LMN_LineFeed) {
         mVx = 0;
@@ -410,7 +416,7 @@ void SerialConnEcma48::ProcessCTC(const std::string& p)
         int ps = atoi(token);
         switch (ps) {
         case 0:
-            mLines[mVy][mVx] = '\t';
+            mLines[mVy][mVx] ='\t';
             mVx++;
             break;
         case 1:

@@ -55,6 +55,7 @@ public:
     void LoadScr(const ScreenData& sd);
     // swap current scr and sd
     void SwapScr(ScreenData& sd);
+    void WrapLine(bool b);
     //
     Upp::Event<Upp::Bar&> WhenBar;
 protected:
@@ -135,14 +136,16 @@ protected:
     // NOTE: If you want push one line to lines buffer, please use this routine.
     //       DO NOT use push_back directly.
     void PushToLinesBufferAndCheck(const VTLine& vline);
+    bool ProcessOverflowLines();
+    bool ProcessOverflowChars();
     virtual bool ProcessOverflowLines(const struct Seq& seq);
     virtual bool ProcessOverflowChars(const struct Seq& seq);
-    //
     // calcualte blank lines from end of lines
     int CalculateNumberOfBlankLinesFromEnd(const std::vector<VTLine>& lines) const;
     int CalculateNumberOfBlankCharsFromEnd(const VTLine& vline) const;
     int CalculateNumberOfPureBlankCharsFromEnd(const VTLine& vline) const;
     //
+    bool mWrapLine;
     bool mScrollToEnd;
     bool mPressed;
     //

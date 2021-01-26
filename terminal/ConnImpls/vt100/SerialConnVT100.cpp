@@ -25,6 +25,8 @@ SerialConnVT100::SerialConnVT100(std::shared_ptr<SerialIo> io)
     SerialConnEcma48::mModes.PUM = 0;
     SerialConnEcma48::mModes.SRTM = 0;
     SerialConnEcma48::mModes.TSM = 0;
+    // enable wrap line
+    WrapLine(true);
     // default charsets
     mCharsets[0] = CS_US;
     mCharsets[1] = CS_UK;
@@ -209,7 +211,7 @@ void SerialConnVT100::ProcessVT100_MODE_SET(const std::string& p)
         mColorTbl.SetColor(VTColorTable::kColorId_Texts, mColorTbl.GetColor(VTColorTable::kColorId_Black));
         break;
     case 6:  mModes.DECOM   = 1; ProcessCUP(""); /*! home */ break;
-    case 7:  mModes.DECAWM  = 1; break;
+    case 7:  mModes.DECAWM  = 1; WrapLine(true); break;
     case 8:  mModes.DECARM  = 1; break;
     case 18: mModes.DECPFF  = 1; break;
     case 19: mModes.DECPEX  = 1; break;
@@ -229,7 +231,7 @@ void SerialConnVT100::ProcessVT100_MODE_RESET(const std::string& p)
         mColorTbl.SetColor(VTColorTable::kColorId_Texts, mColorTbl.GetColor(VTColorTable::kColorId_White));
         break;
     case 6:  mModes.DECOM   = 0; ProcessCUP(""); /*! home */ break;
-    case 7:  mModes.DECAWM  = 0; break;
+    case 7:  mModes.DECAWM  = 0; WrapLine(false); break;
     case 8:  mModes.DECARM  = 0; break;
     case 18: mModes.DECPFF  = 0; break;
     case 19: mModes.DECPEX  = 0; break;
@@ -339,7 +341,7 @@ void SerialConnVT100::ProcessDECALN(const std::string&)
     for (size_t vy = 0; vy < mLines.size(); ++vy) {
         VTLine& vline = mLines[vy];
         for (size_t vx = 0; vx < vline.size(); ++vx) {
-            vline[vx] = 'S';
+            vline[vx].SetCode('S');
         }
     }
 }
