@@ -46,7 +46,8 @@ static inline std::vector<uint32_t> UTF8ToUTF32_(const unsigned char* seq, size_
                 (seq[p+2] & 0xc0) != 0x80 ||
                 (seq[p+3] & 0xc0) != 0x80)
             {
-                out.push_back('?');
+                //out.push_back('?');
+                out.push_back(seq[p]);
                 p++;
             } else {
                 bits |= (seq[p+1] & 0x3f) << 12;
@@ -60,7 +61,8 @@ static inline std::vector<uint32_t> UTF8ToUTF32_(const unsigned char* seq, size_
             if ((seq[p+1] & 0xc0) != 0x80 ||
                 (seq[p+2] & 0xc0) != 0x80)
             {
-                out.push_back('?');
+                //out.push_back('?');
+                out.push_back(seq[p]);
                 p++;
             } else {
                 uint32_t bits = (seq[p] & 0x0f) << 12;
@@ -72,7 +74,8 @@ static inline std::vector<uint32_t> UTF8ToUTF32_(const unsigned char* seq, size_
         } else if ((flag & 0xc0) == 0xc0) { // 2 bytes, 5+6 = 11bits
             if (sz - p < 2) break;
             if ((seq[p+1] & 0xc0) != 0x80) {
-                out.push_back('?');
+                //out.push_back('?');
+                out.push_back(seq[p]);
                 p++;
             } else {
                 uint32_t bits = (seq[p] & 0x1f) << 6;
@@ -81,7 +84,8 @@ static inline std::vector<uint32_t> UTF8ToUTF32_(const unsigned char* seq, size_
                 p += 2;
             }
         } else if ((flag & 0x80) == 0x80) { // invalid
-            out.push_back('?');
+            //out.push_back('?');
+            out.push_back(seq[p]);
             p++;
         } else {
             out.push_back(seq[p]);

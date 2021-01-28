@@ -323,6 +323,10 @@ void SerialConnVT::RxProc()
                 if (!texts.empty()) {
                     size_t ep;
                     auto s = this->TranscodeToUTF32(texts, ep);
+                    texts = texts.substr(ep);
+                    for (size_t k = 0; k < texts.size(); ++k) {
+                        s.push_back((uint8_t)texts[k]);
+                    }
                     if (!s.empty()) {
                         AddSeq(std::move(s));
                     }
@@ -338,6 +342,7 @@ void SerialConnVT::RxProc()
                 }
                 else if (type == SEQ_CORRUPTED || type == SEQ_NONE) {
                     // TODO: process corrupted, or unrecognized seqence
+                    LOGF("Unrecognized:%s\n", raw.substr(0, s_end).c_str());
                 } else {
                     AddSeq(type, raw.substr(p_begin, p_sz));
                 }
@@ -625,6 +630,7 @@ void SerialConnVT::CheckAndFix(ScrollingRegion& span)
 bool SerialConnVT::ProcessOverflowChars()
 {
 	bool overflow = false;
+	if (mVy < 0) mVy = 0;
     if (mVy < (int)mLines.size()) {
 	    int dx = mVx - (int)mLines[mVy].size() + 1;
 	    if (dx > 0) {
@@ -647,6 +653,7 @@ bool SerialConnVT::ProcessOverflowLines()
 	int top = mScrollingRegion.Top;
 	int bot = mScrollingRegion.Bottom;
 	if (bot < 0) bot = (int)mLines.size()-1;
+	if (mVy < 0) mVy = 0;
 	int yn = mVy - bot;
 	// I tested mintty, we buffer lines like that.
 	if (yn == 1) {
@@ -807,7 +814,7 @@ void SerialConnVT::LeftDouble(Point p, dword)
         // backward
         int bx = vpos.x + 1; // selection span is [vpos.x, vpos.x + N+1)
         if (fx != vpos.x) { // If you have clicked blank, we do not extend the selection span
-            while (bx < (int)vline->size() && vline->at(bx).Code() != ' ') {
+            while (bx < (int)vline->size() && vline->at(bx).Code() != ' ' && vline->at(bx).Code() != '\n') {
                 bx++;
             }
         }
@@ -1290,8 +1297,8 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
     int vx, int vy, /*! absolute position of data */
     int lxoff, int lyoff)
 {
-    Size usz = GetSize(), csz = GetConsoleSize();
-    int x = lxoff, y = lyoff, i = 0;
+    Size csz = GetConsoleSize();
+    int x = lxoff, y = lyoff, i = 0, r_margin = mFontW*csz.cx;
     bool tail_selected = IsCharInSelectionSpan((int)vline.size() - 1, vy);
     bool line_selected = IsCharInSelectionSpan(0, vy) && tail_selected; // line was selected.
     // draw blank chars
@@ -1299,7 +1306,7 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
     // style
     const Color& paper_color = mColorTbl.GetColor(VTColorTable::kColorId_Paper);
     Color bg_color, fg_color; bool blink, visible;
-    for (i = vx; i < (int)vline.size() && x < usz.cx; ++i) {
+    for (i = vx; i < (int)vline.size() && x < r_margin; ++i) {
         int vchar_cx = GetCharWidth(vline[i]);
         UseStyle(vline[i], mFont, fg_color, bg_color, blink, visible);
         bool is_selected = line_selected ? true : IsCharInSelectionSpan(i, vy);
@@ -1335,9 +1342,9 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
         }
     }
     // process blank lines, tell the user this line was selected.
-    if (abc_cnt == 0 && IsCharInSelectionSpan(vx, vy)) {
-        draw.DrawRect(lxoff, lyoff, mFontW, vline.GetHeight(), mColorTbl.GetColor(VTColorTable::kColorId_Texts));
-    }
+    //if (abc_cnt == 0 && IsCharInSelectionSpan(vx, vy)) {
+    //    draw.DrawRect(lxoff, lyoff, mFontW, vline.GetHeight(), mColorTbl.GetColor(VTColorTable::kColorId_Texts));
+    //}
 }
 
 void SerialConnVT::UpdateDataPos(int flags)

@@ -581,6 +581,12 @@ void SerialConnEcma48::ProcessEA(const std::string& p)
 }
 void SerialConnEcma48::ProcessECH(const std::string& p)
 {
+	int pn = atoi(p.c_str());
+	if (pn <= 0) pn = 1;
+	VTLine& vline = mLines[mVy];
+	for (int i = mVx; i < mVx+pn && i < (int)vline.size(); ++i) {
+		vline[i] = mBlankChar; // put to erased state
+	}
 }
 void SerialConnEcma48::ProcessED(const std::string& p)
 {
@@ -672,12 +678,20 @@ void SerialConnEcma48::ProcessGSS(const std::string& p)
 }
 void SerialConnEcma48::ProcessHPA(const std::string& p)
 {
+	// data component
+	int pn = atoi(p.c_str());
+	if (pn <= 0) pn = 1;
+	mVx = pn - 1; // To absolute position
 }
 void SerialConnEcma48::ProcessHPB(const std::string& p)
 {
+	int pn = atoi(p.c_str());
+	if (pn <= 0) pn = 1;
+	mVx -= pn;
 }
 void SerialConnEcma48::ProcessHPR(const std::string& p)
 {
+	// data component
 	int pn = atoi(p.c_str());
 	if (pn <= 0) pn = 1;
 	mVx += pn;
@@ -694,6 +708,10 @@ void SerialConnEcma48::ProcessHVP(const std::string& p)
 }
 void SerialConnEcma48::ProcessICH(const std::string& p)
 {
+	int pn = atoi(p.c_str());
+	if (pn <= 0) pn = 1;
+	VTLine& vline = mLines[mVy];
+	vline.insert(vline.begin() + mVx, pn, mBlankChar);
 }
 void SerialConnEcma48::ProcessIDCS(const std::string& p)
 {
@@ -824,7 +842,6 @@ void SerialConnEcma48::ProcessREP(const std::string& p)
 	cn = pn - cn;
 	while (cn--)
 		vline.push_back(ch);
-	//
 	mVx += pn;
 }
 void SerialConnEcma48::ProcessRI(const std::string& p)
@@ -908,6 +925,7 @@ void SerialConnEcma48::ProcessSDS(const std::string& p)
 }
 void SerialConnEcma48::ProcessSEE(const std::string& p)
 {
+	this->mSee = atoi(p.c_str());
 }
 void SerialConnEcma48::ProcessSEF(const std::string& p)
 {
@@ -1191,6 +1209,7 @@ void SerialConnEcma48::ProcessTATE(const std::string& p)
 }
 void SerialConnEcma48::ProcessTBC(const std::string& p)
 {
+	ProcessCTC(p);
 }
 void SerialConnEcma48::ProcessTCC(const std::string& p)
 {
@@ -1203,12 +1222,24 @@ void SerialConnEcma48::ProcessTSS(const std::string& p)
 }
 void SerialConnEcma48::ProcessVPA(const std::string& p)
 {
+	// data component
+	int pn = atoi(p.c_str());
+	if (pn <= 0) pn = 1;
+	mVy = pn-1;
 }
 void SerialConnEcma48::ProcessVPB(const std::string& p)
 {
+	// data component
+	int pn = atoi(p.c_str());
+	if (pn <= 0) pn = 1;
+	mVy -= pn;
 }
 void SerialConnEcma48::ProcessVPR(const std::string& p)
 {
+	// data component
+	int pn = atoi(p.c_str());
+	if (pn <= 0) pn = 1;
+	mVy += pn;
 }
 void SerialConnEcma48::ProcessVTS(const std::string& p)
 {
