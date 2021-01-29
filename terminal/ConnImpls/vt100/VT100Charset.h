@@ -5,12 +5,6 @@
 #pragma once
 
 #include <stdint.h>
-//
-enum VT100_CharsetType {
-    CS_UK = 0,
-    CS_US = 1,
-    CS_LINE_DRAWING = 2,
-    CS_ROM = 3,
-    CS_ROM_SPECIAL = 4
-};
+#include "connimpls/Charset.h"
+
 uint32_t VT100_RemapCharacter(uint32_t uc, int type);

@@ -20,6 +20,10 @@
 #define VT100_SEQ_MAX_COUNT           100
 #define VT100_SEQ_END                 VT100_SEQ_BEGIN+VT100_SEQ_MAX_COUNT // 304
 //
+#define ANSI_SEQ_BEGIN                VT100_SEQ_END+1 // 305
+#define ANSI_SEQ_MAX_COUNT            100
+#define ANSI_SEQ_END                  ANSI_SEQ_BEGIN+ANSI_SEQ_MAX_COUNT // 405
+//
 struct ControlSeq {
     int         Type;
     std::string Head; // Begin with this string.

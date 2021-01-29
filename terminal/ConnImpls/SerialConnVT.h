@@ -7,6 +7,7 @@
 #define _comxd_ConnVT_h_
 
 #include "Conn.h"
+#include "Charset.h"
 #include "ColorTable.h"
 #include "VTTypes.h"
 #include <functional>
@@ -126,9 +127,12 @@ protected:
     /// Active position
     int mVx, mVy;      //<! Active position of data component
     int mPx, mPy;      //<! Active position of presentation component
+    /// charset, pair [charset-index, charset-type]
+    std::map<int, int> mCharsets; // supported charsets
+    int mCharset; // Charset
     /// \brief Before rendering text, the program will remap the character,
     ///        the derived class could modify the character to override this method
-    virtual uint32_t RemapCharacter(uint32_t uc);
+    virtual uint32_t RemapCharacter(uint32_t uc, int charset = CS_US);
     /// \brief render text to VTChar
     /// \param seq complete VT characters
     virtual void RenderText(const std::vector<uint32_t>& s);

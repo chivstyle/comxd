@@ -409,7 +409,7 @@ void SerialConnEcma48::ProcessCPR(const std::string& p)
 {
     // this seq was used to report cursor position of terminal
 }
-
+// TODO: it's not correct, maybe.
 void SerialConnEcma48::ProcessCTC(const std::string& p)
 {
     SplitString(p.c_str(), ';', [=](const char* token) {
@@ -628,6 +628,7 @@ void SerialConnEcma48::ProcessED(const std::string& p)
 }
 void SerialConnEcma48::ProcessEF(const std::string& p)
 {
+	ProcessED(p);
 }
 void SerialConnEcma48::ProcessEL(const std::string& p)
 {
@@ -833,9 +834,10 @@ void SerialConnEcma48::ProcessREP(const std::string& p)
 	int pn = atoi(p.c_str());
 	if (pn <= 0) pn = 1;
 	VTLine& vline = mLines[mVy];
-	const VTChar& ch = vline[mVx];
+	int vx = mVx > 0 ? mVx - 1 : mVx;
+	const VTChar& ch = vline[vx];
 	int cn = 0;
-	for (int i = mVx+1; i < (int)vline.size() && cn < pn; ++i) {
+	for (int i = mVx; i < (int)vline.size() && cn < pn; ++i) {
 		vline[i] = ch;
 		cn++;
 	}
@@ -972,6 +974,7 @@ void SerialConnEcma48::ProcessSGR(const std::string& p)
         case 18:
         case 19:
         case 20:
+            break;
         case 21:
             mStyle.FontStyle |= VTStyle::eUnderline;
             break;
@@ -1243,6 +1246,7 @@ void SerialConnEcma48::ProcessVPR(const std::string& p)
 }
 void SerialConnEcma48::ProcessVTS(const std::string& p)
 {
+	mVy++;
 }
 bool SerialConnEcma48::ProcessChar(Upp::dword cc)
 {

@@ -17,35 +17,35 @@ public:
     virtual void ProcessLS0(const std::string& p); // LS0, i.e SI
     virtual void ProcessLS1(const std::string& p); // LS1, i.e SO
     // VT100 specific DSR
-    virtual void ProcessVT100_DSR(const std::string& p);
+    void ProcessVT100_DSR(const std::string& p);
     // VT100 modes, DEC private
-    virtual void ProcessVT100_MODE_SET(const std::string& p);
-    virtual void ProcessVT100_MODE_RESET(const std::string& p);
+    void ProcessVT100_MODE_SET(const std::string& p);
+    void ProcessVT100_MODE_RESET(const std::string& p);
     // VT100 specific
-    virtual void ProcessVT100_IND(const std::string& p);
+    void ProcessVT100_IND(const std::string& p);
     // VT100 specific, DEC private
     // DECID was ignored, according to vt100 specification
-    virtual void ProcessDECREQTPARM(const std::string& p);
-    virtual void ProcessDECSTBM(const std::string& p);
-    virtual void ProcessDECSC(const std::string& p);
-    virtual void ProcessDECRC(const std::string& p);
-    virtual void ProcessDECALN(const std::string& p);
-    virtual void ProcessDECTST(const std::string& p);
-    virtual void ProcessDECLL(const std::string& p);
+    void ProcessDECREQTPARM(const std::string& p);
+    void ProcessDECSTBM(const std::string& p);
+    void ProcessDECSC(const std::string& p);
+    void ProcessDECRC(const std::string& p);
+    void ProcessDECALN(const std::string& p);
+    void ProcessDECTST(const std::string& p);
+    void ProcessDECLL(const std::string& p);
     // VT52 seqs were ignored, factory will recognize them, but we do not
     // accept them.
     // charset
-    virtual void ProcessVT100_G0_UK(const std::string& p);
-    virtual void ProcessVT100_G1_UK(const std::string& p);
-    virtual void ProcessVT100_G0_US(const std::string& p);
-    virtual void ProcessVT100_G1_US(const std::string& p);
-    virtual void ProcessVT100_G0_LINE_DRAWING(const std::string& p);
-    virtual void ProcessVT100_G1_LINE_DRAWING(const std::string& p);
-    virtual void ProcessVT100_G0_ROM(const std::string& p);
-    virtual void ProcessVT100_G1_ROM(const std::string& p);
-    virtual void ProcessVT100_G0_ROM_SPECIAL(const std::string& p);
-    virtual void ProcessVT100_G1_ROM_SPECIAL(const std::string& p);
-    virtual uint32_t RemapCharacter(uint32_t uc);
+    void ProcessVT100_G0_UK(const std::string& p);
+    void ProcessVT100_G1_UK(const std::string& p);
+    void ProcessVT100_G0_US(const std::string& p);
+    void ProcessVT100_G1_US(const std::string& p);
+    void ProcessVT100_G0_LINE_DRAWING(const std::string& p);
+    void ProcessVT100_G1_LINE_DRAWING(const std::string& p);
+    void ProcessVT100_G0_ROM(const std::string& p);
+    void ProcessVT100_G1_ROM(const std::string& p);
+    void ProcessVT100_G0_ROM_SPECIAL(const std::string& p);
+    void ProcessVT100_G1_ROM_SPECIAL(const std::string& p);
+    virtual uint32_t RemapCharacter(uint32_t uc, int charset);
     //
     virtual bool ProcessKeyDown(Upp::dword key, Upp::dword flags);
     //
@@ -107,9 +107,6 @@ public:
         }
     };
     VT100Modes mModes;
-    // VT100 char sets
-    int mCharsetInUsed;
-    int mCharsets[2];
     // cursor position, graphics rendition, character set
     struct CursorData {
         int Vx, Vy;

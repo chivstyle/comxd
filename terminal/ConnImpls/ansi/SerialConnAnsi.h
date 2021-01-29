@@ -9,6 +9,12 @@
 class SerialConnAnsi : public SerialConnVT100 {
 public:
 	SerialConnAnsi(std::shared_ptr<SerialIo> io);
-	
-	uint32_t RemapCharacter(uint32_t uc);
+	//
+	void ProcessRCP(const std::string& p);
+	void ProcessSCP(const std::string& p);
+	//
+	uint32_t RemapCharacter(uint32_t uc, int charset);
+	//
+private:
+	void InstallFunctions();
 };

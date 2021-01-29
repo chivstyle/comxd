@@ -14,7 +14,6 @@ REGISTER_CONN_INSTANCE("vt100 by chiv", "vt100", SerialConnVT100);
 SerialConnVT100::SerialConnVT100(std::shared_ptr<SerialIo> io)
     : SerialConnVT(io)
     , SerialConnEcma48(io)
-    , mCharsetInUsed(0)
 {
     AddVT100ControlSeqs(this->mSeqsFactory);
     // VT100, permanently selected modes
@@ -129,16 +128,16 @@ void SerialConnVT100::ProcessVT100_G1_ROM_SPECIAL(const std::string& p)
 }
 void SerialConnVT100::ProcessLS0(const std::string& p)
 {
-    mCharsetInUsed = 0;
+    mCharset = mCharsets[0];
 }
 void SerialConnVT100::ProcessLS1(const std::string& p)
 {
-    mCharsetInUsed = 1;
+    mCharset = mCharsets[1];
 }
-uint32_t SerialConnVT100::RemapCharacter(uint32_t uc)
+uint32_t SerialConnVT100::RemapCharacter(uint32_t uc, int charset)
 {
     if (uc >= ' ' && uc < 0x7f) {
-        return VT100_RemapCharacter(uc, mCharsets[mCharsetInUsed]);
+        return VT100_RemapCharacter(uc, charset);
     }
     return SerialConnEcma48::RemapCharacter(uc);
 }
@@ -315,7 +314,7 @@ void SerialConnVT100::SaveCursor(CursorData& cd)
     cd.Vy = mVy;
     cd.Px = mPx;
     cd.Py = mPy;
-    cd.Charset = mCharsetInUsed;
+    cd.Charset = mCharset;
     cd.Style = mStyle;
 }
 void SerialConnVT100::LoadCursor(const CursorData& cd)
@@ -324,7 +323,7 @@ void SerialConnVT100::LoadCursor(const CursorData& cd)
     mVy = cd.Vy;
     mPx = cd.Px;
     mPy = cd.Py;
-    mCharsetInUsed = cd.Charset;
+    mCharset = cd.Charset;
     mStyle = cd.Style;
 }
 void SerialConnVT100::ProcessDECSC(const std::string&)

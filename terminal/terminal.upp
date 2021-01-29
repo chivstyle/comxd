@@ -43,6 +43,7 @@ file
 	codec/CodecUTF8.cpp,
 	codec/CodecUTF8.h,
 	Codec.cpp,
+	connimpls\Charset.h,
 	connimpls/SerialConnVT.h,
 	connimpls/SerialConnVT.cpp,
 	connimpls/ColorTable.cpp,

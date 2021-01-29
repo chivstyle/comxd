@@ -25,6 +25,7 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
     , mMaxLinesBufferSize(5000)
     , mSeqsFactory(new ControlSeqFactory())
     , mTabWidth(8)
+    , mCharset(CS_US)
 {
     // double buffer
     BackPaint();
@@ -678,15 +679,18 @@ bool SerialConnVT::ProcessOverflowLines(const struct Seq&)
 	return ProcessOverflowLines();
 }
 //
-uint32_t SerialConnVT::RemapCharacter(uint32_t uc)
+uint32_t SerialConnVT::RemapCharacter(uint32_t uc, int charset)
 {
+	(void)uc;
+	(void)charset;
     return uc;
 }
 void SerialConnVT::RenderText(const std::vector<uint32_t>& s)
 {
     Size csz = GetConsoleSize();
+    int cs = 0;
     for (size_t k = 0; k < s.size(); ++k) {
-        VTChar chr = RemapCharacter(s[k]);
+        VTChar chr = RemapCharacter(s[k], mCharset);
         chr.SetStyle(mStyle);
         // Unfortunately, UPP does not support complete UNICODE, support UCS-16 instead. So
         // we should ignore those out of range
