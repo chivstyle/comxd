@@ -578,6 +578,17 @@ void SerialConnEcma48::ProcessDMI(const std::string& p)
 }
 void SerialConnEcma48::ProcessDSR(const std::string& p)
 {
+	int ps = atoi(p.c_str());
+    switch (ps) {
+    case 5:
+        GetIo()->Write("\x1b[0\x6e"); // It's OK, no malfunction detected
+        break;
+    case 6: if (1) {
+        std::string cpr = std::string("\x1b[") + std::to_string(mPy/mFontH + 1)
+            + ";" + std::to_string(mPx/mFontW + 1) + "\x52";
+        GetIo()->Write(cpr);
+    } break;
+    }
 }
 void SerialConnEcma48::ProcessDTA(const std::string& p)
 {

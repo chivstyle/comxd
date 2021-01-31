@@ -14,7 +14,6 @@ public:
 	void ProcessSCP(const std::string& p);
 	// override
 	uint32_t RemapCharacter(uint32_t uc, int charset);
-	//std::vector<uint32_t> TranscodeToUTF32(const std::string& s, size_t& ep);
 	//
 private:
 	void InstallFunctions();

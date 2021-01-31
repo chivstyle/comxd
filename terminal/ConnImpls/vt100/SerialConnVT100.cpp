@@ -71,20 +71,6 @@ void SerialConnVT100::ProcessDA(const std::string& p)
         break;
     }
 }
-void SerialConnVT100::ProcessDSR(const std::string& p)
-{
-    int ps = atoi(p.c_str());
-    switch (ps) {
-    case 5:
-        GetIo()->Write("\x1b[0n"); // It's OK
-        break;
-    case 6: if (1) {
-        std::string cpr = std::string("\x1b[") + std::to_string(mPy/mFontH)
-            + ";" + std::to_string(mPx/mFontW);
-        GetIo()->Write(cpr);
-    } break;
-    }
-}
 //
 void SerialConnVT100::ProcessVT100_G0_UK(const std::string& p)
 {
