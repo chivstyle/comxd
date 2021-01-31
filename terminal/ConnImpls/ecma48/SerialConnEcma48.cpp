@@ -241,7 +241,18 @@ void SerialConnEcma48::ProcessBEL(const std::string&)
 }
 void SerialConnEcma48::ProcessBS(const std::string&)
 {
-    mPx -= mFontW;
+	int px = mPx - mFontW;
+	if (px < 0) {
+		Size csz = GetConsoleSize();
+        mVy--;
+        if (mVy >= 0) {
+            VTLine& vline = mLines[mVy];
+            mPx = this->VirtualToLogic(vline, csz.cx, false);
+            mPx -= mFontW;
+        }
+	} else {
+		mPx = px;
+	}
 }
 void SerialConnEcma48::ProcessHT(const std::string&)
 {
@@ -356,13 +367,8 @@ void SerialConnEcma48::ProcessCCH(const std::string& p)
     if (mVy >= 0) {
         VTLine& vline = mLines[mVy];
         if (mVx > 0) {
-            vline[mVx] = mBlankChar;
+            vline[mVx-1] = mBlankChar;
             mVx--;
-        } else if (mVy > 0) {
-            VTLine& vline = mLines[mVy-1];
-            *vline.rbegin() = mBlankChar;
-            mVy -= 1;
-            mVx = (int)vline.size() - 2;
         }
     }
 }
@@ -370,7 +376,7 @@ void SerialConnEcma48::ProcessCHA(const std::string& p)
 {
     int pn = atoi(p.c_str());
     if (pn <= 0) pn = 1;
-    mPx = mFontW*pn;
+    mPx = mFontW*(pn-1);
 }
 void SerialConnEcma48::ProcessCHT(const std::string& p)
 {
@@ -834,8 +840,7 @@ void SerialConnEcma48::ProcessREP(const std::string& p)
 	int pn = atoi(p.c_str());
 	if (pn <= 0) pn = 1;
 	VTLine& vline = mLines[mVy];
-	int vx = mVx > 0 ? mVx - 1 : mVx;
-	const VTChar& ch = vline[vx];
+	const VTChar& ch = mVx > 0 ? vline[mVx - 1] : mBlankChar;
 	int cn = 0;
 	for (int i = mVx; i < (int)vline.size() && cn < pn; ++i) {
 		vline[i] = ch;
@@ -862,6 +867,7 @@ void SerialConnEcma48::ProcessRI(const std::string& p)
 }
 void SerialConnEcma48::ProcessRIS(const std::string& p)
 {
+	this->Clear();
 }
 void SerialConnEcma48::ProcessRM(const std::string& p)
 {

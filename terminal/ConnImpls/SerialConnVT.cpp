@@ -1345,10 +1345,6 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
             std::swap(bg_color, fg_color);
         }
     }
-    // process blank lines, tell the user this line was selected.
-    //if (abc_cnt == 0 && IsCharInSelectionSpan(vx, vy)) {
-    //    draw.DrawRect(lxoff, lyoff, mFontW, vline.GetHeight(), mColorTbl.GetColor(VTColorTable::kColorId_Texts));
-    //}
 }
 
 void SerialConnVT::UpdateDataPos(int flags)
@@ -1387,8 +1383,9 @@ void SerialConnVT::UpdatePresentationPos(int flags)
         int x0 = this->VirtualToLogic(mLines[mVy], mVx, false);
         int x1 = x0 + GetCharWidth(mLines[mVy][mVx]);
         // If mPx is out of range [x0,x1], update it.
-        if (mPx <= x0 || mPx >= x1)
+        if (mPx <= x0 || mPx >= x1) {
             mPx = x0;
+        }
     }
 }
 

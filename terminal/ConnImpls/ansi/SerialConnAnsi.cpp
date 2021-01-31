@@ -43,3 +43,14 @@ uint32_t SerialConnAnsi::RemapCharacter(uint32_t uc, int charset)
 	    return Ansi_RemapCharacter(uc, charset);
 	} else return SerialConnVT100::RemapCharacter(uc, charset);
 }
+/*!
+std::vector<uint32_t> SerialConnAnsi::TranscodeToUTF32(const std::string& s, size_t& ep)
+{
+	std::vector<uint32_t> out;
+	for (size_t k = 0; k < s.length(); ++k) {
+		out.push_back((uint8_t)s[k]);
+	}
+	ep = s.length();
+	return std::move(out);
+}
+*/
