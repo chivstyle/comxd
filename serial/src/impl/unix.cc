@@ -146,9 +146,9 @@ Serial::SerialImpl::open ()
       return;
     case ENFILE:
     case EMFILE:
-      THROW (IOException, "Too many file handles open.");
+      SERIAL_THROW (IOException, "Too many file handles open.");
     default:
-      THROW (IOException, errno);
+      SERIAL_THROW (IOException, errno);
     }
   }
 
@@ -161,13 +161,13 @@ Serial::SerialImpl::reconfigurePort ()
 {
   if (fd_ == -1) {
     // Can only operate on a valid file descriptor
-    THROW (IOException, "Invalid file descriptor, is the serial port open?");
+    SERIAL_THROW (IOException, "Invalid file descriptor, is the serial port open?");
   }
 
   struct termios options; // The options for the file descriptor
 
   if (tcgetattr(fd_, &options) == -1) {
-    THROW (IOException, "::tcgetattr");
+    SERIAL_THROW (IOException, "::tcgetattr");
   }
 
   // set up raw mode / no echo / binary
@@ -312,14 +312,14 @@ Serial::SerialImpl::reconfigurePort ()
     // and output speed.
     speed_t new_baud = static_cast<speed_t> (baudrate_);
     if (-1 == ioctl (fd_, IOSSIOSPEED, &new_baud, 1)) {
-      THROW (IOException, errno);
+      SERIAL_THROW (IOException, errno);
     }
     // Linux Support
 #elif defined(__linux__) && defined (TIOCSSERIAL)
     struct serial_struct ser;
 
     if (-1 == ioctl (fd_, TIOCGSERIAL, &ser)) {
-      THROW (IOException, errno);
+      SERIAL_THROW (IOException, errno);
     }
 
     // set custom divisor
@@ -329,7 +329,7 @@ Serial::SerialImpl::reconfigurePort ()
     ser.flags |= ASYNC_SPD_CUST;
 
     if (-1 == ioctl (fd_, TIOCSSERIAL, &ser)) {
-      THROW (IOException, errno);
+      SERIAL_THROW (IOException, errno);
     }
 #else
     throw invalid_argument ("OS does not currently support custom bauds");
@@ -464,7 +464,7 @@ Serial::SerialImpl::close ()
       if (ret == 0) {
         fd_ = -1;
       } else {
-        THROW (IOException, errno);
+        SERIAL_THROW (IOException, errno);
       }
     }
     is_open_ = false;
@@ -485,7 +485,7 @@ Serial::SerialImpl::available ()
   }
   int count = 0;
   if (-1 == ioctl (fd_, TIOCINQ, &count)) {
-      THROW (IOException, errno);
+      SERIAL_THROW (IOException, errno);
   } else {
       return static_cast<size_t> (count);
   }
@@ -507,7 +507,7 @@ Serial::SerialImpl::waitReadable (uint32_t timeout)
       return false;
     }
     // Otherwise there was some error
-    THROW (IOException, errno);
+    SERIAL_THROW (IOException, errno);
   }
   // Timeout occurred
   if (r == 0) {
@@ -515,7 +515,7 @@ Serial::SerialImpl::waitReadable (uint32_t timeout)
   }
   // This shouldn't happen, if r > 0 our fd has to be in the list!
   if (!FD_ISSET (fd_, &readfds)) {
-    THROW (IOException, "select reports ready to read, but our fd isn't"
+    SERIAL_THROW (IOException, "select reports ready to read, but our fd isn't"
            " in the list, this shouldn't happen!");
   }
   // Data available to read.
@@ -647,7 +647,7 @@ Serial::SerialImpl::write (const uint8_t *data, size_t length)
         continue;
       }
       // Otherwise there was some error
-      THROW (IOException, errno);
+      SERIAL_THROW (IOException, errno);
     }
     /** Timeout **/
     if (r == 0) {
@@ -687,7 +687,7 @@ Serial::SerialImpl::write (const uint8_t *data, size_t length)
         }
       }
       // This shouldn't happen, if r > 0 our fd has to be in the list!
-      THROW (IOException, "select reports ready to write, but our fd isn't"
+      SERIAL_THROW (IOException, "select reports ready to write, but our fd isn't"
                           " in the list, this shouldn't happen!");
     }
   }
@@ -1032,7 +1032,7 @@ Serial::SerialImpl::readLock ()
 {
   int result = pthread_mutex_lock(&this->read_mutex);
   if (result) {
-    THROW (IOException, result);
+    SERIAL_THROW (IOException, result);
   }
 }
 
@@ -1041,7 +1041,7 @@ Serial::SerialImpl::readUnlock ()
 {
   int result = pthread_mutex_unlock(&this->read_mutex);
   if (result) {
-    THROW (IOException, result);
+    SERIAL_THROW (IOException, result);
   }
 }
 
@@ -1050,7 +1050,7 @@ Serial::SerialImpl::writeLock ()
 {
   int result = pthread_mutex_lock(&this->write_mutex);
   if (result) {
-    THROW (IOException, result);
+    SERIAL_THROW (IOException, result);
   }
 }
 
@@ -1059,7 +1059,7 @@ Serial::SerialImpl::writeUnlock ()
 {
   int result = pthread_mutex_unlock(&this->write_mutex);
   if (result) {
-    THROW (IOException, result);
+    SERIAL_THROW (IOException, result);
   }
 }
 

@@ -139,7 +139,7 @@ SerialConn* SerialDevsDialog::RequestConn()
 	            port->Start();
 	            auto conn = ConnFactory::Inst()->CreateInst(~mTypes, port);
 	            if (!conn) {
-	                Upp::PromptOK(DeQtf(t_("Dose not support:") + ~mTypes));
+	                Upp::PromptOK(DeQtf(t_("Dose not support:") + (String)~mTypes));
 	            } else {
 	                conn->SetCodec(mCodecs.Get().ToString());
 	                conn->Start();
