@@ -24,8 +24,8 @@ protected:
     virtual void ProcessVT(const std::string&);
     virtual void ProcessFF(const std::string&);
     virtual void ProcessCR(const std::string&);
-    virtual void ProcessLS0(const std::string&);
-    virtual void ProcessLS1(const std::string&);
+    virtual void ProcessSI(const std::string&);
+    virtual void ProcessSO(const std::string&);
     virtual void ProcessDLE(const std::string&);
     virtual void ProcessDC1(const std::string&);
     virtual void ProcessDC2(const std::string&);
@@ -190,6 +190,8 @@ protected:
     // 3 the shifted part is limited to the active qualified area
     // 4 the shifted part consists of the relevant part of the entire presentation component.
     int mSee;
+    int mPageHome;
+    int mLineHome;
     // ANSI MODES
     struct Ecma48Modes {
         enum BDSMValue { BDSM_Explicit = 0, BDSM_Implicit };
@@ -236,7 +238,7 @@ protected:
         Ecma48Modes()
             : BDSM(BDSM_Implicit)
             , CRM(CRM_Control)
-            , DCSM(DCSM_Data)
+            , DCSM(DCSM_Presentation)
             , ERM(ERM_All)
             , FEAM(FEAM_Execute)
             , FETM(FETM_Exclude)

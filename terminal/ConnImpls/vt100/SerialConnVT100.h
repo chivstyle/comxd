@@ -13,8 +13,8 @@ public:
     virtual void ProcessDA(const std::string& p);
     virtual void ProcessCUP(const std::string& p);
     virtual void ProcessHVP(const std::string& p);
-    virtual void ProcessLS0(const std::string& p); // LS0, i.e SI
-    virtual void ProcessLS1(const std::string& p); // LS1, i.e SO
+    virtual void ProcessSI(const std::string& p);
+    virtual void ProcessSO(const std::string& p);
     // VT100 modes, DEC private
     void ProcessVT100_MODE_SET(const std::string& p);
     void ProcessVT100_MODE_RESET(const std::string& p);

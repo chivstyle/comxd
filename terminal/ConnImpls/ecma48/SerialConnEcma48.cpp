@@ -10,6 +10,8 @@ using namespace Upp;
 SerialConnEcma48::SerialConnEcma48(std::shared_ptr<SerialIo> io)
     : Superclass(io)
     , mSee(1)
+    , mPageHome(0)
+    , mLineHome(0)
 {
     InstallFunctions();
     //
@@ -35,8 +37,8 @@ void SerialConnEcma48::InstallFunctions()
     mFunctions[ECMA48_VT] = [=](const std::string& p) { ProcessVT(p); };
     mFunctions[ECMA48_FF] = [=](const std::string& p) { ProcessFF(p); };
     mFunctions[ECMA48_CR] = [=](const std::string& p) { ProcessCR(p); };
-    mFunctions[ECMA48_LS0] = [=](const std::string& p) { ProcessLS0(p); };
-    mFunctions[ECMA48_LS1] = [=](const std::string& p) { ProcessLS1(p); };
+    mFunctions[ECMA48_SI] = [=](const std::string& p) { ProcessSI(p); };
+    mFunctions[ECMA48_SO] = [=](const std::string& p) { ProcessSO(p); };
     mFunctions[ECMA48_DLE] = [=](const std::string& p) { ProcessDLE(p); };
     mFunctions[ECMA48_DC1] = [=](const std::string& p) { ProcessDC1(p); };
     mFunctions[ECMA48_DC2] = [=](const std::string& p) { ProcessDC2(p); };
@@ -217,28 +219,36 @@ void SerialConnEcma48::Fill(int X0, int Y0, int X1, int Y1, const VTChar& c)
         }
     }
 }
-//
+// C0, Start of heading, Not used
 void SerialConnEcma48::ProcessSOH(const std::string&)
 {
 }
+// C0, Start of text, not used
 void SerialConnEcma48::ProcessSTX(const std::string&)
 {
 }
+// C0, Start of tetx, not used
 void SerialConnEcma48::ProcessETX(const std::string&)
 {
 }
+// C0, End of transmission, not used
 void SerialConnEcma48::ProcessEOT(const std::string&)
 {
 }
+// C0, Enquiry
 void SerialConnEcma48::ProcessENQ(const std::string&)
 {
 }
+// C0, Acknowledge
 void SerialConnEcma48::ProcessACK(const std::string&)
 {
 }
+// C0, Bell
 void SerialConnEcma48::ProcessBEL(const std::string&)
 {
+	Upp::BeepExclamation();
 }
+// C0, Backspace
 void SerialConnEcma48::ProcessBS(const std::string&)
 {
 	int px = mPx - mFontW;
@@ -254,51 +264,50 @@ void SerialConnEcma48::ProcessBS(const std::string&)
 		mPx = px;
 	}
 }
+// C0, horizon tab
 void SerialConnEcma48::ProcessHT(const std::string&)
 {
     int tabsz = mFontW*mTabWidth;
     mPx += tabsz - (mPx % tabsz);
 }
+// C0, Line feed
 void SerialConnEcma48::ProcessLF(const std::string&)
 {
 	int tp = (int)mLines[mVy].size() - this->CalculateNumberOfBlankCharsFromEnd(mLines[mVy]);
 	mLines[mVy][tp] = '\n';
     mVy += 1;
     if (mModes.LMN == Ecma48Modes::LMN_LineFeed) {
-        mVx = 0;
+        mVx = mLineHome;
     }
 }
+// C0, Vertical tab
 void SerialConnEcma48::ProcessVT(const std::string&)
 {
-	int tp = (int)mLines[mVy].size() - this->CalculateNumberOfBlankCharsFromEnd(mLines[mVy]);
-	mLines[mVy][tp] = '\n';
-    mVy += 1;
-    if (mModes.LMN == Ecma48Modes::LMN_LineFeed) {
-        mVx = 0;
-    }
+	ProcessLF("");
 }
+// C0, Form feed
 void SerialConnEcma48::ProcessFF(const std::string&)
 {
-	int tp = (int)mLines[mVy].size() - this->CalculateNumberOfBlankCharsFromEnd(mLines[mVy]);
-	mLines[mVy][tp] = '\n';
-    mVy += 1;
-    if (mModes.LMN == Ecma48Modes::LMN_LineFeed) {
-        mVx = 0;
-    }
+	ProcessLF("");
 }
+// C0, Carrier
 void SerialConnEcma48::ProcessCR(const std::string&)
 {
     mVx = 0;
 }
-void SerialConnEcma48::ProcessLS0(const std::string&)
+// C0, Shift in
+void SerialConnEcma48::ProcessSI(const std::string&)
 {
 }
-void SerialConnEcma48::ProcessLS1(const std::string&)
+// C0, Shift out
+void SerialConnEcma48::ProcessSO(const std::string&)
 {
 }
+// C0, Data link escape
 void SerialConnEcma48::ProcessDLE(const std::string&)
 {
 }
+// C0, Device control, 1-4
 void SerialConnEcma48::ProcessDC1(const std::string&)
 {
 }
@@ -311,46 +320,59 @@ void SerialConnEcma48::ProcessDC3(const std::string&)
 void SerialConnEcma48::ProcessDC4(const std::string&)
 {
 }
+// C0, Negative acknowledge
 void SerialConnEcma48::ProcessNAK(const std::string&)
 {
 }
+// C0, Synchronous idle
 void SerialConnEcma48::ProcessSYN(const std::string&)
 {
 }
+// C0, End of block
 void SerialConnEcma48::ProcessETB(const std::string&)
 {
 }
+// C0, Cancel
 void SerialConnEcma48::ProcessCAN(const std::string&)
 {
 }
+// C0, End of medium
 void SerialConnEcma48::ProcessEM(const std::string&)
 {
 }
+// C0, Substitute
 void SerialConnEcma48::ProcessSUB(const std::string&)
 {
 }
-
+// C0, File separator
 void SerialConnEcma48::ProcessFS(const std::string&)
 {
 }
+// C0, Group separator
 void SerialConnEcma48::ProcessGS(const std::string&)
 {
 }
+// C0, Record separator
 void SerialConnEcma48::ProcessRS(const std::string&)
 {
 }
+// C0, Unit separator
 void SerialConnEcma48::ProcessUS(const std::string&)
 {
 }
+// C0, Delete
 void SerialConnEcma48::ProcessDEL(const std::string&)
 {
 }
+// Application program command
 void SerialConnEcma48::ProcessAPC(const std::string& p)
 {
 }
+// Bread permitted here
 void SerialConnEcma48::ProcessBPH(const std::string& p)
 {
 }
+// Cursor backward tab
 void SerialConnEcma48::ProcessCBT(const std::string& p)
 {
     int tabsz = mFontW*mTabWidth;
@@ -362,6 +384,7 @@ void SerialConnEcma48::ProcessCBT(const std::string& p)
         pn -= 1;
     mPx -= rn + tabsz*pn;
 }
+// Cancel character
 void SerialConnEcma48::ProcessCCH(const std::string& p)
 {
     if (mVy >= 0) {
@@ -372,12 +395,14 @@ void SerialConnEcma48::ProcessCCH(const std::string& p)
         }
     }
 }
+// Cursor character absolute
 void SerialConnEcma48::ProcessCHA(const std::string& p)
 {
     int pn = atoi(p.c_str());
     if (pn <= 0) pn = 1;
     mPx = mFontW*(pn-1);
 }
+// Cursor forward tab
 void SerialConnEcma48::ProcessCHT(const std::string& p)
 {
     int tabsz = mFontW*mTabWidth;
@@ -389,33 +414,30 @@ void SerialConnEcma48::ProcessCHT(const std::string& p)
         pn -= 1;
     mPx += rn + tabsz*pn;
 }
+// Coding method delimiter
 void SerialConnEcma48::ProcessCMD(const std::string& p)
 {
 }
+// Cursor next line
 void SerialConnEcma48::ProcessCNL(const std::string& p)
 {
-    Size csz = GetConsoleSize();
     int pn = atoi(p.c_str());
     if (pn <= 0) pn = 1;
     mVy += pn;
-    if (mVy >= csz.cy)
-        mVy = csz.cy - 1;
     mVx = 0;
 }
+// Cursor preceding line
 void SerialConnEcma48::ProcessCPL(const std::string& p)
 {
     int pn = atoi(p.c_str());
     if (pn <= 0) pn = 1;
     mVy -= pn;
-    if (mVy < 0)
-        mVy = 0;
-    mVx = 0;
 }
+// CPR is used to report cursor position
 void SerialConnEcma48::ProcessCPR(const std::string& p)
 {
-    // this seq was used to report cursor position of terminal
 }
-// TODO: it's not correct, maybe.
+// TODO: it's not correct, maybe. I have no idea how to implement this
 void SerialConnEcma48::ProcessCTC(const std::string& p)
 {
     SplitString(p.c_str(), ';', [=](const char* token) {
@@ -490,8 +512,6 @@ void SerialConnEcma48::ProcessCUB(const std::string& p)
     int pn = atoi(p.c_str());
     if (pn <= 0) pn = 1;
     mPx -= mFontW*pn;
-    if (mPx < 0)
-        mPx = 0;
 }
 void SerialConnEcma48::ProcessCUD(const std::string& p)
 {
@@ -499,8 +519,6 @@ void SerialConnEcma48::ProcessCUD(const std::string& p)
     int pn = atoi(p.c_str());
     if (pn <= 0) pn = 1;
     mVy += pn;
-    if (mVy >= csz.cy)
-        mVy = csz.cy-1;
 }
 void SerialConnEcma48::ProcessCUF(const std::string& p)
 {
@@ -525,22 +543,21 @@ void SerialConnEcma48::ProcessCUU(const std::string& p)
     int pn = atoi(p.c_str());
     if (pn <= 0) pn = 1;
     mVy -= pn;
-    if (mVy < 0)
-        mVy = 0;
 }
 void SerialConnEcma48::ProcessCVT(const std::string& p)
 {
-    Size csz = GetConsoleSize();
     int pn = atoi(p.c_str());
     mVy += pn;
-    if (mVy >= csz.cy)
-        mVy = csz.cy - 1;
 }
 void SerialConnEcma48::ProcessDA(const std::string& p)
 {
 }
 void SerialConnEcma48::ProcessDAQ(const std::string& p)
 {
+	int ps = atoi(p.c_str());
+	if (ps >= 0 && ps < 12) {
+		mDaq[ps].From = Point(mVx, mVy);
+	}
 }
 void SerialConnEcma48::ProcessDCH(const std::string& p)
 {
@@ -554,6 +571,7 @@ void SerialConnEcma48::ProcessDCH(const std::string& p)
     vline.erase(vline.begin() + mVx, vline.begin() + mVx+pn);
     vline.insert(vline.end(), pn, mBlankChar);
 }
+// Device control string
 void SerialConnEcma48::ProcessDCS(const std::string& p)
 {
 }
@@ -573,6 +591,7 @@ void SerialConnEcma48::ProcessDL(const std::string& p)
     mLines.insert(it_end, pn, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
     mLines.erase(mLines.begin()+mVy, mLines.begin()+mVy+pn);
 }
+// disable manual input
 void SerialConnEcma48::ProcessDMI(const std::string& p)
 {
 }
@@ -592,7 +611,23 @@ void SerialConnEcma48::ProcessDSR(const std::string& p)
 }
 void SerialConnEcma48::ProcessDTA(const std::string& p)
 {
+	Size csz = GetConsoleSize();
+    int idx = 0, pn[2] = {1, 1};
+    SplitString(p.c_str(), ';', [=, &idx, &pn](const char* token) {
+        if (idx < 2)
+            pn[idx++] = atoi(token);
+    });
+    if (pn[0] <= 0) pn[0] = 1; //
+    if (pn[1] <= 0) pn[1] = 1; //
+    if (pn[0] < pn[1] && pn[1] <= csz.cy) {
+        mScrollingRegion.Top = pn[0]-1;
+        mScrollingRegion.Bottom = pn[1]-1;
+        // To the home position
+        mVx = 0;
+        mVy = pn[0]-1;
+    }
 }
+// Erase in area, we ignore it.
 void SerialConnEcma48::ProcessEA(const std::string& p)
 {
 }
@@ -670,27 +705,35 @@ void SerialConnEcma48::ProcessEL(const std::string& p)
     } break;
     }
 }
+// Enable manual input
 void SerialConnEcma48::ProcessEMI(const std::string& p)
 {
 }
+// End of guarded area, we ignore it
 void SerialConnEcma48::ProcessEPA(const std::string& p)
 {
 }
+// End of selected area, we ignore it
 void SerialConnEcma48::ProcessESA(const std::string& p)
 {
 }
+// Function key
 void SerialConnEcma48::ProcessFNK(const std::string& p)
 {
 }
+// Font selection, we ignore it
 void SerialConnEcma48::ProcessFNT(const std::string& p)
 {
 }
+// Graphics character combination
 void SerialConnEcma48::ProcessGCC(const std::string& p)
 {
 }
+// Graphics size modification
 void SerialConnEcma48::ProcessGSM(const std::string& p)
 {
 }
+// Graphics size selection
 void SerialConnEcma48::ProcessGSS(const std::string& p)
 {
 }
@@ -714,11 +757,14 @@ void SerialConnEcma48::ProcessHPR(const std::string& p)
 	if (pn <= 0) pn = 1;
 	mVx += pn;
 }
+// Character tabulation with justification
 void SerialConnEcma48::ProcessHTJ(const std::string& p)
 {
 }
+// Character tabulation set
 void SerialConnEcma48::ProcessHTS(const std::string& p)
 {
+	mLines[mVy][mVx++] = '\t';
 }
 void SerialConnEcma48::ProcessHVP(const std::string& p)
 {
@@ -731,9 +777,11 @@ void SerialConnEcma48::ProcessICH(const std::string& p)
 	VTLine& vline = mLines[mVy];
 	vline.insert(vline.begin() + mVx, pn, mBlankChar);
 }
+// Identify device control string
 void SerialConnEcma48::ProcessIDCS(const std::string& p)
 {
 }
+// Identify graphic subrepertoire
 void SerialConnEcma48::ProcessIGS(const std::string& p)
 {
 }
@@ -753,12 +801,15 @@ void SerialConnEcma48::ProcessIL(const std::string& p)
     Size csz = GetConsoleSize();
     mLines.insert(mLines.begin()+mVy, pn, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
 }
+// Interrupt
 void SerialConnEcma48::ProcessINT(const std::string& p)
 {
 }
+// Justify
 void SerialConnEcma48::ProcessJFY(const std::string& p)
 {
 }
+//
 void SerialConnEcma48::ProcessLS1R(const std::string& p)
 {
 }
@@ -801,51 +852,67 @@ void SerialConnEcma48::ProcessNEL(const std::string& p)
     }
     mVx = 0;
 }
+// Next page
 void SerialConnEcma48::ProcessNP(const std::string& p)
 {
 }
+// operating system command
 void SerialConnEcma48::ProcessOSC(const std::string& p)
 {
 }
+// presentation expand or contract
 void SerialConnEcma48::ProcessPEC(const std::string& p)
 {
 }
+// page format selection
 void SerialConnEcma48::ProcessPFS(const std::string& p)
 {
 }
+// partial line forward
 void SerialConnEcma48::ProcessPLD(const std::string& p)
 {
 }
+// partial line backward
 void SerialConnEcma48::ProcessPLU(const std::string& p)
 {
 }
+// privacy message
 void SerialConnEcma48::ProcessPM(const std::string& p)
 {
 }
+// preceding page
 void SerialConnEcma48::ProcessPP(const std::string& p)
 {
 }
+// page position absolute
 void SerialConnEcma48::ProcessPPA(const std::string& p)
 {
 }
+// page position backward
 void SerialConnEcma48::ProcessPPB(const std::string& p)
 {
 }
+// page position forward
 void SerialConnEcma48::ProcessPPR(const std::string& p)
 {
 }
+// parallel texts
 void SerialConnEcma48::ProcessPTX(const std::string& p)
 {
 }
+// private use one
 void SerialConnEcma48::ProcessPU1(const std::string& p)
 {
 }
+// private use two
 void SerialConnEcma48::ProcessPU2(const std::string& p)
 {
 }
+// quad
 void SerialConnEcma48::ProcessQUAD(const std::string& p)
 {
 }
+// repeat last char
 void SerialConnEcma48::ProcessREP(const std::string& p)
 {
 	int pn = atoi(p.c_str());
@@ -910,21 +977,27 @@ void SerialConnEcma48::ProcessRM(const std::string& p)
         }
     });
 }
+// set additional character separation
 void SerialConnEcma48::ProcessSACS(const std::string& p)
 {
 }
+// select alternative presentation variants
 void SerialConnEcma48::ProcessSAPV(const std::string& p)
 {
 }
+// single character introducer
 void SerialConnEcma48::ProcessSCI(const std::string& p)
 {
 }
+// select character orientation
 void SerialConnEcma48::ProcessSCO(const std::string& p)
 {
 }
+// select character path
 void SerialConnEcma48::ProcessSCP(const std::string& p)
 {
 }
+// set character spacing
 void SerialConnEcma48::ProcessSCS(const std::string& p)
 {
 }
@@ -939,13 +1012,16 @@ void SerialConnEcma48::ProcessSD(const std::string& p)
 	auto it_bot = mLines.begin() + bot + pn;
 	mLines.erase(it_bot - pn + 1, it_bot + 1);
 }
+// start directed string
 void SerialConnEcma48::ProcessSDS(const std::string& p)
 {
 }
+// selected editing extent
 void SerialConnEcma48::ProcessSEE(const std::string& p)
 {
 	this->mSee = atoi(p.c_str());
 }
+// select eject and feed
 void SerialConnEcma48::ProcessSEF(const std::string& p)
 {
 }
@@ -1048,7 +1124,7 @@ void SerialConnEcma48::ProcessSGR(const std::string& p)
             mStyle.FgColorId = VTColorTable::kColorId_Texts;
             break;
         case 40:
-            mStyle.BgColorId = VTColorTable::kColorId_Black;
+            mStyle.BgColorId = VTColorTable::kColorId_Paper;
             break;
         case 41:
             mStyle.BgColorId = VTColorTable::kColorId_Red;
@@ -1081,9 +1157,11 @@ void SerialConnEcma48::ProcessSGR(const std::string& p)
         }
     });
 }
+// select character spacing
 void SerialConnEcma48::ProcessSHS(const std::string& p)
 {
 }
+// select implicit movement direction
 void SerialConnEcma48::ProcessSIMD(const std::string& p)
 {
 }
@@ -1098,12 +1176,18 @@ void SerialConnEcma48::ProcessSL(const std::string& p)
 		vline.insert(vline.end(), pn, mBlankChar);
 	}
 }
+// set line home
 void SerialConnEcma48::ProcessSLH(const std::string& p)
 {
+	int pn = atoi(p.c_str());
+	if (pn <= 0) pn = 1;
+	mLineHome = pn -1;
 }
+// set line limit, ignore it, we use unlimited line size
 void SerialConnEcma48::ProcessSLL(const std::string& p)
 {
 }
+// set line spacing
 void SerialConnEcma48::ProcessSLS(const std::string& p)
 {
 }
@@ -1137,24 +1221,33 @@ void SerialConnEcma48::ProcessSM(const std::string& p)
         }
     });
 }
+// start of string
 void SerialConnEcma48::ProcessSOS(const std::string& p)
 {
 }
+// start of guarded area
 void SerialConnEcma48::ProcessSPA(const std::string& p)
 {
 }
+// select representation directions
 void SerialConnEcma48::ProcessSPD(const std::string& p)
 {
 }
 void SerialConnEcma48::ProcessSPH(const std::string& p)
 {
+	int pn = atoi(p.c_str());
+	if (pn <= 0) pn = 1;
+	mPageHome = pn;
 }
+// spacing increment
 void SerialConnEcma48::ProcessSPI(const std::string& p)
 {
 }
+// set page limit
 void SerialConnEcma48::ProcessSPL(const std::string& p)
 {
 }
+// select print quality and rapidity
 void SerialConnEcma48::ProcessSPQR(const std::string& p)
 {
 }
@@ -1170,36 +1263,43 @@ void SerialConnEcma48::ProcessSR(const std::string& p)
 			vline.pop_back();
 	}
 }
-
+// start reversed string
 void SerialConnEcma48::ProcessSRS(const std::string& p)
 {
 }
-
+// set reduced character separation
 void SerialConnEcma48::ProcessSRCS(const std::string& p)
 {
 }
-
+// start of selected area
 void SerialConnEcma48::ProcessSSA(const std::string& p)
 {
 }
+// select size unit
 void SerialConnEcma48::ProcessSSU(const std::string& p)
 {
 }
+// set space width
 void SerialConnEcma48::ProcessSSW(const std::string& p)
 {
 }
+// single shift two
 void SerialConnEcma48::ProcessSS2(const std::string& p)
 {
 }
+// single shift three
 void SerialConnEcma48::ProcessSS3(const std::string& p)
 {
 }
+// string terminator
 void SerialConnEcma48::ProcessST(const std::string& p)
 {
 }
+// selective tabulation
 void SerialConnEcma48::ProcessSTAB(const std::string& p)
 {
 }
+// set transmit state
 void SerialConnEcma48::ProcessSTS(const std::string& p)
 {
 }
@@ -1215,15 +1315,19 @@ void SerialConnEcma48::ProcessSU(const std::string& p)
 	mLines.insert(it_end, pn, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
 	mLines.erase(mLines.begin()+top, mLines.begin()+top+pn);
 }
+// select line spacing
 void SerialConnEcma48::ProcessSVS(const std::string& p)
 {
 }
+// tabulation aligned centred
 void SerialConnEcma48::ProcessTAC(const std::string& p)
 {
 }
+// tabulation aligned leading edge
 void SerialConnEcma48::ProcessTALE(const std::string& p)
 {
 }
+// tabulation aligned trailing edge
 void SerialConnEcma48::ProcessTATE(const std::string& p)
 {
 }
@@ -1231,12 +1335,15 @@ void SerialConnEcma48::ProcessTBC(const std::string& p)
 {
 	ProcessCTC(p);
 }
+// tabulation centred on character
 void SerialConnEcma48::ProcessTCC(const std::string& p)
 {
 }
+// tabulation stop remove
 void SerialConnEcma48::ProcessTSR(const std::string& p)
 {
 }
+// thin space specification
 void SerialConnEcma48::ProcessTSS(const std::string& p)
 {
 }
@@ -1263,6 +1370,7 @@ void SerialConnEcma48::ProcessVPR(const std::string& p)
 }
 void SerialConnEcma48::ProcessVTS(const std::string& p)
 {
+	mLines[mVy][mVx] = '\v';
 	mVy++;
 }
 bool SerialConnEcma48::ProcessChar(Upp::dword cc)

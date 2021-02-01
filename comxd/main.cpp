@@ -13,7 +13,6 @@ public:
 	{
 	    this->Title("comxd");
 	    //
-		this->SetRect(0, 0, 800, 600);
 		this->CenterScreen();
 		this->Sizeable();
 		this->Icon(comxd::app_icon()).MaximizeBox().MinimizeBox();
@@ -168,5 +167,7 @@ GUI_APP_MAIN
 {
 	Upp::SetLanguage(GetSystemLNG());
 	//
-	MainWindow().Run();
+	MainWindow win;
+	win.SetRect(0, 0, 800, 600);
+	win.Run();
 }

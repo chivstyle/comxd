@@ -23,18 +23,8 @@ SerialConnAnsi::SerialConnAnsi(std::shared_ptr<SerialIo> io)
 
 void SerialConnAnsi::InstallFunctions()
 {
-	mFunctions[ANSI_RCP] = [=](const std::string& p) { ProcessRCP(p); };
-	mFunctions[ANSI_SCP] = [=](const std::string& p) { ProcessSCP(p); };
-}
-
-void SerialConnAnsi::ProcessRCP(const std::string&)
-{
-	this->LoadCursor(this->mCursorData);
-}
-
-void SerialConnAnsi::ProcessSCP(const std::string&)
-{
-	this->SaveCursor(this->mCursorData);
+	mFunctions[ANSI_RCP] = [=](const std::string& p) { this->LoadCursor(this->mCursorData); };
+	mFunctions[ANSI_SCP] = [=](const std::string& p) { this->SaveCursor(this->mCursorData); };
 }
 
 uint32_t SerialConnAnsi::RemapCharacter(uint32_t uc, int charset)

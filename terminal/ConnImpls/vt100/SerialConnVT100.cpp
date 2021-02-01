@@ -112,11 +112,11 @@ void SerialConnVT100::ProcessVT100_G1_ROM_SPECIAL(const std::string& p)
 {
     mCharsets[1] = CS_ROM_SPECIAL;
 }
-void SerialConnVT100::ProcessLS0(const std::string& p)
+void SerialConnVT100::ProcessSI(const std::string& p)
 {
     mCharset = mCharsets[0];
 }
-void SerialConnVT100::ProcessLS1(const std::string& p)
+void SerialConnVT100::ProcessSO(const std::string& p)
 {
     mCharset = mCharsets[1];
 }
@@ -134,38 +134,64 @@ bool SerialConnVT100::ProcessKeyDown(Upp::dword key, Upp::dword flags)
     if (flags == 0) {
         processed = true;
         switch (key) {
-        case K_UP: if (1) {
+        case K_UP:
             if (mModes.DECCKM == VT100Modes::DECCKM_Cursor) {
                 GetIo()->Write("\033[A");
             } else {
                 GetIo()->Write("\033OA");
             }
-        } break;
-        case K_DOWN:if (1) {
+            break;
+        case K_DOWN:
             if (mModes.DECCKM == VT100Modes::DECCKM_Cursor) {
                 GetIo()->Write("\033[B");
             } else {
                 GetIo()->Write("\033OB");
             }
-        } break;
-        case K_LEFT:if (1) {
+            break;
+        case K_LEFT:
             if (mModes.DECCKM == VT100Modes::DECCKM_Cursor) {
                 GetIo()->Write("\033[D");
             } else {
                 GetIo()->Write("\033OD");
             }
-        } break;
-        case K_RIGHT:if (1) {
+            break;
+        case K_RIGHT:
             if (mModes.DECCKM == VT100Modes::DECCKM_Cursor) {
                 GetIo()->Write("\033[C");
             } else {
                 GetIo()->Write("\033OC");
             }
-        } break;
-        case K_F1:  GetIo()->Write("\x1bOP"); break;
-		case K_F2:  GetIo()->Write("\x1bOQ"); break;
-		case K_F3:  GetIo()->Write("\x1bOR"); break;
-		case K_F4:  GetIo()->Write("\x1bOS"); break;
+            break;
+        /*! PF1 ~ PF4 */
+        case K_F1:
+            if (mModes.DECANM == VT100Modes::DECANM_ANSI) {
+                GetIo()->Write("\x1bOP");
+            } else {
+                GetIo()->Write("\x1bP");
+            }
+            break;
+		case K_F2:
+            if (mModes.DECANM == VT100Modes::DECANM_ANSI) {
+                GetIo()->Write("\x1bOQ");
+            } else {
+                GetIo()->Write("\x1bQ");
+            }
+            break;
+		case K_F3:
+            if (mModes.DECANM == VT100Modes::DECANM_ANSI) {
+                GetIo()->Write("\x1bOR");
+            } else {
+                GetIo()->Write("\x1bR");
+            }
+            break;
+		case K_F4:
+            if (mModes.DECANM == VT100Modes::DECANM_ANSI) {
+                GetIo()->Write("\x1bOS");
+            } else {
+                GetIo()->Write("\x1bS");
+            }
+            break;
+		/*! keys below, I'm not sure, from libncurse */
 		case K_F5:  GetIo()->Write("\x1bOt"); break;
 		case K_F6:  GetIo()->Write("\x1bOu"); break;
 		case K_F7:  GetIo()->Write("\x1bOv"); break;
