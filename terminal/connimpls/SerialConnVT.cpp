@@ -376,6 +376,7 @@ int SerialConnVT::GetCharWidth(const VTChar& c) const
         cx = tabsz - (mPx % tabsz);
     } break;
     case '\v':
+    case '\n':
     case ' ':
         break;
     default: if (1) {
@@ -1297,6 +1298,11 @@ void SerialConnVT::UseStyle(const VTChar& c, Upp::Font& font, Upp::Color& fg_col
     bg_color = mColorTbl.GetColor(bgcolor_id);
 }
 
+static inline bool _IsBlank(const VTChar& c)
+{
+	return c.Code() <= ' ';
+}
+
 void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
     int vx, int vy, /*! absolute position of data */
     int lxoff, int lyoff)
@@ -1325,7 +1331,7 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
                     draw.DrawRect(x, y, vchar_cx, vline.GetHeight(), bg_color);
                 }
                 if (fg_color != bg_color) {
-                    if (vline[i].Code() != ' ' && vline[i].Code() != '\t' && vline[i].Code() != '\v' && visible) {
+                    if (!_IsBlank(vline[i]) && visible) {
                         DrawVTChar(draw, x, y, vline[i], mFont, fg_color);
                     }
                 }
@@ -1335,7 +1341,7 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
                 draw.DrawRect(x, y, vchar_cx, vline.GetHeight(), bg_color);
             }
             if (fg_color != bg_color) {
-                if (vline[i].Code() != ' ' && vline[i].Code() != '\t' && vline[i].Code() != '\v' && visible) {
+                if (!_IsBlank(vline[i]) && visible) {
                     DrawVTChar(draw, x, y, vline[i], mFont, fg_color);
                 }
             }
