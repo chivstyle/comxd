@@ -699,6 +699,7 @@ void SerialConnVT::RenderText(const std::vector<uint32_t>& s)
             chr.SetCode('?'); // replace chr with ?
         if (mWrapLine) {
 	        if (mVx >= csz.cx || mPx >= mFontW*csz.cx) { // wrap line
+	            mLines[mVy].HasSuccessiveLines(true);
 	            mVy++; mVx = 0;
 	            if (this->ProcessOverflowLines()) {
 		            this->UpdateVScrollbar();
@@ -1169,8 +1170,8 @@ std::vector<std::string> SerialConnVT::GetSelection() const
         return std::vector<std::string>();
     // merge buffer and virtual screen.
     int nlines = (int)(mLinesBuffer.size() + mLines.size()) - this->CalculateNumberOfBlankLinesFromEnd(mLines);
-    std::vector<std::string> out(span.Y1 - span.Y0 + 1);
-    size_t out_p = 0;
+    std::vector<std::string> out;
+    bool has_successive = false;
     // first line
     if (1) {
         const VTLine* vline = this->GetVTLine(span.Y0);
@@ -1183,7 +1184,8 @@ std::vector<std::string> SerialConnVT::GetSelection() const
                 sel += UTF32ToUTF8_(vline->at(i).Code());
             }
         }
-        out[out_p++] = sel;
+        has_successive = vline->HasSuccessiveLines();
+        out.push_back(sel);
     }
     // in span
     //------------------------------------------------------------------------------------------
@@ -1194,7 +1196,10 @@ std::vector<std::string> SerialConnVT::GetSelection() const
         for (size_t i = 0; i < nchars; ++i) {
             sel += UTF32ToUTF8_(vline->at(i).Code());
         }
-        out[out_p++] = sel;
+        if (has_successive) {
+            *out.rbegin() += sel;
+        } else out.push_back(sel);
+        has_successive = vline->HasSuccessiveLines();
     }
     // tail line, if existed
     if (span.Y1 > span.Y0 && span.Y1 < nlines) {
@@ -1208,7 +1213,10 @@ std::vector<std::string> SerialConnVT::GetSelection() const
                 sel += UTF32ToUTF8_(vline->at(i).Code());
             }
         }
-        out[out_p++] = sel;
+        if (has_successive) {
+            *out.rbegin() += sel;
+        } else out.push_back(sel);
+        has_successive = vline->HasSuccessiveLines();
     }
     return out;
 }
@@ -1218,7 +1226,9 @@ String SerialConnVT::GetSelectedText() const
     String out;
     auto lines = GetSelection();
     for (size_t k = 0; k < lines.size(); ++k) {
-        // strip tail blanks of lines or \v
+        if (k != 0)
+            out += '\n';
+        // strip successive blanks from tail
         size_t n = 0;
         while (n < lines[k].size()) {
             uint32_t c = lines[k][lines[k].size() - 1 - n];
@@ -1270,12 +1280,15 @@ void SerialConnVT::DrawCursor(Draw& draw)
     
     Size usz = GetSize();
     if (px >= 0 && py < usz.cx && py >= 0 && py < usz.cy) {
-        draw.DrawRect(px, py, mFontW, mFontH, Color(0, 255, 0));
         // a visible char.
         if (mVy < (int)mLines.size() && mVx < (int)mLines[mVy].size()
             && mLines[mVy][mVx].Code() != ' ' && mLines[mVy][mVx].Code() != '\t') {
-            this->DrawVTChar(draw, px, py, mLines[mVy][mVx], mFont, \
+            const VTChar& cc = mLines[mVy][mVx];
+            draw.DrawRect(px, py, GetCharWidth(cc), mFontH, Color(0, 255, 0));
+            this->DrawVTChar(draw, px, py, cc, mFont, \
                 mColorTbl.GetColor(VTColorTable::kColorId_Paper));
+        } else {
+            draw.DrawRect(px, py, mFontW, mFontH, Color(0, 255, 0));
         }
     }
 }

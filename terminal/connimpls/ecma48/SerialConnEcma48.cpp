@@ -257,10 +257,12 @@ void SerialConnEcma48::ProcessBS(const std::string&)
         int vy = mVy - 1;
         // this line and previous line belong to a single line, because the last
         // line was not broken by a LineFeed or Vertical tabulation.
-        if (vy >= 0 && mLines[vy][csz.cx-1] != '\n' && mLines[vy][csz.cx-1] != '\v') {
+        if (vy >= 0) {
             VTLine& vline = mLines[vy];
-            mPx = this->VirtualToLogic(vline, csz.cx, false) - mFontW;
-            mVy = vy;
+            if (vline.HasSuccessiveLines()) {
+	            mPx = this->VirtualToLogic(vline, csz.cx, false) - mFontW;
+	            mVy = vy;
+            }
         }
 	} else {
 		mPx = px;

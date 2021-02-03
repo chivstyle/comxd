@@ -152,22 +152,31 @@ private:
 /// warning: You should set height manually.
 class VTLine : public std::vector<VTChar> {
 public:
-    VTLine() {}
+    VTLine()
+    {
+        mHeight = 15;
+        mHasSuccesiveLines = false;
+    }
     explicit VTLine(size_t sz)
         : std::vector<VTChar>(sz)
-        , mHeight(1)
+        , mHeight(15)
+        , mHasSuccesiveLines(false)
     {
     }
     VTLine(size_t sz, const VTChar& c)
         : std::vector<VTChar>(sz, c)
-        , mHeight(1)
+        , mHeight(15)
+        , mHasSuccesiveLines(false)
     {
     }
     VTLine& SetHeight(int height) { mHeight = height; return *this; }
     int GetHeight() const { return mHeight; };
+    bool HasSuccessiveLines() const { return mHasSuccesiveLines; }
+    void HasSuccessiveLines(bool b) { mHasSuccesiveLines = b; }
     
 private:
     int mHeight;
+    bool mHasSuccesiveLines;
 };
 
 #endif
