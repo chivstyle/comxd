@@ -19,10 +19,26 @@
 #define VT100_SEQ_BEGIN               ECMA48_SEQ_END+1 // 204
 #define VT100_SEQ_MAX_COUNT           100
 #define VT100_SEQ_END                 VT100_SEQ_BEGIN+VT100_SEQ_MAX_COUNT // 304
-//
+// ansi
 #define ANSI_SEQ_BEGIN                VT100_SEQ_END+1 // 305
 #define ANSI_SEQ_MAX_COUNT            100
 #define ANSI_SEQ_END                  ANSI_SEQ_BEGIN+ANSI_SEQ_MAX_COUNT // 405
+// vt200
+#define VT200_SEQ_BEGIN               ANSI_SEQ_END+1 // 406
+#define VT200_SEQ_MAX_COUNT           100
+#define VT200_SEQ_END                 VT200_SEQ_BEGIN+VT200_SEQ_MAX_COUNT // 506
+// vt300
+#define VT300_SEQ_BEGIN               VT200_SEQ_END+1 // 507
+#define VT300_SEQ_MAX_COUNT           100
+#define VT300_SEQ_END                 VT300_SEQ_BEGIN+VT300_SEQ_MAX_COUNT // 607
+// vt400
+#define VT400_SEQ_BEGIN               VT300_SEQ_END+1 // 608
+#define VT400_SEQ_MAX_COUNT           100
+#define VT400_SEQ_END                 VT400_SEQ_BEGIN+VT400_SEQ_MAX_COUNT // 708
+// vt500
+#define VT500_SEQ_BEGIN               VT400_SEQ_END+1 // 809
+#define VT500_SEQ_MAX_COUNT           100
+#define VT500_SEQ_END                 VT500_SEQ_BEGIN+VT500_SEQ_MAX_COUNT // 909
 //
 struct ControlSeq {
     int         Type;

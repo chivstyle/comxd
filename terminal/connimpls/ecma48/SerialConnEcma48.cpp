@@ -277,8 +277,6 @@ void SerialConnEcma48::ProcessHT(const std::string&)
 // C0, Line feed
 void SerialConnEcma48::ProcessLF(const std::string&)
 {
-	int tp = (int)mLines[mVy].size() - this->CalculateNumberOfBlankCharsFromEnd(mLines[mVy]);
-	mLines[mVy][tp] = '\n';
     mVy += 1;
     if (mModes.LMN == Ecma48Modes::LMN_LineFeed) {
         mVx = mLineHome;

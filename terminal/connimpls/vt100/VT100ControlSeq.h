@@ -7,22 +7,19 @@
 #include <string>
 //
 enum VT100SeqType {
-    // ANSI-Compatible Private Modes, others were included in ECMA-48
-    VT100_MODE_SET = VT100_SEQ_BEGIN,
-    VT100_MODE_RESET,
+    // DEC Private Modes, others were included in ECMA-48
+    DECSM = VT100_SEQ_BEGIN,
+    DECRM,
     // DEC Private mode
     DECKPAM,
     DECKPNM,
     //
-    VT100_G0_UK,           VT100_G1_UK,
-    VT100_G0_US,           VT100_G1_US,
-    VT100_G0_LINE_DRAWING, VT100_G1_LINE_DRAWING,
-    VT100_G0_ROM,          VT100_G1_ROM,
-    VT100_G0_ROM_SPECIAL,  VT100_G1_ROM_SPECIAL,
-    //
-    VT100_MC,
-    VT100_DSR,
-    VT100_IND,
+    G0_CS,
+    G1_CS,
+    // I hate naming...
+    DECMC,
+    DECDSR,
+    DECIND,
     //
     DECREQTPARM,
     DECID,

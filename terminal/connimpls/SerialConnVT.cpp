@@ -162,9 +162,13 @@ void SerialConnVT::InstallUserActions()
         }).Key(K_CTRL | K_SHIFT | K_A);
     };
 }
-void SerialConnVT::WrapLine(bool b)
+void SerialConnVT::SetWrapLine(bool b)
 {
 	mWrapLine = b;
+}
+void SerialConnVT::SetShowCursor(bool b)
+{
+	mShowCursor = b;
 }
 //
 void SerialConnVT::SaveScr(ScreenData& sd)
@@ -700,6 +704,7 @@ void SerialConnVT::RenderText(const std::vector<uint32_t>& s)
         if (mWrapLine) {
 	        if (mVx >= csz.cx || mPx >= mFontW*csz.cx) { // wrap line
 	            mLines[mVy].HasSuccessiveLines(true);
+	            // insert or move to next line.
 	            mVy++; mVx = 0;
 	            if (this->ProcessOverflowLines()) {
 		            this->UpdateVScrollbar();
@@ -839,7 +844,8 @@ void SerialConnVT::LeftTriple(Point p, dword)
     Point vpos = LogicToVirtual(lx, ly, px, next_px, py, next_py);
     VTLine* vline = this->GetVTLine(vpos.y);
     if (vline) {
-        mSelectionSpan.Y0 = mSelectionSpan.Y1 = vpos.y;
+        mSelectionSpan.Y0 = vpos.y;
+        mSelectionSpan.Y1 = vpos.y;
         mSelectionSpan.X0 = 0;
         mSelectionSpan.X1 = (int)vline->size();
         mSelectionSpan.Valid = true;
@@ -1124,13 +1130,17 @@ void SerialConnVT::DoLayout()
         }
         int overflow_cnt = (int)vline.size() - csz.cx;
         if (overflow_cnt > 0) {
-            // erase those blanks out of range
+#if 0
+            while (overflow_cnt--)
+                vline.pop_back();
+#else
             int blanks_cnt = this->CalculateNumberOfBlankCharsFromEnd(vline);
             int k = 0;
             while (k < overflow_cnt && k < blanks_cnt) {
                 k++;
                 vline.pop_back();
             }
+#endif
         }
     }
     // extend or shrink the virtual screen

@@ -56,7 +56,8 @@ public:
     void LoadScr(const ScreenData& sd);
     // swap current scr and sd
     void SwapScr(ScreenData& sd);
-    void WrapLine(bool b);
+    void SetWrapLine(bool b);
+    void SetShowCursor(bool b);
     //
     Upp::Event<Upp::Bar&> WhenBar;
 protected:

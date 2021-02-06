@@ -25,32 +25,24 @@ SerialConnVT100::SerialConnVT100(std::shared_ptr<SerialIo> io)
     SerialConnEcma48::mModes.SRTM = 0;
     SerialConnEcma48::mModes.TSM = 0;
     // enable wrap line
-    WrapLine(true);
+    SetWrapLine(true);
     // default charsets
     mCharsets[0] = CS_US;
     mCharsets[1] = CS_UK;
     //
-    SaveCursor(mCursorData);
+    SaveCursorData(mCursorData);
     //
     InstallFunctions();
 }
 
 void SerialConnVT100::InstallFunctions()
 {
-    mFunctions[VT100_MODE_SET] = [=](const std::string& p) { ProcessVT100_MODE_SET(p); };
-    mFunctions[VT100_MODE_RESET] = [=](const std::string& p) { ProcessVT100_MODE_RESET(p); };
-    mFunctions[VT100_DSR] = [=](const std::string& p) { ProcessVT100_DSR(p); };
+    mFunctions[DECSM] = [=](const std::string& p) { ProcessDECSM(p); };
+    mFunctions[DECRM] = [=](const std::string& p) { ProcessDECRM(p); };
+    mFunctions[DECDSR] = [=](const std::string& p) { ProcessDECDSR(p); };
     //
-    mFunctions[VT100_G0_UK]           = [=](const std::string& p) { ProcessVT100_G0_UK(p); };
-    mFunctions[VT100_G0_US]           = [=](const std::string& p) { ProcessVT100_G0_US(p); };
-    mFunctions[VT100_G0_LINE_DRAWING] = [=](const std::string& p) { ProcessVT100_G0_LINE_DRAWING(p); };
-    mFunctions[VT100_G0_ROM]          = [=](const std::string& p) { ProcessVT100_G0_ROM(p); };
-    mFunctions[VT100_G0_ROM_SPECIAL]  = [=](const std::string& p) { ProcessVT100_G0_ROM_SPECIAL(p); };
-    mFunctions[VT100_G1_UK]           = [=](const std::string& p) { ProcessVT100_G1_UK(p); };
-    mFunctions[VT100_G1_US]           = [=](const std::string& p) { ProcessVT100_G1_US(p); };
-    mFunctions[VT100_G1_LINE_DRAWING] = [=](const std::string& p) { ProcessVT100_G1_LINE_DRAWING(p); };
-    mFunctions[VT100_G1_ROM]          = [=](const std::string& p) { ProcessVT100_G1_ROM(p); };
-    mFunctions[VT100_G1_ROM_SPECIAL]  = [=](const std::string& p) { ProcessVT100_G1_ROM_SPECIAL(p); };
+    mFunctions[G0_CS]           = [=](const std::string& p) { ProcessG0_CS(p); };
+    mFunctions[G1_CS]           = [=](const std::string& p) { ProcessG1_CS(p); };
     //
     mFunctions[DECREQTPARM] = [=](const std::string& p) { ProcessDECREQTPARM(p); };
     mFunctions[DECSTBM] = [=](const std::string& p) { ProcessDECSTBM(p); };
@@ -72,45 +64,33 @@ void SerialConnVT100::ProcessDA(const std::string& p)
     }
 }
 //
-void SerialConnVT100::ProcessVT100_G0_UK(const std::string& p)
+void SerialConnVT100::ProcessG0_CS(const std::string& p)
 {
-    mCharsets[0] = CS_UK;
+	if (p == "A") {
+        mCharsets[0] = CS_UK;
+	} else if (p == "B") {
+		mCharsets[0] = CS_US;
+	} else if (p == "0") {
+		mCharsets[0] = CS_LINE_DRAWING;
+	} else if (p == "1") {
+		mCharsets[0] = CS_ROM;
+	} else if (p == "2") {
+		mCharsets[0] = CS_ROM_SPECIAL;
+	}
 }
-void SerialConnVT100::ProcessVT100_G1_UK(const std::string& p)
+void SerialConnVT100::ProcessG1_CS(const std::string& p)
 {
-    mCharsets[1] = CS_UK;
-}
-void SerialConnVT100::ProcessVT100_G0_US(const std::string& p)
-{
-    mCharsets[0] = CS_US;
-}
-void SerialConnVT100::ProcessVT100_G1_US(const std::string& p)
-{
-    mCharsets[1] = CS_US;
-}
-void SerialConnVT100::ProcessVT100_G0_LINE_DRAWING(const std::string& p)
-{
-    mCharsets[0] = CS_LINE_DRAWING;
-}
-void SerialConnVT100::ProcessVT100_G1_LINE_DRAWING(const std::string& p)
-{
-    mCharsets[1] = CS_LINE_DRAWING;
-}
-void SerialConnVT100::ProcessVT100_G0_ROM(const std::string& p)
-{
-    mCharsets[0] = CS_ROM;
-}
-void SerialConnVT100::ProcessVT100_G1_ROM(const std::string& p)
-{
-    mCharsets[1] = CS_ROM;
-}
-void SerialConnVT100::ProcessVT100_G0_ROM_SPECIAL(const std::string& p)
-{
-    mCharsets[0] = CS_ROM_SPECIAL;
-}
-void SerialConnVT100::ProcessVT100_G1_ROM_SPECIAL(const std::string& p)
-{
-    mCharsets[1] = CS_ROM_SPECIAL;
+    if (p == "A") {
+        mCharsets[1] = CS_UK;
+	} else if (p == "B") {
+		mCharsets[1] = CS_US;
+	} else if (p == "0") {
+		mCharsets[1] = CS_LINE_DRAWING;
+	} else if (p == "1") {
+		mCharsets[1] = CS_ROM;
+	} else if (p == "2") {
+		mCharsets[1] = CS_ROM_SPECIAL;
+	}
 }
 void SerialConnVT100::ProcessSI(const std::string& p)
 {
@@ -209,7 +189,7 @@ bool SerialConnVT100::ProcessKeyDown(Upp::dword key, Upp::dword flags)
     return processed ? true : SerialConnEcma48::ProcessKeyDown(key, flags);
 }
 //
-void SerialConnVT100::ProcessVT100_MODE_SET(const std::string& p)
+void SerialConnVT100::ProcessDECSM(const std::string& p)
 {
     int ps = atoi(p.c_str());
     switch (ps) {
@@ -222,13 +202,13 @@ void SerialConnVT100::ProcessVT100_MODE_SET(const std::string& p)
         mColorTbl.SetColor(VTColorTable::kColorId_Texts, mColorTbl.GetColor(VTColorTable::kColorId_Black));
         break;
     case 6:  mModes.DECOM   = 1; ProcessCUP(""); /*! home */ break;
-    case 7:  mModes.DECAWM  = 1; WrapLine(true); break;
+    case 7:  mModes.DECAWM  = 1; SetWrapLine(true); break;
     case 8:  mModes.DECARM  = 1; break;
     case 18: mModes.DECPFF  = 1; break;
     case 19: mModes.DECPEX  = 1; break;
     }
 }
-void SerialConnVT100::ProcessVT100_MODE_RESET(const std::string& p)
+void SerialConnVT100::ProcessDECRM(const std::string& p)
 {
     int ps = atoi(p.c_str());
     switch (ps) {
@@ -242,14 +222,14 @@ void SerialConnVT100::ProcessVT100_MODE_RESET(const std::string& p)
         mColorTbl.SetColor(VTColorTable::kColorId_Texts, mColorTbl.GetColor(VTColorTable::kColorId_White));
         break;
     case 6:  mModes.DECOM   = 0; ProcessCUP(""); /*! home */ break;
-    case 7:  mModes.DECAWM  = 0; WrapLine(false); break;
+    case 7:  mModes.DECAWM  = 0; SetWrapLine(false); break;
     case 8:  mModes.DECARM  = 0; break;
     case 18: mModes.DECPFF  = 0; break;
     case 19: mModes.DECPEX  = 0; break;
     }
 }
 
-void SerialConnVT100::ProcessVT100_DSR(const std::string& p)
+void SerialConnVT100::ProcessDECDSR(const std::string& p)
 {
     int ps = atoi(p.c_str());
     switch (ps) {
@@ -287,7 +267,7 @@ void SerialConnVT100::ProcessHVP(const std::string& p)
     ProcessCUP(p);
 }
 //
-void SerialConnVT100::ProcessVT100_IND(const std::string&)
+void SerialConnVT100::ProcessDECIND(const std::string&)
 {
     int bot = mScrollingRegion.Bottom;
     if (bot < 0) bot = (int)mLines.size()-1;
@@ -320,7 +300,7 @@ void SerialConnVT100::ProcessDECSTBM(const std::string& p)
         mVy = pn[0]-1;
     }
 }
-void SerialConnVT100::SaveCursor(CursorData& cd)
+void SerialConnVT100::SaveCursorData(CursorDataVT100& cd)
 {
     cd.Vx = mVx;
     cd.Vy = mVy;
@@ -329,7 +309,7 @@ void SerialConnVT100::SaveCursor(CursorData& cd)
     cd.Charset = mCharset;
     cd.Style = mStyle;
 }
-void SerialConnVT100::LoadCursor(const CursorData& cd)
+void SerialConnVT100::LoadCursorData(const CursorDataVT100& cd)
 {
     mVx = cd.Vx;
     mVy = cd.Vy;
@@ -340,11 +320,11 @@ void SerialConnVT100::LoadCursor(const CursorData& cd)
 }
 void SerialConnVT100::ProcessDECSC(const std::string&)
 {
-    SaveCursor(mCursorData);
+    SaveCursorData(mCursorData);
 }
 void SerialConnVT100::ProcessDECRC(const std::string& p)
 {
-    LoadCursor(mCursorData);
+    LoadCursorData(mCursorData);
 }
 
 void SerialConnVT100::ProcessDECALN(const std::string&)

@@ -12,6 +12,6 @@ enum AnsiSeqType {
     //
     ANSI_SEQ_MAX
 };
-static_assert(ANSI_SEQ_MAX < ANSI_SEQ_END, "You should define VT100_SEQ_MAX_COUNT big enough");
+static_assert(ANSI_SEQ_MAX < ANSI_SEQ_END, "You should define ANSI_SEQ_MAX_COUNT big enough");
 
 void AddAnsiControlSeqs(ControlSeqFactory* factory);

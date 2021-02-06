@@ -8,28 +8,20 @@
 
 void AddVT100ControlSeqs(ControlSeqFactory* factory)
 {
-    REGISTER_SEQ(factory, VT100_MODE_SET,   "\x1b[?", Pn, 1, "h");
-    REGISTER_SEQ(factory, VT100_MODE_RESET, "\x1b[?", Pn, 1, "l");
+    REGISTER_SEQ(factory, DECSM, "\x1b[?", Pn, 1, "h");
+    REGISTER_SEQ(factory, DECRM, "\x1b[?", Pn, 1, "l");
     //
     REGISTER_SEQ(factory, DECKPAM,       kESC,     No, 0, "=");
     REGISTER_SEQ(factory, DECKPNM,       kESC,     No, 0, ">");
     //
     REGISTER_SEQ(factory, DECSTBM,       kCSI,     Pn, 2, "r");
     //
-    REGISTER_SEQ(factory, VT100_G0_UK,             "\x1b(",  No, 0, "A");
-    REGISTER_SEQ(factory, VT100_G0_US,             "\x1b(",  No, 0, "B");
-    REGISTER_SEQ(factory, VT100_G0_LINE_DRAWING,   "\x1b(",  No, 0, "0");
-    REGISTER_SEQ(factory, VT100_G0_ROM,            "\x1b(",  No, 0, "1");
-    REGISTER_SEQ(factory, VT100_G0_ROM_SPECIAL,    "\x1b(",  No, 0, "2");
-    REGISTER_SEQ(factory, VT100_G1_UK,             "\x1b)",  No, 0, "A");
-    REGISTER_SEQ(factory, VT100_G1_US,             "\x1b)",  No, 0, "B");
-    REGISTER_SEQ(factory, VT100_G1_LINE_DRAWING,   "\x1b)",  No, 0, "0");
-    REGISTER_SEQ(factory, VT100_G1_ROM,            "\x1b)",  No, 0, "1");
-    REGISTER_SEQ(factory, VT100_G1_ROM_SPECIAL,    "\x1b)",  No, 0, "2");
+    REGISTER_SEQ(factory, G0_CS,         "\x1b(",  Gs, 0, "");
+    REGISTER_SEQ(factory, G1_CS,         "\x1b)",  Gs, 0, "");
     //
-    REGISTER_SEQ(factory, VT100_MC,  "\x1b[?", Pn, 0, "i");
-    REGISTER_SEQ(factory, VT100_DSR, "\x1b[?", Ps, 0, "n");
-    REGISTER_SEQ(factory, VT100_IND, kESC,     No, 0, "D");
+    REGISTER_SEQ(factory, DECMC,  "\x1b[?", Pn, 0, "i");
+    REGISTER_SEQ(factory, DECDSR, "\x1b[?", Ps, 0, "n");
+    REGISTER_SEQ(factory, DECIND, kESC,     No, 0, "D");
     //
     REGISTER_SEQ(factory, DECREQTPARM, kCSI, Ps, 0, "x");
     //

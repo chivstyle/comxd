@@ -72,6 +72,12 @@ file
 	connimpls\vt100\SerialConnVT100.h,
 	connimpls/ecma48/Ecma48ControlSeq.cpp,
 	connimpls/ecma48/Ecma48ControlSeq.h,
+	connimpls\vt200\SerialConnVT200.cpp,
+	connimpls\vt200\SerialConnVT200.h,
+	connimpls\vt200\VT200Charset.cpp,
+	connimpls\vt200\VT200Charset.h,
+	connimpls\vt200\VT200ControlSeq.cpp,
+	connimpls\vt200\VT200ControlSeq.h,
 	connimpls/ecma48/SerialConnEcma48.cpp,
 	connimpls/ecma48/SerialConnEcma48.h;
 

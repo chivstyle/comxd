@@ -16,11 +16,11 @@ public:
     virtual void ProcessSI(const std::string& p);
     virtual void ProcessSO(const std::string& p);
     // VT100 modes, DEC private
-    void ProcessVT100_MODE_SET(const std::string& p);
-    void ProcessVT100_MODE_RESET(const std::string& p);
-    // VT100 specific
-    void ProcessVT100_DSR(const std::string& p);
-    void ProcessVT100_IND(const std::string& p);
+    virtual void ProcessDECSM(const std::string& p);
+    virtual void ProcessDECRM(const std::string& p);
+    // DEC private
+    void ProcessDECDSR(const std::string& p);
+    void ProcessDECIND(const std::string& p);
     // VT100 specific, DEC private
     // DECID was ignored, according to vt100 specification
     void ProcessDECREQTPARM(const std::string& p);
@@ -33,16 +33,8 @@ public:
     // VT52 seqs were ignored, factory will recognize them, but we do not
     // accept them.
     // charset
-    void ProcessVT100_G0_UK(const std::string& p);
-    void ProcessVT100_G1_UK(const std::string& p);
-    void ProcessVT100_G0_US(const std::string& p);
-    void ProcessVT100_G1_US(const std::string& p);
-    void ProcessVT100_G0_LINE_DRAWING(const std::string& p);
-    void ProcessVT100_G1_LINE_DRAWING(const std::string& p);
-    void ProcessVT100_G0_ROM(const std::string& p);
-    void ProcessVT100_G1_ROM(const std::string& p);
-    void ProcessVT100_G0_ROM_SPECIAL(const std::string& p);
-    void ProcessVT100_G1_ROM_SPECIAL(const std::string& p);
+    void ProcessG0_CS(const std::string& p);
+    void ProcessG1_CS(const std::string& p);
     virtual uint32_t RemapCharacter(uint32_t uc, int charset);
     //
     virtual bool ProcessKeyDown(Upp::dword key, Upp::dword flags);
@@ -106,15 +98,15 @@ public:
     };
     VT100Modes mModes;
     // cursor position, graphics rendition, character set
-    struct CursorData {
+    struct CursorDataVT100 {
         int Vx, Vy;
         int Px, Py;
         int Charset;
         VTStyle Style;
     };
-    void SaveCursor(CursorData& cd);
-    void LoadCursor(const CursorData& cd);
-    CursorData mCursorData;
+    void SaveCursorData(CursorDataVT100& cd);
+    void LoadCursorData(const CursorDataVT100& cd);
+    CursorDataVT100 mCursorData;
 private:
     void InstallFunctions();
 };
