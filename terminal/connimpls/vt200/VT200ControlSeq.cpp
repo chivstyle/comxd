@@ -10,8 +10,8 @@
 void AddVT200ControlSeqs(ControlSeqFactory* factory)
 {
 	REGISTER_SEQ(factory, DECSCL, kCSI, Ps, 0, "\x70");
-	REGISTER_SEQ(factory, G2_CS,  "\x1b*", Gs, 0, "");
-	REGISTER_SEQ(factory, G3_CS,  "\x1b+", Gs, 0, "");
+	REGISTER_SEQ(factory, G2_CS,  "\x1b*", Gn, 1, "");
+	REGISTER_SEQ(factory, G3_CS,  "\x1b+", Gn, 1, "");
 	REGISTER_SEQ(factory, S7C1T,  "\x1b F", No, 0, "");
 	REGISTER_SEQ(factory, S8C1T,  "\x1b G", No, 0, "");
 	REGISTER_SEQ(factory, DECKPAM, "\x1b=", No, 0, "");

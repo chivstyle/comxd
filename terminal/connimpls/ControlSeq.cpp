@@ -95,6 +95,15 @@ static inline int ParseGs(const std::string& seq, size_t p_begin)
     }
     return (int)p_begin;
 }
+//
+static inline int ParseGn(const std::string& seq, size_t p_begin, int pn)
+{
+	int cn = 0;
+	for (size_t k = p_begin; k < seq.length() && cn < pn; ++k) {
+		cn++;
+	}
+	return cn < pn ? 0 : (int)p_begin + cn;
+}
 
 int ControlSeqFactory::IsControlSeq(const std::string& seq, size_t& p_begin, size_t& p_sz, size_t& s_end)
 {
@@ -121,6 +130,7 @@ int ControlSeqFactory::IsControlSeq(const std::string& seq, size_t& p_begin, siz
         case ControlSeq::Pn: ret = ParsePn(seq, p_begin, it->Pnum); break;
         case ControlSeq::Ps: ret = ParsePn(seq, p_begin, it->Pnum); break;
         case ControlSeq::Gs: ret = ParseGs(seq, p_begin); break;
+        case ControlSeq::Gn: ret = ParseGn(seq, p_begin, it->Pnum); break;
         case ControlSeq::No: ret = (int)p_begin; break;
         default: abort(); break;
         }

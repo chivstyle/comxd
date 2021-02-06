@@ -16,8 +16,8 @@ void AddVT100ControlSeqs(ControlSeqFactory* factory)
     //
     REGISTER_SEQ(factory, DECSTBM,       kCSI,     Pn, 2, "r");
     //
-    REGISTER_SEQ(factory, G0_CS,         "\x1b(",  Gs, 0, "");
-    REGISTER_SEQ(factory, G1_CS,         "\x1b)",  Gs, 0, "");
+    REGISTER_SEQ(factory, G0_CS,         "\x1b(",  Gn, 1, "");
+    REGISTER_SEQ(factory, G1_CS,         "\x1b)",  Gn, 1, "");
     //
     REGISTER_SEQ(factory, DECMC,  "\x1b[?", Pn, 0, "i");
     REGISTER_SEQ(factory, DECDSR, "\x1b[?", Ps, 0, "n");

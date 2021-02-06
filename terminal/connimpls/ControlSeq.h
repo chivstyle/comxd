@@ -49,7 +49,8 @@ struct ControlSeq {
         No,            // Withoud parameter
         Ps,            // With Ps
         Pn,            // With Pn
-        Gs             // With string
+        Gs,            // With string
+        Gn             // parameter is a string with length = n
     };
     short       Ptyp;   // Type of parameters
     //
