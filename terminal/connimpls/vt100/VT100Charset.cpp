@@ -4,9 +4,9 @@
 */
 #include "VT100Charset.h"
 
-uint32_t VT100_RemapCharacter(uint32_t uc, int type)
+uint32_t VT100_RemapCharacter(uint32_t uc, int cs)
 {
-    const uint32_t cs[] = {
+    const uint32_t cs_drawing[] = {
         0x02666,
         0x02592,
         0x02192,
@@ -39,9 +39,9 @@ uint32_t VT100_RemapCharacter(uint32_t uc, int type)
         0x000a3,
         0x000b7
     };
-    switch (type) {
-    case CS_UK: if (uc == '#') return 0x000a3; else break;
-    case CS_LINE_DRAWING: if (uc >= '`' && uc <= '~') return cs[uc - '`']; else break;
+    switch (cs) {
+    case CS_UK: if (uc == 0x23) return 0x000a3; else break;
+    case CS_LINE_DRAWING: if (uc >= 0x60 && uc <= 0x7e) return cs_drawing[uc - 0x60]; else break;
     case CS_US:
     case CS_ROM:
     case CS_ROM_SPECIAL:

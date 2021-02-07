@@ -14,6 +14,7 @@ REGISTER_CONN_INSTANCE("vt100 by chiv", "vt100", SerialConnVT100);
 SerialConnVT100::SerialConnVT100(std::shared_ptr<SerialIo> io)
     : SerialConnVT(io)
     , SerialConnEcma48(io)
+    , mKeypadMode(DECKPNM)
 {
     AddVT100ControlSeqs(this->mSeqsFactory);
     // VT100, permanently selected modes
@@ -41,8 +42,10 @@ void SerialConnVT100::InstallFunctions()
     mFunctions[DECRM] = [=](const std::string& p) { ProcessDECRM(p); };
     mFunctions[DECDSR] = [=](const std::string& p) { ProcessDECDSR(p); };
     //
-    mFunctions[G0_CS]           = [=](const std::string& p) { ProcessG0_CS(p); };
-    mFunctions[G1_CS]           = [=](const std::string& p) { ProcessG1_CS(p); };
+    mFunctions[G0_CS] = [=](const std::string& p) {
+        ProcessG0_CS(p);
+    };
+    mFunctions[G1_CS] = [=](const std::string& p) { ProcessG1_CS(p); };
     //
     mFunctions[DECREQTPARM] = [=](const std::string& p) { ProcessDECREQTPARM(p); };
     mFunctions[DECSTBM] = [=](const std::string& p) { ProcessDECSTBM(p); };
@@ -52,45 +55,51 @@ void SerialConnVT100::InstallFunctions()
     mFunctions[DECTST] = [=](const std::string& p) { ProcessDECTST(p); };
     mFunctions[DECLL] = [=](const std::string& p) { ProcessDECLL(p); };
 }
-
+//
+void SerialConnVT100::ProcessDECKPNM(const std::string&)
+{
+	mKeypadMode = DECKPNM;
+}
+void SerialConnVT100::ProcessDECKPAM(const std::string&)
+{
+	mKeypadMode = DECKPAM;
+}
+//
 void SerialConnVT100::ProcessDA(const std::string& p)
 {
     int ps = atoi(p.c_str());
     switch (ps) {
     case 0:
         // https://www.vt100.net/docs/vt100-ug/chapter3.html#DA
-        GetIo()->Write("\x1b[?1;2c"); // Advanced video option
+        Put("\x1b[?1;2c"); // Advanced video option
         break;
     }
 }
 //
+#define DO_SET_CHARSET(g) do { \
+	if (p == "A") { \
+        mCharsets[g] = CS_UK; \
+	} else if (p == "B") { \
+		mCharsets[g] = CS_US; \
+	} else if (p == "0") { \
+		mCharsets[g] = CS_LINE_DRAWING; \
+	} else if (p == "1") { \
+		mCharsets[g] = CS_ROM; \
+	} else if (p == "2") { \
+		mCharsets[g] = CS_ROM_SPECIAL; \
+	} else { \
+		mCharsets[g] = CS_DEFAULT; \
+	} \
+	mCharset = mCharsets[g]; \
+} while (0)
+//
 void SerialConnVT100::ProcessG0_CS(const std::string& p)
 {
-	if (p == "A") {
-        mCharsets[0] = CS_UK;
-	} else if (p == "B") {
-		mCharsets[0] = CS_US;
-	} else if (p == "0") {
-		mCharsets[0] = CS_LINE_DRAWING;
-	} else if (p == "1") {
-		mCharsets[0] = CS_ROM;
-	} else if (p == "2") {
-		mCharsets[0] = CS_ROM_SPECIAL;
-	}
+	DO_SET_CHARSET(0);
 }
 void SerialConnVT100::ProcessG1_CS(const std::string& p)
 {
-    if (p == "A") {
-        mCharsets[1] = CS_UK;
-	} else if (p == "B") {
-		mCharsets[1] = CS_US;
-	} else if (p == "0") {
-		mCharsets[1] = CS_LINE_DRAWING;
-	} else if (p == "1") {
-		mCharsets[1] = CS_ROM;
-	} else if (p == "2") {
-		mCharsets[1] = CS_ROM_SPECIAL;
-	}
+    DO_SET_CHARSET(1);
 }
 void SerialConnVT100::ProcessSI(const std::string& p)
 {
@@ -105,7 +114,7 @@ uint32_t SerialConnVT100::RemapCharacter(uint32_t uc, int charset)
     if (uc >= ' ' && uc < 0x7f) {
         return VT100_RemapCharacter(uc, charset);
     }
-    return SerialConnEcma48::RemapCharacter(uc);
+    return SerialConnEcma48::RemapCharacter(uc, charset);
 }
 //
 bool SerialConnVT100::ProcessKeyDown(Upp::dword key, Upp::dword flags)
@@ -116,71 +125,163 @@ bool SerialConnVT100::ProcessKeyDown(Upp::dword key, Upp::dword flags)
         switch (key) {
         case K_UP:
             if (mModes.DECCKM == VT100Modes::DECCKM_Cursor) {
-                GetIo()->Write("\033[A");
+                Put("\033[A");
             } else {
-                GetIo()->Write("\033OA");
+                Put("\033OA");
             }
             break;
         case K_DOWN:
             if (mModes.DECCKM == VT100Modes::DECCKM_Cursor) {
-                GetIo()->Write("\033[B");
+                Put("\033[B");
             } else {
-                GetIo()->Write("\033OB");
+                Put("\033OB");
             }
             break;
         case K_LEFT:
             if (mModes.DECCKM == VT100Modes::DECCKM_Cursor) {
-                GetIo()->Write("\033[D");
+                Put("\033[D");
             } else {
-                GetIo()->Write("\033OD");
+                Put("\033OD");
             }
             break;
         case K_RIGHT:
             if (mModes.DECCKM == VT100Modes::DECCKM_Cursor) {
-                GetIo()->Write("\033[C");
+                Put("\033[C");
             } else {
-                GetIo()->Write("\033OC");
+                Put("\033OC");
             }
             break;
         /*! PF1 ~ PF4 */
         case K_F1:
             if (mModes.DECANM == VT100Modes::DECANM_ANSI) {
-                GetIo()->Write("\x1bOP");
+                Put("\x1bOP");
             } else {
-                GetIo()->Write("\x1bP");
+                Put("\x1bP");
             }
             break;
 		case K_F2:
             if (mModes.DECANM == VT100Modes::DECANM_ANSI) {
-                GetIo()->Write("\x1bOQ");
+                Put("\x1bOQ");
             } else {
-                GetIo()->Write("\x1bQ");
+                Put("\x1bQ");
             }
             break;
 		case K_F3:
             if (mModes.DECANM == VT100Modes::DECANM_ANSI) {
-                GetIo()->Write("\x1bOR");
+                Put("\x1bOR");
             } else {
-                GetIo()->Write("\x1bR");
+                Put("\x1bR");
             }
             break;
 		case K_F4:
             if (mModes.DECANM == VT100Modes::DECANM_ANSI) {
-                GetIo()->Write("\x1bOS");
+                Put("\x1bOS");
             } else {
-                GetIo()->Write("\x1bS");
+                Put("\x1bS");
             }
             break;
 		/*! keys below, I'm not sure, from libncurse */
-		case K_F5:  GetIo()->Write("\x1bOt"); break;
-		case K_F6:  GetIo()->Write("\x1bOu"); break;
-		case K_F7:  GetIo()->Write("\x1bOv"); break;
-		case K_F8:  GetIo()->Write("\x1bOl"); break;
-		case K_F9:  GetIo()->Write("\x1bOw"); break;
-		case K_F10: GetIo()->Write("\x1bOx"); break;
+		case K_F5:  Put("\x1bOt"); break;
+		case K_F6:  Put("\x1bOu"); break;
+		case K_F7:  Put("\x1bOv"); break;
+		case K_F8:  Put("\x1bOl"); break;
+		case K_F9:  Put("\x1bOw"); break;
+		case K_F10: Put("\x1bOx"); break;
         case K_HOME:if (1) {
-                GetIo()->Write("\033[H");
+                Put("\033[H");
         } break;
+        // keypad
+        case K_NUMPAD0:
+            if (mKeypadMode == DECKPNM) {
+                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\x1bOp" : "\x1b?p");
+            } else {
+                Put("0");
+            }
+            break;
+        case K_NUMPAD1:
+            if (mKeypadMode == DECKPNM) {
+                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\x1bOq" : "\x1b?q");
+            } else {
+                Put("1");
+            }
+            break;
+        case K_NUMPAD2:
+            if (mKeypadMode == DECKPNM) {
+                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\x1bOr" : "\x1b?r");
+            } else {
+                Put("2");
+            }
+            break;
+        case K_NUMPAD3:
+            if (mKeypadMode == DECKPNM) {
+                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\x1bOs" : "\x1b?s");
+            } else {
+                Put("3");
+            }
+            break;
+        case K_NUMPAD4:
+            if (mKeypadMode == DECKPNM) {
+                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\x1bOt" : "\x1b?t");
+            } else {
+                Put("4");
+            }
+            break;
+        case K_NUMPAD5:
+            if (mKeypadMode == DECKPNM) {
+                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\x1bOu" : "\x1b?u");
+            } else {
+                Put("5");
+            }
+            break;
+        case K_NUMPAD6:
+            if (mKeypadMode == DECKPNM) {
+                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\x1bOv" : "\x1b?v");
+            } else {
+                Put("6");
+            }
+            break;
+        case K_NUMPAD7:
+            if (mKeypadMode == DECKPNM) {
+                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\x1bOw" : "\x1b?w");
+            } else {
+                Put("7");
+            }
+            break;
+        case K_NUMPAD8:
+            if (mKeypadMode == DECKPNM) {
+                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\x1bOx" : "\x1b?x");
+            } else {
+                Put("8");
+            }
+            break;
+        case K_NUMPAD9:
+            if (mKeypadMode == DECKPNM) {
+                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\x1bOy" : "\x1b?y");
+            } else {
+                Put("9");
+            }
+            break;
+        case K_SUBTRACT:
+            if (mKeypadMode == DECKPNM) {
+                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\x1bOm" : "\x1b?m");
+            } else {
+                Put("-");
+            }
+            break;
+        case K_SEPARATOR:
+            if (mKeypadMode == DECKPNM) {
+                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\x1bOl" : "\x1b?l");
+            } else {
+                Put(",");
+            }
+            break;
+        case K_DECIMAL:
+            if (mKeypadMode == DECKPNM) {
+                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\x1bOn" : "\x1b?n");
+            } else {
+                Put(".");
+            }
+            break;
         default:
             processed = false;
             break;
@@ -228,17 +329,17 @@ void SerialConnVT100::ProcessDECRM(const std::string& p)
     case 19: mModes.DECPEX  = 0; break;
     }
 }
-
+//
 void SerialConnVT100::ProcessDECDSR(const std::string& p)
 {
     int ps = atoi(p.c_str());
     switch (ps) {
     case 15:
-        GetIo()->Write("\x1b[?13n"); // No printer
+        Put("\x1b[?13n"); // No printer
         break;
     }
 }
-
+//
 void SerialConnVT100::ProcessCUP(const std::string& p)
 {
     int idx = 0, pn[2] = {1, 1};
@@ -281,7 +382,7 @@ void SerialConnVT100::ProcessDECIND(const std::string&)
         mVy++;
     }
 }
-
+//
 void SerialConnVT100::ProcessDECSTBM(const std::string& p)
 {
     Size csz = GetConsoleSize();
@@ -326,7 +427,7 @@ void SerialConnVT100::ProcessDECRC(const std::string& p)
 {
     LoadCursorData(mCursorData);
 }
-
+//
 void SerialConnVT100::ProcessDECALN(const std::string&)
 {
     for (size_t vy = 0; vy < mLines.size(); ++vy) {

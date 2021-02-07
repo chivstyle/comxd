@@ -13,8 +13,8 @@ SerialConnAnsi::SerialConnAnsi(std::shared_ptr<SerialIo> io)
 	: SerialConnVT100(io)
 	, SerialConnVT(io)
 {
-	mCharsets[2] = CS_US;
-	mCharsets[3] = CS_US;
+	mCharsets[2] = mCharsets[0];
+	mCharsets[3] = mCharsets[0];
 	//
 	AddAnsiControlSeqs(this->mSeqsFactory);
 	//

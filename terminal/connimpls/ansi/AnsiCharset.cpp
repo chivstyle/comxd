@@ -4,9 +4,9 @@
 */
 #include "AnsiCharset.h"
 
-uint32_t Ansi_RemapCharacter(uint32_t uc, int type)
+uint32_t Ansi_RemapCharacter(uint32_t uc, int cs)
 {
-	const uint32_t cs[] = {
+	const uint32_t extended_cs[] = {
 		0x00c7,
 		0x00fc,
 		0x00e9,
@@ -136,6 +136,6 @@ uint32_t Ansi_RemapCharacter(uint32_t uc, int type)
 		0x2bc0,
 		0x0000
 	};
-	if (uc >= 0x80 && uc <= 0xff) return cs[uc - 0x80];
+	if (uc >= 0x80 && uc <= 0xff) return extended_cs[uc - 0x80];
 	else return uc;
 }

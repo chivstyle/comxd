@@ -7,4 +7,4 @@
 #include <stdint.h>
 #include "connimpls/Charset.h"
 
-uint32_t Ansi_RemapCharacter(uint32_t uc, int type = 0);
+uint32_t Ansi_RemapCharacter(uint32_t uc, int cs = 0);

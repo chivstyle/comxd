@@ -2,6 +2,7 @@
 // (c) 2020 chiv
 //
 #include "terminal_rc.h"
+#include "Charset.h"
 #include "SerialConnVT.h"
 #include "ControlSeq.h"
 #include "TextCodecsDialog.h"
@@ -25,7 +26,7 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
     , mMaxLinesBufferSize(5000)
     , mSeqsFactory(new ControlSeqFactory())
     , mTabWidth(8)
-    , mCharset(CS_US)
+    , mCharset(CS_DEFAULT)
 {
     // double buffer
     BackPaint();
@@ -299,6 +300,21 @@ void SerialConnVT::RenderSeqs()
         if (flags & 0x4) Refresh();
     }
 }
+//
+bool SerialConnVT::IsControlSeqPrefix(uint8_t c)
+{
+	return c <= 0x1f || c == 0x7f;
+}
+//
+void SerialConnVT::RefineTheInput(std::string& raw)
+{
+	(void)raw;
+}
+//
+void SerialConnVT::Put(const std::string& s)
+{
+	GetIo()->Write(s);
+}
 // receiver
 void SerialConnVT::RxProc()
 {
@@ -323,8 +339,9 @@ void SerialConnVT::RxProc()
             if (buff[k] != 0) // IGNORE NULL
                 raw.push_back(buff[k]);
         }
+        RefineTheInput(raw);
         while (!raw.empty()) {
-            if ((byte)raw[0] <= 0x1f || (byte)raw[0] == 0x7f) { // C0
+            if (IsControlSeqPrefix((uint8_t)raw[0])) { // is prefix of some control sequence
                 if (!texts.empty()) {
                     size_t ep;
                     auto s = this->TranscodeToUTF32(texts, ep);
@@ -686,8 +703,8 @@ bool SerialConnVT::ProcessOverflowLines(const struct Seq&)
 //
 uint32_t SerialConnVT::RemapCharacter(uint32_t uc, int charset)
 {
-	(void)uc;
 	(void)charset;
+	//
     return uc;
 }
 void SerialConnVT::RenderText(const std::vector<uint32_t>& s)

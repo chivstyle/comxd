@@ -1,6 +1,8 @@
 /*!
 // (c) 2021 chiv
 //
+// VT52 seqs were ignored, factory will recognize them, but we do not accept them.
+//
 */
 #pragma once
 
@@ -30,11 +32,11 @@ public:
     void ProcessDECALN(const std::string& p);
     void ProcessDECTST(const std::string& p);
     void ProcessDECLL(const std::string& p);
-    // VT52 seqs were ignored, factory will recognize them, but we do not
-    // accept them.
+    void ProcessDECKPNM(const std::string&);
+    void ProcessDECKPAM(const std::string&);
     // charset
-    void ProcessG0_CS(const std::string& p);
-    void ProcessG1_CS(const std::string& p);
+    virtual void ProcessG0_CS(const std::string& p);
+    virtual void ProcessG1_CS(const std::string& p);
     virtual uint32_t RemapCharacter(uint32_t uc, int charset);
     //
     virtual bool ProcessKeyDown(Upp::dword key, Upp::dword flags);
@@ -108,5 +110,7 @@ public:
     void LoadCursorData(const CursorDataVT100& cd);
     CursorDataVT100 mCursorData;
 private:
+	int mKeypadMode;
+	//
     void InstallFunctions();
 };

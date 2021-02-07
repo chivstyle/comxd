@@ -6,26 +6,33 @@
 
 #include "connimpls/vt100/SerialConnVT100.h"
 
-class SerialConnVT200 : public SerialConnVT100 {
+class SerialConnVT220 : public SerialConnVT100 {
 public:
-	SerialConnVT200(std::shared_ptr<SerialIo> io);
+	SerialConnVT220(std::shared_ptr<SerialIo> io);
 	//
 protected:
+	// override ecma48
 	void ProcessSS2(const std::string&);
 	void ProcessSS3(const std::string&);
+	void ProcessLS2(const std::string&);
+	void ProcessLS3(const std::string&);
+	void ProcessLS1R(const std::string&);
+	void ProcessLS2R(const std::string&);
+	void ProcessLS3R(const std::string&);
+	// override vt100
 	void ProcessDECSM(const std::string&);
 	void ProcessDECRM(const std::string&);
 	void ProcessDECDSR(const std::string&);
 	void ProcessDECSC(const std::string&);
 	void ProcessDECRC(const std::string&);
+	void ProcessG0_CS(const std::string&);
+	void ProcessG1_CS(const std::string&);
 	// vt200
 	void ProcessDECSCL(const std::string&);
 	void ProcessG2_CS(const std::string&);
 	void ProcessG3_CS(const std::string&);
 	void ProcessS7C1T(const std::string&);
 	void ProcessS8C1T(const std::string&);
-	void ProcessDECKPAM(const std::string&);
-	void ProcessDECKPNM(const std::string&);
 	void ProcessDECSCA(const std::string&);
 	void ProcessDECSEL(const std::string&);
 	void ProcessDECSED(const std::string&);
@@ -33,31 +40,27 @@ protected:
 	void ProcessSecondaryDA(const std::string&);
 	// override
 	uint32_t RemapCharacter(uint32_t uc, int charset);
-	// VT200 cursor data
-	struct CursorDataVT200 : public CursorDataVT100 {
+	// VT220 cursor data
+	struct CursorDataVT220 : public CursorDataVT100 {
 		bool       SelectiveErase;
 		uint32_t   DECOM : 1;
 	};
-	CursorDataVT200 mCursorData;
-	void SaveCursorData(CursorDataVT200& cd);
-	void LoadCursorData(const CursorDataVT200& cd);
-	//
-	enum KeypadMode {
-		KM_DECKPAM,
-		KM_DECKPNM
-	};
-	int mKeypadMode;
+	CursorDataVT220 mCursorData;
+	void SaveCursorData(CursorDataVT220& cd);
+	void LoadCursorData(const CursorDataVT220& cd);
 	// selective erase attribute bit write state
 	bool mSelectiveErase;
 	//
-	struct VT200Modes {
+	int  mExtendedCharset;
+	//
+	struct VT220Modes {
 		enum DECNRCMValue {
 			DECNRCM_Multinational = 0,
 			DECNRCM_National
 		};
 		uint32_t DECNRCM : 1;
 	};
-	VT200Modes mModes;
+	VT220Modes mModes;
 private:
 	void InstallFunctions();
 };

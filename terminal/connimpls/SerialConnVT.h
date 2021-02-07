@@ -7,7 +7,6 @@
 #define _comxd_ConnVT_h_
 
 #include "Conn.h"
-#include "Charset.h"
 #include "ColorTable.h"
 #include "VTTypes.h"
 #include <functional>
@@ -124,16 +123,18 @@ protected:
         mSeqs.push(Seq(seq_type, p));
     }
     virtual void RenderSeqs();
+    //
+    virtual void Put(const std::string& s);
     //-------------------------------------------------------------------------------------
     /// Active position
     int mVx, mVy;      //<! Active position of data component
     int mPx, mPy;      //<! Active position of presentation component
     /// charset, pair [charset-index, charset-type]
     std::map<int, int> mCharsets; // supported charsets
-    int mCharset; // Charset
+    int mCharset;
     /// \brief Before rendering text, the program will remap the character,
     ///        the derived class could modify the character to override this method
-    virtual uint32_t RemapCharacter(uint32_t uc, int charset = CS_US);
+    virtual uint32_t RemapCharacter(uint32_t uc, int charset);
     /// \brief render text to VTChar
     /// \param seq complete VT characters
     virtual void RenderText(const std::vector<uint32_t>& s);
@@ -149,10 +150,6 @@ protected:
     int CalculateNumberOfBlankLinesFromEnd(const std::vector<VTLine>& lines) const;
     int CalculateNumberOfBlankCharsFromEnd(const VTLine& vline) const;
     int CalculateNumberOfPureBlankCharsFromEnd(const VTLine& vline) const;
-    //
-    bool mWrapLine;
-    bool mScrollToEnd;
-    bool mPressed;
     //
     SelectionSpan mSelectionSpan;
     std::vector<std::string> GetSelection() const;
@@ -192,7 +189,6 @@ protected:
         bool& blink, bool& visible);
     //
     bool mBlinkSignal; // 0,1,0,1,0,1, 2 Hz
-    bool mShowCursor;
     Upp::TimeCallback mBlinkTimer;
     // scroll bar
     Upp::VScrollBar mSbV;
@@ -221,6 +217,9 @@ protected:
     /// \param ep End position of raw string. From ep To end of s, the data could not be
     ///           recognized.
     virtual std::vector<uint32_t> TranscodeToUTF32(const std::string& s, size_t& ep);
+    // before finding control sequences, we could refine the input.
+    virtual void RefineTheInput(std::string& raw);
+    virtual bool IsControlSeqPrefix(uint8_t c);
     /// When ?
     /// The receiver will analyze the buffer received, when it come across a character
     /// unrecognized, the IsControlSeq was invoked to defined the seq. The return value
@@ -282,6 +281,10 @@ protected:
     //------------------------------------------------------------------------------------------
     int mTabWidth;
 private:
+	bool mWrapLine;
+    bool mScrollToEnd;
+    bool mPressed;
+    bool mShowCursor;
     // receiver
     volatile bool mRxShouldStop;
     void RxProc();

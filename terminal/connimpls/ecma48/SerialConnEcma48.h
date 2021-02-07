@@ -173,7 +173,12 @@ protected:
     //
     virtual bool ProcessChar(Upp::dword cc);
     virtual bool ProcessOverflowLines(const struct Seq&);
-
+    //
+    void SetUseS8C(bool b);
+    bool IsControlSeqPrefix(uint8_t c);
+    void RefineTheInput(std::string& raw);
+    void Put(const std::string& s);
+	//
     struct EcmaDAQ {
         Upp::Point From;
         Upp::Point To;
@@ -262,5 +267,6 @@ protected:
     // fill region with c
     void Fill(int X0, int Y0, int X1, int Y1, const VTChar& c);
 private:
+	bool mUseS8C; // 8-bit control seq
     void InstallFunctions();
 };

@@ -12,6 +12,7 @@ SerialConnEcma48::SerialConnEcma48(std::shared_ptr<SerialIo> io)
     , mSee(1)
     , mPageHome(0)
     , mLineHome(0)
+    , mUseS8C(false)
 {
     InstallFunctions();
     //
@@ -602,12 +603,12 @@ void SerialConnEcma48::ProcessDSR(const std::string& p)
 	int ps = atoi(p.c_str());
     switch (ps) {
     case 5:
-        GetIo()->Write("\x1b[0\x6e"); // It's OK, no malfunction detected
+        Put("\x1b[0\x6e"); // It's OK, no malfunction detected
         break;
     case 6: if (1) {
         std::string cpr = std::string("\x1b[") + std::to_string(mPy/mFontH + 1)
             + ";" + std::to_string(mPx/mFontW + 1) + "\x52";
-        GetIo()->Write(cpr);
+        Put(cpr);
     } break;
     }
 }
@@ -1390,4 +1391,114 @@ bool SerialConnEcma48::ProcessOverflowLines(const struct Seq& seq)
 			return SerialConnVT::ProcessOverflowLines(seq);
 	}
 	return false;
+}
+
+void SerialConnEcma48::SetUseS8C(bool b)
+{
+	mUseS8C = b;
+}
+
+static std::string S8CToS7C(const std::string& s)
+{
+	static const char* s7c[] = {
+		"", "", "", "",
+		"\E\x44", // IND
+		"\E\x45", // NEL
+		"\E\x46", // SSA
+		"\E\x47", // ESA
+		"\E\x48", // HTS
+		"\E\x49", // HTJ
+		"\E\x4a", // VTS
+		"\E\x4b", // PLD
+		"\E\x4c", // PLU
+		"\E\x4d", // RI
+		"\E\x4e", // SS2
+		"\E\x4f", // SS3
+		"\E\x50", // DCS
+		"\E\x51", // PU1
+		"\E\x52", // PU2
+		"\E\x53", // STS
+		"\E\x54", // CCH
+		"\E\x55", // MW
+		"\E\x56", // SPA
+		"\E\x57", // EPA
+		"", "", "",
+		"\E\x5b", // CSI
+		"\E\x5c", // ST
+		"\E\x5d", // OSC
+		"\E\x5e", // PM
+		"\E\x5f"  // APC
+	};
+	std::string out;
+	for (size_t k = 0; k < s.length(); ++k) {
+		uint8_t c = (uint8_t)s[k];
+		if (c >= 0x80 && c <= 0x9f) {
+			out += s7c[c-0x80];
+		} else {
+			out.push_back(s[k]);
+		}
+	}
+	return std::move(out);
+}
+static std::string S7CToS8C(const std::string& s)
+{
+	std::string out;
+	for (size_t k = 0; k < s.length(); ) {
+		if (s[k] == '\E') {
+			if (k+1 < s.length()) {
+				k++;
+				switch (s[k]) {
+				case 0x44: out.push_back(0x84); break; // IND
+				case 0x45: out.push_back(0x85); break; // NEL
+				case 0x46: out.push_back(0x86); break; // SSA
+				case 0x47: out.push_back(0x87); break; // ESA
+				case 0x48: out.push_back(0x88); break; // HTS
+				case 0x49: out.push_back(0x89); break; // THJ
+				case 0x4a: out.push_back(0x8a); break; // VTS
+				case 0x4b: out.push_back(0x8b); break; // PLD
+				case 0x4c: out.push_back(0x8c); break; // PLU
+				case 0x4d: out.push_back(0x8d); break; // RI
+				case 0x4e: out.push_back(0x8e); break; // SS2
+				case 0x4f: out.push_back(0x8f); break; // SS3
+				case 0x50: out.push_back(0x90); break; // DCS
+				case 0x51: out.push_back(0x91); break; // PU1
+				case 0x52: out.push_back(0x92); break; // PU2
+				case 0x53: out.push_back(0x93); break; // STS
+				case 0x54: out.push_back(0x94); break; // CCH
+				case 0x55: out.push_back(0x95); break; // MW
+				case 0x56: out.push_back(0x96); break; // SPA
+				case 0x57: out.push_back(0x97); break; // EPA
+				case 0x5b: out.push_back(0x9b); break; // CSI
+				case 0x5c: out.push_back(0x9c); break; // ST
+				case 0x5d: out.push_back(0x9d); break; // OSC
+				case 0x5e: out.push_back(0x9e); break; // PM
+				case 0x5f: out.push_back(0x9f); break; // APC
+				default:
+					out.push_back(s[k]);
+					break;
+				}
+			} else out.push_back(s[k]);
+		} else out.push_back(s[k]);
+		k++;
+	}
+	return std::move(out);
+}
+
+bool SerialConnEcma48::IsControlSeqPrefix(uint8_t c)
+{
+	if (mUseS8C) {
+		return c <= 0x1f || c == 0x7f || (c >= 0x80 && c <= 0x9f);
+	} else return SerialConnVT::IsControlSeqPrefix(c);
+}
+
+void SerialConnEcma48::RefineTheInput(std::string& raw)
+{
+	if (mUseS8C) {
+		raw = S8CToS7C(raw);
+	}
+}
+
+void SerialConnEcma48::Put(const std::string& s)
+{
+	SerialConnVT::Put(mUseS8C ? S7CToS8C(s) : s);
 }
