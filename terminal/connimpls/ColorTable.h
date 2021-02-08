@@ -26,7 +26,12 @@ public:
         kColorId_Cyan,
         kColorId_Yellow
     };
-    
+    //
+    void Swap(const ColorId& color_id1, const ColorId& color_id2)
+    {
+        std::swap(mTbl[color_id1], mTbl[color_id2]);
+    }
+    //
     const Upp::Color& GetColor(int color_id);
     
     void SetColor(int color_id, const Upp::Color& color)

@@ -40,6 +40,8 @@ protected:
 	void ProcessSecondaryDA(const std::string&);
 	// override
 	uint32_t RemapCharacter(uint32_t uc, int charset);
+	// key
+	virtual bool ProcessKeyDown(Upp::dword key, Upp::dword flags);
 	// VT220 cursor data
 	struct CursorDataVT220 : public CursorDataVT100 {
 		bool       SelectiveErase;

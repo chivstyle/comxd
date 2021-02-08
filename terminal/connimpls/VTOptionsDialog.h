@@ -14,7 +14,7 @@ public:
     // Set
     struct Options {
         Upp::Color PaperColor;
-        Upp::Color FontColor;
+        Upp::Color TextsColor;
         Upp::Font  Font;
         int        LinesBufferSize;
     };

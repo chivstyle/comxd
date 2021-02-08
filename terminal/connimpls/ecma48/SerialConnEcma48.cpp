@@ -390,12 +390,10 @@ void SerialConnEcma48::ProcessCBT(const std::string& p)
 // Cancel character
 void SerialConnEcma48::ProcessCCH(const std::string& p)
 {
-    if (mVy >= 0) {
-        VTLine& vline = mLines[mVy];
-        if (mVx > 0) {
-            vline[mVx-1] = mBlankChar;
-            mVx--;
-        }
+    VTLine& vline = mLines[mVy];
+    if (mVx > 0) {
+        vline[mVx-1] = mBlankChar;
+        mVx--;
     }
 }
 // Cursor character absolute

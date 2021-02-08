@@ -110,6 +110,7 @@ Font VTOptionsDialog::DefaultFont()
 void VTOptionsDialog::PreviewFont()
 {
     Font font(mFontList.Get(), mFontSize.GetData().To<int>());
+    mFontPreview.SetInk(mTextsColor.GetData());
     mFontPreview.SetFont(font).SetText("Hello,世界!");
 }
 
@@ -119,7 +120,7 @@ void VTOptionsDialog::SetOptions(const Options& options)
     mFontList.Set(face);
     mFontSize.SetData(options.Font.GetHeight());
     mPaperColor.SetData(options.PaperColor);
-    mFontColor.SetData(options.FontColor);
+    mTextsColor.SetData(options.TextsColor);
     mLinesBufferSize.SetData(options.LinesBufferSize);
     mFontList.WhenAction();
     //
@@ -131,7 +132,7 @@ VTOptionsDialog::Options VTOptionsDialog::GetOptions() const
     Options options;
     options.Font = Font(mFontList.Get(), mFontSize.GetData().To<int>());
     options.PaperColor = mPaperColor.GetData();
-    options.FontColor = mFontColor.GetData();
+    options.TextsColor = mTextsColor.GetData();
     options.LinesBufferSize = mLinesBufferSize.GetData();
     return options;
 }

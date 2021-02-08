@@ -9,6 +9,8 @@
 
 REGISTER_CONN_INSTANCE("vt220 by chiv", "vt220", SerialConnVT220);
 
+using namespace Upp;
+
 SerialConnVT220::SerialConnVT220(std::shared_ptr<SerialIo> io)
 	: SerialConnVT100(io)
 	, SerialConnVT(io)
@@ -178,7 +180,7 @@ void SerialConnVT220::ProcessDECDSR(const std::string& p)
 	int ps = atoi(p.c_str());
 	switch (ps) {
 	case 26:
-		Put(std::string("\x1b?27;1n")); // set keyboard language to "North American"
+		Put("\x1b?27;1n"); // set keyboard language to "North American"
 		break;
 	default:
 		SerialConnVT100::ProcessDECDSR(p);
@@ -203,7 +205,7 @@ void SerialConnVT220::ProcessDECRM(const std::string& p)
 	case 25: SetShowCursor(false); break;
 	case 42: mModes.DECNRCM = 0; break;
 	default:
-		return SerialConnVT100::ProcessDECSM(p);
+		return SerialConnVT100::ProcessDECRM(p);
 	}
 }
 void SerialConnVT220::ProcessSS2(const std::string&)
@@ -238,4 +240,29 @@ void SerialConnVT220::ProcessLS3R(const std::string&)
 uint32_t SerialConnVT220::RemapCharacter(uint32_t uc, int charset)
 {
 	return VT220_RemapCharacter(uc, charset, mExtendedCharset);
+}
+
+bool SerialConnVT220::ProcessKeyDown(Upp::dword key, Upp::dword flags)
+{
+	bool processed = false;
+	if (flags == 0) {
+		processed = true;
+		switch (key) {
+		case K_F6: Put("\E[17~"); break;
+		case K_F7: Put("\E[18~"); break;
+		case K_F8: Put("\E[19~"); break;
+		case K_F9: Put("\E[20~"); break;
+		case K_F10: Put("\E[21~"); break;
+		case K_F11: Put("\E[23~"); break;
+		case K_F12: Put("\E[24~"); break;
+		case K_DELETE: Put("\E[3~"); break; // vt220, Remove
+		case K_INSERT: Put("\E[2~"); break; // vt220, Insert
+		case K_PAGEUP: Put("\E[5~"); break; // vt220, prev screen
+		case K_PAGEDOWN: Put("\E[6~"); break; // vt220, next screen
+		default:
+			processed = false;
+			break;
+		}
+	}
+	return processed ? true : SerialConnVT100::ProcessKeyDown(key, flags);
 }

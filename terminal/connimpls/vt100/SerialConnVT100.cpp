@@ -42,9 +42,7 @@ void SerialConnVT100::InstallFunctions()
     mFunctions[DECRM] = [=](const std::string& p) { ProcessDECRM(p); };
     mFunctions[DECDSR] = [=](const std::string& p) { ProcessDECDSR(p); };
     //
-    mFunctions[G0_CS] = [=](const std::string& p) {
-        ProcessG0_CS(p);
-    };
+    mFunctions[G0_CS] = [=](const std::string& p) { ProcessG0_CS(p); };
     mFunctions[G1_CS] = [=](const std::string& p) { ProcessG1_CS(p); };
     //
     mFunctions[DECREQTPARM] = [=](const std::string& p) { ProcessDECREQTPARM(p); };
@@ -54,6 +52,7 @@ void SerialConnVT100::InstallFunctions()
     mFunctions[DECALN] = [=](const std::string& p) { ProcessDECALN(p); };
     mFunctions[DECTST] = [=](const std::string& p) { ProcessDECTST(p); };
     mFunctions[DECLL] = [=](const std::string& p) { ProcessDECLL(p); };
+    mFunctions[DECIND] = [=](const std::string& p) { ProcessDECIND(p); };
 }
 //
 void SerialConnVT100::ProcessDECKPNM(const std::string&)
@@ -298,9 +297,10 @@ void SerialConnVT100::ProcessDECSM(const std::string& p)
     case 3:  mModes.DECCOLM = 1; break;
     case 4:  mModes.DECSCLM = 1; break;
     case 5:
-        mModes.DECSCNM = 1; // white screen background with black characters
-        mColorTbl.SetColor(VTColorTable::kColorId_Paper, mColorTbl.GetColor(VTColorTable::kColorId_White));
-        mColorTbl.SetColor(VTColorTable::kColorId_Texts, mColorTbl.GetColor(VTColorTable::kColorId_Black));
+        if (!mModes.DECSCNM) {
+	        mModes.DECSCNM = 1;
+	        mColorTbl.Swap(VTColorTable::kColorId_Paper, VTColorTable::kColorId_Texts);
+        }
         break;
     case 6:  mModes.DECOM   = 1; ProcessCUP(""); /*! home */ break;
     case 7:  mModes.DECAWM  = 1; SetWrapLine(true); break;
@@ -318,9 +318,10 @@ void SerialConnVT100::ProcessDECRM(const std::string& p)
     case 3:  mModes.DECCOLM = 0; break;
     case 4:  mModes.DECSCLM = 0; break;
     case 5:
-        mModes.DECSCNM = 0;
-        mColorTbl.SetColor(VTColorTable::kColorId_Paper, mColorTbl.GetColor(VTColorTable::kColorId_Black));
-        mColorTbl.SetColor(VTColorTable::kColorId_Texts, mColorTbl.GetColor(VTColorTable::kColorId_White));
+        if (mModes.DECSCNM) {
+	        mModes.DECSCNM = 0;
+	        mColorTbl.Swap(VTColorTable::kColorId_Paper, VTColorTable::kColorId_Texts);
+        }
         break;
     case 6:  mModes.DECOM   = 0; ProcessCUP(""); /*! home */ break;
     case 7:  mModes.DECAWM  = 0; SetWrapLine(false); break;
@@ -372,14 +373,17 @@ void SerialConnVT100::ProcessDECIND(const std::string&)
 {
     int bot = mScrollingRegion.Bottom;
     if (bot < 0) bot = (int)mLines.size()-1;
-    if (mVy == bot) { // scroll up
-        int top = mScrollingRegion.Top;
-        auto it_end = mLines.begin() + bot + 1;
-        Size csz = GetConsoleSize();
-        mLines.insert(it_end, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
-        mLines.erase(mLines.begin() + mVx);
-    } else {
+    if (mVy < bot) {
         mVy++;
+    } else { // scroll up
+        int top = mScrollingRegion.Top;
+        if (bot < 0) bot = (int)mLines.size()-1;
+        Size csz = GetConsoleSize();
+        auto it_end = mLines.begin() + bot + 1;
+        // insert new line
+        mLines.insert(it_end, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
+        // remove the top line
+        mLines.erase(mLines.begin() + top);
     }
 }
 //

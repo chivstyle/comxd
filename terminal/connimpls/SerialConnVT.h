@@ -285,6 +285,8 @@ private:
     bool mScrollToEnd;
     bool mPressed;
     bool mShowCursor;
+    int mBackgroundColorId;
+    int mForegroundColorId;
     // receiver
     volatile bool mRxShouldStop;
     void RxProc();

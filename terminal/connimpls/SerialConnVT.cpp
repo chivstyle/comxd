@@ -27,6 +27,8 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
     , mSeqsFactory(new ControlSeqFactory())
     , mTabWidth(8)
     , mCharset(CS_DEFAULT)
+    , mBackgroundColorId(VTColorTable::kColorId_Paper)
+    , mForegroundColorId(VTColorTable::kColorId_Texts)
 {
     // double buffer
     BackPaint();
@@ -112,7 +114,7 @@ void SerialConnVT::InstallUserActions()
         options.Font = mFont;
         options.LinesBufferSize = (int)this->mMaxLinesBufferSize;
         options.PaperColor = mColorTbl.GetColor(VTColorTable::kColorId_Paper);
-        options.FontColor = mColorTbl.GetColor(VTColorTable::kColorId_Texts);
+        options.TextsColor = mColorTbl.GetColor(VTColorTable::kColorId_Texts);
         VTOptionsDialog opt;
         opt.SetOptions(options);
         int ret = opt.Run();
@@ -120,7 +122,7 @@ void SerialConnVT::InstallUserActions()
             options = opt.GetOptions();
             this->mFont = options.Font;
             this->mMaxLinesBufferSize = options.LinesBufferSize;
-            this->mColorTbl.SetColor(VTColorTable::kColorId_Texts, options.FontColor);
+            this->mColorTbl.SetColor(VTColorTable::kColorId_Texts, options.TextsColor);
             this->mColorTbl.SetColor(VTColorTable::kColorId_Paper, options.PaperColor);
             //
             bool vscr_modified = false; // lines buffer or virtual screen was modified ?
