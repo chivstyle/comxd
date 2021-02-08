@@ -5,6 +5,8 @@
 #include "VT220Charset.h"
 #include "connimpls/vt100/VT100Charset.h"
 
+
+
 uint32_t VT220_RemapCharacter(uint32_t uc, int cs, int extended_cs)
 {
 	switch (cs) {

@@ -403,12 +403,13 @@ int SerialConnVT::GetCharWidth(const VTChar& c) const
     case ' ':
         break;
     default: if (1) {
-        if (c.Code() >= 0x20 && c.Code() < 0x7f) break;
-        Font font = mFont; bool blink, visible;
-        c.UseFontStyle(font, blink, visible);
-        cx = font.GetWidth(c.Code());
-        cx = (cx + mFontW-2) / mFontW * mFontW;
-        return cx;
+        if (c.Code() >= 0x04e00 && c.Code() <= 0x09fff ||
+            c.Code() >= 0x03400 && c.Code() <= 0x04dbf ||
+            c.Code() >= 0x20000 && c.Code() <= 0x2ffff ||
+            c.Code() >= 0x30000 && c.Code() <= 0x3ffff)
+        {
+            return mFontW*2;
+        }
     } break;
     }
     return cx;
