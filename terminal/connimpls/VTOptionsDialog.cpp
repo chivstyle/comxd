@@ -110,7 +110,6 @@ Font VTOptionsDialog::DefaultFont()
 void VTOptionsDialog::PreviewFont()
 {
     Font font(mFontList.Get(), mFontSize.GetData().To<int>());
-    mFontPreview.SetInk(mTextsColor.GetData());
     mFontPreview.SetFont(font).SetText("Hello,世界!");
 }
 
