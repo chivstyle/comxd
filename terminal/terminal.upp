@@ -79,5 +79,11 @@ file
 	connimpls\vt200\VT220ControlSeq.cpp,
 	connimpls\vt200\VT220ControlSeq.h,
 	connimpls\vt200\SerialConnVT220.h,
-	connimpls\vt200\SerialConnVT220.cpp;
+	connimpls\vt200\SerialConnVT220.cpp,
+	connimpls\vt300\SerialConnVT320.cpp,
+	connimpls\vt300\SerialConnVT320.h,
+	connimpls\vt300\VT320Charset.cpp,
+	connimpls\vt300\VT320Charset.h,
+	connimpls\vt300\VT320ControlSeq.cpp,
+	connimpls\vt300\VT320ControlSeq.h;
 
