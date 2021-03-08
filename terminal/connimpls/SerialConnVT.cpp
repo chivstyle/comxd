@@ -887,6 +887,7 @@ void SerialConnVT::LeftUp(Point p, dword)
 void SerialConnVT::Paste()
 {
     String text = ReadClipboardUnicodeText().ToString();
+    text.Replace("\r\n", "\n");
     GetIo()->Write(text.ToStd());
 }
 
