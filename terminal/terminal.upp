@@ -23,6 +23,7 @@ file
 	Action.h,
 	SerialIo.h,
 	SerialIo.cpp,
+	wcwidth.cpp,
 	Conn.cpp,
 	Conn.h,
 	ConnFactory.h,

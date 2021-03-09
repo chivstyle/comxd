@@ -390,6 +390,7 @@ void SerialConnVT::RxProc()
 }
 // This routine guarantee that the width of any char is integral multiple
 // of mFontW.
+extern int mk_wcwidth(uint32_t ucs);
 int SerialConnVT::GetCharWidth(const VTChar& c) const
 {
     int cx = mFontW;
@@ -403,13 +404,7 @@ int SerialConnVT::GetCharWidth(const VTChar& c) const
     case ' ':
         break;
     default: if (1) {
-        if (c.Code() >= 0x04e00 && c.Code() <= 0x09fff ||
-            c.Code() >= 0x03400 && c.Code() <= 0x04dbf ||
-            c.Code() >= 0x20000 && c.Code() <= 0x2ffff ||
-            c.Code() >= 0x30000 && c.Code() <= 0x3ffff)
-        {
-            return mFontW*2;
-        }
+        cx *= mk_wcwidth(c.Code());
     } break;
     }
     return cx;
