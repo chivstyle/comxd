@@ -6,11 +6,10 @@ dscp::dscp(const String& url, const String& src_filename, const String& dst_file
 	// Init
 	if (mSession.Timeout(1000).Connect(url)) {
 		mScp = new Scp(mSession);
-		mScp->Timeout(1000);
 		mCo & [=]() {
 			mScp->WhenProgress = [=](int64 actual, int64 total)->bool {
 				PostCallback([=] {
-					mProgressBar.Set(actual, total);
+					mProgressBar.Set((int)actual, (int)total);
 				});
 				return false;
 			};

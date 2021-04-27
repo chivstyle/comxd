@@ -12,7 +12,7 @@ SSHPort::SSHPort(std::shared_ptr<Upp::SshSession> session, String name, String t
 	, mTerm(term)
 {
 	mShell = new SshShell(*mSession.get());
-	mShell->Timeout(1000);
+	mShell->Timeout(Null);
 	mShell->WhenOutput = [=](const void* out, int out_len) {
 		if (out_len > 0) {
 			std::lock_guard<std::mutex> _(mLock);
@@ -20,22 +20,16 @@ SSHPort::SSHPort(std::shared_ptr<Upp::SshSession> session, String name, String t
 			mCond.notify_one();
 		}
 	};
-	mShell->WhenWait = [=]() {
-		PostCallback([=]() {
-			Ctrl::ProcessEvents();
-		});
-	};
 }
 
 SSHPort::~SSHPort()
 {
-	delete mShell;
+    delete mShell;
 }
 
 void SSHPort::Stop()
 {
-	mShell->Close();
-	mJob.Finish();
+    mShell->Close();
 }
 
 bool SSHPort::Start()
