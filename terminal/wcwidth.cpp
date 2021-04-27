@@ -62,8 +62,8 @@
 #include <stdint.h>
 
 struct interval {
-  int first;
-  int last;
+  uint32_t first;
+  uint32_t last;
 };
 
 /* auxiliary function for binary search in interval table */

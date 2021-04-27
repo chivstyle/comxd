@@ -15,6 +15,7 @@ public:
     virtual ~SerialIo();
     //
     virtual bool Start() { return true; }
+    virtual void Stop() {}
     /// Was data available?
     /// @return
     ///  - <0 Error, device was corrupted

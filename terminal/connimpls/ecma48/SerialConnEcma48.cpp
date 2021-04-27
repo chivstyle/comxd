@@ -1445,32 +1445,32 @@ static std::string S7CToS8C(const std::string& s)
 		if (s[k] == '\E') {
 			if (k+1 < s.length()) {
 				k++;
-				switch (s[k]) {
-				case 0x44: out.push_back(0x84); break; // IND
-				case 0x45: out.push_back(0x85); break; // NEL
-				case 0x46: out.push_back(0x86); break; // SSA
-				case 0x47: out.push_back(0x87); break; // ESA
-				case 0x48: out.push_back(0x88); break; // HTS
-				case 0x49: out.push_back(0x89); break; // THJ
-				case 0x4a: out.push_back(0x8a); break; // VTS
-				case 0x4b: out.push_back(0x8b); break; // PLD
-				case 0x4c: out.push_back(0x8c); break; // PLU
-				case 0x4d: out.push_back(0x8d); break; // RI
-				case 0x4e: out.push_back(0x8e); break; // SS2
-				case 0x4f: out.push_back(0x8f); break; // SS3
-				case 0x50: out.push_back(0x90); break; // DCS
-				case 0x51: out.push_back(0x91); break; // PU1
-				case 0x52: out.push_back(0x92); break; // PU2
-				case 0x53: out.push_back(0x93); break; // STS
-				case 0x54: out.push_back(0x94); break; // CCH
-				case 0x55: out.push_back(0x95); break; // MW
-				case 0x56: out.push_back(0x96); break; // SPA
-				case 0x57: out.push_back(0x97); break; // EPA
-				case 0x5b: out.push_back(0x9b); break; // CSI
-				case 0x5c: out.push_back(0x9c); break; // ST
-				case 0x5d: out.push_back(0x9d); break; // OSC
-				case 0x5e: out.push_back(0x9e); break; // PM
-				case 0x5f: out.push_back(0x9f); break; // APC
+				switch ((uint8_t)s[k]) {
+				case 0x44: out.push_back((char)(0x84)); break; // IND
+				case 0x45: out.push_back((char)(0x85)); break; // NEL
+				case 0x46: out.push_back((char)(0x86)); break; // SSA
+				case 0x47: out.push_back((char)(0x87)); break; // ESA
+				case 0x48: out.push_back((char)(0x88)); break; // HTS
+				case 0x49: out.push_back((char)(0x89)); break; // THJ
+				case 0x4a: out.push_back((char)(0x8a)); break; // VTS
+				case 0x4b: out.push_back((char)(0x8b)); break; // PLD
+				case 0x4c: out.push_back((char)(0x8c)); break; // PLU
+				case 0x4d: out.push_back((char)(0x8d)); break; // RI
+				case 0x4e: out.push_back((char)(0x8e)); break; // SS2
+				case 0x4f: out.push_back((char)(0x8f)); break; // SS3
+				case 0x50: out.push_back((char)(0x90)); break; // DCS
+				case 0x51: out.push_back((char)(0x91)); break; // PU1
+				case 0x52: out.push_back((char)(0x92)); break; // PU2
+				case 0x53: out.push_back((char)(0x93)); break; // STS
+				case 0x54: out.push_back((char)(0x94)); break; // CCH
+				case 0x55: out.push_back((char)(0x95)); break; // MW
+				case 0x56: out.push_back((char)(0x96)); break; // SPA
+				case 0x57: out.push_back((char)(0x97)); break; // EPA
+				case 0x5b: out.push_back((char)(0x9b)); break; // CSI
+				case 0x5c: out.push_back((char)(0x9c)); break; // ST
+				case 0x5d: out.push_back((char)(0x9d)); break; // OSC
+				case 0x5e: out.push_back((char)(0x9e)); break; // PM
+				case 0x5f: out.push_back((char)(0x9f)); break; // APC
 				default:
 					out.push_back(s[k]);
 					break;

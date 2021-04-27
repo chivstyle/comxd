@@ -10,10 +10,9 @@ SSHPort::SSHPort(std::shared_ptr<Upp::SshSession> session, String name, String t
 	: mSession(session)
 	, mDeviceName(name)
 	, mTerm(term)
-	, mRunning(false)
 {
 	mShell = new SshShell(*mSession.get());
-	mShell->Timeout(Null);
+	mShell->Timeout(1000);
 	mShell->WhenOutput = [=](const void* out, int out_len) {
 		if (out_len > 0) {
 			std::lock_guard<std::mutex> _(mLock);
@@ -21,22 +20,28 @@ SSHPort::SSHPort(std::shared_ptr<Upp::SshSession> session, String name, String t
 			mCond.notify_one();
 		}
 	};
+	mShell->WhenWait = [=]() {
+		PostCallback([=]() {
+			Ctrl::ProcessEvents();
+		});
+	};
 }
 
 SSHPort::~SSHPort()
 {
-	mShell->Abort();
-	mJob.Cancel();
-	//
 	delete mShell;
+}
+
+void SSHPort::Stop()
+{
+	mShell->Close();
+	mJob.Finish();
 }
 
 bool SSHPort::Start()
 {
-	mRunning = true;
 	mJob & [=]() {
 		mShell->Run(mTerm, 80, 34, Null);
-		mRunning = false;
 	};
 	return true;
 }
@@ -50,7 +55,6 @@ void SSHPort::SetConsoleSize(const Size& csz)
 int SSHPort::Available() const
 {
 	std::lock_guard<std::mutex> _(mLock);
-	if (!mRunning) return -1;
 	return (int)mRxBuffer.size();
 }
 

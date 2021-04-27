@@ -17,6 +17,7 @@ public:
     virtual ~SSHPort();
     //
     bool Start();
+    void Stop();
     //
     int Available() const;
     size_t Read(unsigned char* buf, size_t sz);
@@ -30,10 +31,8 @@ private:
 	std::shared_ptr<Upp::SshSession> mSession;
 	std::string mDeviceName;
 	Upp::String mTerm;
-	std::thread mThr;
 	std::condition_variable mCond;
 	mutable std::mutex mLock;
 	std::vector<unsigned char> mRxBuffer;
 	Upp::CoWorkNX mJob;
-	volatile bool mRunning;
 };

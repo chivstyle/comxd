@@ -50,6 +50,7 @@ public:
 	            // we should save the conn and tab_bar in the instance of TabCloseBtn.
 	            Upp::PostCallback([=]() {
 	                mTabbar->Remove(*mConn);
+	                static_cast<SerialConn*>(conn)->Stop();
 	                delete mConn;
 	                delete this; // delete myself.
 	            });
