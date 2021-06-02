@@ -24,12 +24,16 @@ SSHPort::SSHPort(std::shared_ptr<Upp::SshSession> session, String name, String t
 
 SSHPort::~SSHPort()
 {
+    mShell->Close();
+    //
+    mJob.Finish();
+    //
     delete mShell;
 }
 
 void SSHPort::Stop()
 {
-    mShell->Close();
+    
 }
 
 bool SSHPort::Start()

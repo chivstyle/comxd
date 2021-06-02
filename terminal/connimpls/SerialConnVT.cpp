@@ -328,7 +328,7 @@ void SerialConnVT::RxProc()
         int sz = GetIo()->Available();
         if (sz < 0) {
             PostCallback([=]() {
-                PromptOK(DeQtf(t_("I/O device was disconnected")));
+                PromptOK(DeQtf(this->ConnName()  + ":" + t_("I/O device was disconnected")));
             });
             break;
         } else if (sz == 0) {

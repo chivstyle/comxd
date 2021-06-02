@@ -3,6 +3,8 @@
 dscp::dscp(const String& url, const String& src_filename, const String& dst_filename)
 	: mScp(nullptr)
 {
+	mProgressBar.Set(0);
+	CtrlLayout(*this, "SCP");
 	// Init
 	if (mSession.Timeout(1000).Connect(url)) {
 		mScp = new Scp(mSession);
@@ -23,7 +25,6 @@ dscp::dscp(const String& url, const String& src_filename, const String& dst_file
 			mScp->Abort();
 		};
 	}
-	CtrlLayout(*this, "SCP");
 }
 
 dscp::~dscp()
@@ -40,7 +41,7 @@ GUI_APP_MAIN
 	}
 #if 0
 	else {
-		dscp("chiv:1@192.168.229.128:22", "/tmp/tmp.raw", "d:\\Temp\\tmp.raw").Run();
+		dscp("chiv:1@192.168.229.128:22", "/tmp/system-log.tgz", "d:\\Temp\\tmp.raw").Run();
 	}
 #endif
 }

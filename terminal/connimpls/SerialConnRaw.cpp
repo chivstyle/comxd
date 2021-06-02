@@ -536,8 +536,16 @@ void SerialConnRaw::Update()
 void SerialConnRaw::RxProc()
 {
     while (!mRxShouldStop) {
-        size_t sz = GetIo()->Available();
-        if (sz) {
+        int sz = GetIo()->Available();
+        if (sz < 0) {
+            PostCallback([=]() {
+                PromptOK(DeQtf(this->ConnName()  + ":" + t_("I/O device was disconnected")));
+            });
+            break;
+        } else if (sz == 0) {
+            std::this_thread::sleep_for(std::chrono::duration<double>(0.01));
+            continue;
+        } else {
             size_t max_buffer_sz = mRxBufferSz;
             std::vector<unsigned char> buf = GetIo()->ReadRaw(sz);
             mRxBufferLock.lock();
@@ -553,6 +561,6 @@ void SerialConnRaw::RxProc()
             PostCallback([=]() {
                 Update();
             });
-        } else std::this_thread::sleep_for(std::chrono::duration<double>(0.01));
+        }
     }
 }
