@@ -19,10 +19,10 @@ public:
     static ProtoFactory* Inst();
     // create instance
     // type_name - Type name of conn, such as VT102, Xterm, Modbus RTU, .etc
-    Proto* CreateInst(const Upp::String& proto_name);
+    Proto* CreateInst(const Upp::String& proto_name, SerialConn* conn);
     //
     bool RegisterCreateInstFunc(const Upp::String& proto_name,
-                                std::function<Proto*()> func)
+                                std::function<Proto*(SerialConn*)> func)
     {
         if (mInsts.find(proto_name) == mInsts.end()) {
             mInsts[proto_name] = func;
@@ -41,7 +41,7 @@ public:
     //
 protected:
     // functions to create instance(s)
-    std::map<Upp::String, std::function<Proto*()> > mInsts;
+    std::map<Upp::String, std::function<Proto*(SerialConn*)> > mInsts;
     
     DELETE_CA_FUNCTIONS(ProtoFactory);
     ProtoFactory();
@@ -55,8 +55,8 @@ public: \
     class_name##_() \
     { \
         ProtoFactory::Inst()->RegisterCreateInstFunc(proto_name, \
-        [=]()->Proto* { \
-            auto inst_ = new class_name(); \
+        [=](SerialConn* conn)->Proto* { \
+            auto inst_ = new class_name(conn); \
             inst_->SetName(proto_name); \
             return inst_; \
         }); \

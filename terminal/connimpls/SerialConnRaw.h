@@ -18,6 +18,8 @@ public:
     //
     bool Start();
     //
+    void Stop();
+    //
 protected:
     static const int kPeriodicTimerId = 0;
     std::thread mRxThr; //<! thread to receive data

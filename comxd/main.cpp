@@ -142,18 +142,8 @@ protected:
 	        auto conn = dynamic_cast<SerialConn*>(mDevsTab.GetItem(mDevsTab.Get()).GetSlave());
 	        if (conn) {
 	            // Actions of serial device
-	            auto io_actions = conn->GetIo()->GetActions();
-	            for (auto it = io_actions.begin(); it != io_actions.end(); ++it) {
-	                bar.Add(it->Text, it->Icon, it->Func).Help(it->Help);
-	            }
-	            if (!io_actions.empty()) {
-	                bar.ToolSeparator();
-	            }
-	            // Actions of conn
-	            auto actions = conn->GetActions();
-	            for (auto it = actions.begin(); it != actions.end(); ++it) {
-	                bar.Add(it->Text, it->Icon, it->Func).Help(it->Help);
-	            }
+	            conn->GetIo()->WhenBar(bar);
+	            conn->WhenBar(bar);
 	        }
 	    }
 	}

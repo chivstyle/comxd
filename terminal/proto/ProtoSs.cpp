@@ -5,17 +5,21 @@
 #include "ProtoSs.h"
 #include "ss.h"
 #include "ProtoFactory.h"
+#include "Conn.h"
 
 namespace proto {
     
 REGISTER_PROTO_INSTANCE("Simple Stupid", ProtoSs);
 
-ProtoSs::ProtoSs()
+ProtoSs::ProtoSs(SerialConn* conn)
+    : Proto(conn)
 {
-    mUsrActions.emplace_back(terminal::help(), t_("Help"), t_("Popup help dialog"), [=]() {
-        PromptOK(Upp::DeQtf(t_("Input your command in JSON, here is an example:\n"
-            "{\n    \"Part\":\"LED2\",\n    \"Action\":\"Blink\", \n    \"Parameters\":[\"10\"]\n}")));
-    });
+    WhenUsrBar = [=](Bar& bar) {
+        bar.Add(t_("Help"), terminal::help(), [=]() {
+            PromptOK(Upp::DeQtf(t_("Input your command in JSON, here is an example:\n"
+                "{\n    \"Part\":\"LED2\",\n    \"Action\":\"Blink\", \n    \"Parameters\":[\"10\"]\n}")));
+        }).Help(t_("Popup help dialog"));
+    };
 }
 
 ProtoSs::~ProtoSs()
@@ -72,9 +76,10 @@ static inline void operator += (std::vector<unsigned char>& out, const std::vect
     for (size_t k = 0; k < in.size(); ++k) out.push_back(in[k]);
 }
 // use this proto to pack the data
-std::vector<unsigned char> ProtoSs::Pack(const std::string& json_, std::string& errmsg)
+std::vector<unsigned char> ProtoSs::Pack(const void* input, size_t input_size, std::string& errmsg)
 {
     std::vector<unsigned char> out;
+    std::string json_((const char*)input, input_size);
     Value json = ParseJSON(json_.c_str());
     if (json.IsError()) {
         errmsg = t_("Your input is not a valid JSON string");
@@ -206,6 +211,13 @@ std::string ProtoSs::Unpack(const std::vector<unsigned char>& buf, std::string& 
         }
     }
     return std::move(report);
+}
+
+int ProtoSs::Transmit(const void* input, size_t input_size, std::string& errmsg)
+{
+    auto out = Pack(input, input_size, errmsg);
+    if (out.empty()) return -1;
+    return mConn->GetIo()->Write(out);
 }
     
 }

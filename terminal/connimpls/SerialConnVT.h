@@ -62,6 +62,8 @@ public:
 protected:
     ControlSeqFactory* mSeqsFactory;
     std::map<int, std::function<void(const std::string&)> > mFunctions;
+    //
+    void ShowVTOptions();
     //------------------------------------------------------------------------------------------
     // Font
     virtual void Paint(Upp::Draw& draw);

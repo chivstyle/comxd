@@ -4,7 +4,8 @@
 #include "Proto.h"
 #include "terminal_rc.h"
 
-Proto::Proto()
+Proto::Proto(SerialConn* conn)
+    : mConn(conn)
 {
 }
 
