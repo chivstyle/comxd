@@ -111,7 +111,7 @@ std::vector<unsigned char> ProtoXmodem::Pack(const void* input, size_t input_siz
     //
     return out;
 }
-
+// find token from response, return the first token
 static inline int expect_resp(SerialIo* io, int timeout, volatile bool* should_stop, const std::vector<char>& tks)
 {
     while (timeout >= 0 && !*should_stop) {
@@ -132,6 +132,30 @@ static inline int expect_resp(SerialIo* io, int timeout, volatile bool* should_s
     }
     return -1;
 }
+// find sequence from response, return 1 for matched seq, others for failure
+static inline bool expect_seqs(SerialIo* io, int timeout, volatile bool* should_stop, const std::vector<char>& tks)
+{
+    std::vector<unsigned char> buff;
+    while (timeout >= 0 && !*should_stop) {
+        int sz = io->Available();
+        if (sz < 0) break; // The IO device was corrupted
+        if (sz > 0) {
+            auto resp = io->ReadRaw(sz);
+            buff.insert(buff.end(), resp.begin(), resp.end());
+            auto it = std::find(buff.begin(), buff.end(), tks[0]);
+            size_t k = 0;
+            for (; k < tks.size() && it != buff.end(); ++k, ++it) {
+                if (tks[k] != *it)
+                    break;
+            }
+            if (k == tks.size())
+                return true;
+        } else std::this_thread::sleep_for(std::chrono::duration<double>(0.01));
+        //
+        timeout -= 10;
+    }
+    return false;
+}
 
 int ProtoXmodem::Transmit(const void* input, size_t input_size, std::string& errmsg)
 {
@@ -148,6 +172,11 @@ int ProtoXmodem::Transmit(const void* input, size_t input_size, std::string& err
         size_t blkcnt = input_size / 128;
         size_t leftcn = input_size % 128;
         size_t totcnt = leftcn ? blkcnt + 1 : blkcnt;
+        // wait for the synchronization
+        if (expect_seqs(io, 1000, &should_stop, {'C'}) == false) {
+            errmsg = "Sync failed";
+            failed = true;
+        }
         //
         unsigned char idx = 1; // xmodem begins from 1
         //
