@@ -4,10 +4,10 @@
 #ifndef _comxd_SerialIo_h_
 #define _comxd_SerialIo_h_
 
-#include "Action.h"
 #include <string>
 #include <vector>
 #include <list>
+#include <CtrlLib/CtrlLib.h>
 // interface class
 class SerialIo {
 public:
@@ -15,6 +15,7 @@ public:
     virtual ~SerialIo();
     //
     virtual bool Start() { return true; }
+    virtual void Stop() {}
     /// Was data available?
     /// @return
     ///  - <0 Error, device was corrupted
@@ -30,10 +31,9 @@ public:
     size_t Write(const std::string& d);
     size_t Write(const std::vector<unsigned char>& d);
     //
-    const std::list<UsrAction>& GetActions() const { return mUsrActions; }
+    Upp::Event<Upp::Bar&> WhenUsrBar;
     //
 protected:
-    std::list<UsrAction> mUsrActions;
 };
 
 #endif

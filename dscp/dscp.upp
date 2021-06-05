@@ -1,0 +1,12 @@
+uses
+	CtrlLib,
+	Core/SSH;
+
+file
+	dscp.h,
+	main.cpp,
+	dscp.lay;
+
+mainconfig
+	"" = "GUI";
+

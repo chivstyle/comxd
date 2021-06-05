@@ -19,6 +19,15 @@ enum LineBreak_ {
 };
 }
 //
+static int _HexFilter(int c)
+{
+    if (c >= '0' && c <= '9' ||
+        c >= 'A' && c <= 'F' ||
+        c >= 'a' && c <= 'f' ||
+        c == ' ' || c == '\r' || c == '\n') return c;
+    else return 0;
+}
+//
 SerialConnRaw::SerialConnRaw(std::shared_ptr<SerialIo> io)
     : mRxShouldStop(false)
     , mTxProto(nullptr)
@@ -71,10 +80,18 @@ bool SerialConnRaw::Start()
     return true;
 }
 
+void SerialConnRaw::Stop()
+{
+    mRxShouldStop = true;
+    if (mRxThr.joinable()) {
+        mRxThr.join();
+    }
+}
+
 void SerialConnRaw::InstallUsrActions()
 {
-    mUsrActions.emplace_back(terminal::text_codec(),
-        t_("Text Codec"), t_("Select a text codec"), [=]() {
+    WhenUsrBar = [=](Bar& bar) {
+        bar.Add(t_("Text Codec"), terminal::text_codec(), [=]() {
             TextCodecsDialog d(GetCodec()->GetName().c_str());
             int ret = d.Run();
             if (ret == IDOK) {
@@ -84,7 +101,8 @@ void SerialConnRaw::InstallUsrActions()
                     UpdateAsTxt();
                 }
             }
-        });
+        }).Help(t_("Select a text codec"));
+    };
 }
 
 void SerialConnRaw::InstallActions()
@@ -132,7 +150,7 @@ void SerialConnRaw::InstallActions()
     // proto
     mProtos.WhenAction = [=]() {
         delete mTxProto;
-        mTxProto = ProtoFactory::Inst()->CreateInst(mProtos.GetValue().ToString());
+        mTxProto = ProtoFactory::Inst()->CreateInst(mProtos.GetValue().ToString(), this);
         if (mTxProto) {
             mProtos.Tip(mTxProto->GetDescription().c_str());
         } else {
@@ -142,15 +160,9 @@ void SerialConnRaw::InstallActions()
     this->mTx.WhenBar = [=](Bar& bar) {
         mTx.StdBar(bar);
         if (mTxProto) {
-            auto actions = mTxProto->GetActions();
-            if (!actions.empty()) {
-                bar.Separator();
-                bar.Sub(t_("Proto actions"), [=](Bar& sub) {
-                    for (auto it = actions.begin(); it != actions.end(); ++it) {
-                        sub.Add(it->Text, it->Icon, it->Func).Help(it->Help);
-                    }
-                });
-            }
+            bar.Sub(t_("Proto actions"), [=](Bar& sub) {
+                mTxProto->WhenUsrBar(sub);
+            });
         }
     };
     this->mTxHex.WhenAction = [=]() {
@@ -392,8 +404,9 @@ static inline std::string ReplaceLineBreak_(const std::string& text, int lb)
 //----------------------------------------------------------------------------------------------
 void SerialConnRaw::Set_TxInHex()
 {
-    std::string errmsg;
     std::string tx = mTx.GetData().ToString().ToStd();
+#if 0
+    std::string errmsg;
     if (mTxProto) {
         auto out = mTxProto->Pack(tx, errmsg);
         if (!out.empty()) {
@@ -406,14 +419,20 @@ void SerialConnRaw::Set_TxInHex()
         mTx.Set(ToHexString_(tx));
     }
     this->mTmpStatus.SetText(errmsg.c_str());
+#else
+    mTx.Set(ToHexString_(tx));
+#endif
+    mTx.SetFilter(_HexFilter);
+    //
     mTx.MoveEnd();
 }
 
 void SerialConnRaw::Set_TxInTxt()
 {
-    std::string errmsg;
     std::string tx = mTx.GetData().ToString().ToStd();
     std::vector<unsigned char> out = ToHex_(tx);
+#if 0
+    std::string errmsg;
     if (mTxProto) {
         std::string json = mTxProto->Unpack(out, errmsg);
         if (!json.empty()) {
@@ -423,33 +442,39 @@ void SerialConnRaw::Set_TxInTxt()
         mTx.Set(FromHex_(out));
     }
     this->mTmpStatus.SetText(errmsg.c_str());
+#else
+    mTx.Set(FromHex_(out));
+#endif
+    mTx.SetFilter(nullptr);
+    //
     mTx.MoveEnd();
 }
 
 void SerialConnRaw::OnSend()
 {
+    std::string errmsg;
     std::string tx = mTx.GetData().ToString().ToStd();
     if (mTxHex.Get()) {
         // write as hex.
-        GetIo()->Write(ToHex_(tx));
+        auto hex_ = ToHex_(tx);
+        if (mTxProto) {
+            mTxProto->Transmit(hex_.data(), hex_.size(), errmsg);
+        } else {
+            GetIo()->Write(hex_);
+        }
     } else {
         std::string text = tx;
         if (mEnableEscape.Get()) {
             text = TranslateEscapeChars(text);
         }
         if (mTxProto) {
-            std::string errmsg;
-            auto out = mTxProto->Pack(text, errmsg);
-            if (out.empty()) {
-                PromptOK(Upp::DeQtf(errmsg.c_str()));
-            } else {
-                GetIo()->Write(out);
-            }
+            mTxProto->Transmit(text.c_str(), text.length(), errmsg);
         } else {
             auto tmp = ReplaceLineBreak_(text, mLineBreaks.GetKey(mLineBreaks.GetIndex()).To<int>());
             GetIo()->Write(GetCodec()->TranscodeFromUTF8((const unsigned char*)tmp.c_str(), tmp.length()));
         }
     }
+    this->mTmpStatus.SetText(errmsg.c_str());
 }
 //
 static const char* kC0_Names[] = {
@@ -536,8 +561,16 @@ void SerialConnRaw::Update()
 void SerialConnRaw::RxProc()
 {
     while (!mRxShouldStop) {
-        size_t sz = GetIo()->Available();
-        if (sz) {
+        int sz = GetIo()->Available();
+        if (sz < 0) {
+            PostCallback([=]() {
+                PromptOK(DeQtf(this->ConnName()  + ":" + t_("I/O device was disconnected")));
+            });
+            break;
+        } else if (sz == 0) {
+            std::this_thread::sleep_for(std::chrono::duration<double>(0.01));
+            continue;
+        } else {
             size_t max_buffer_sz = mRxBufferSz;
             std::vector<unsigned char> buf = GetIo()->ReadRaw(sz);
             mRxBufferLock.lock();
@@ -553,6 +586,6 @@ void SerialConnRaw::RxProc()
             PostCallback([=]() {
                 Update();
             });
-        } else std::this_thread::sleep_for(std::chrono::duration<double>(0.01));
+        }
     }
 }

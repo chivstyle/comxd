@@ -1,0 +1,4 @@
+LAYOUT(dscpLayout, 432, 40)
+	ITEM(Upp::ProgressIndicator, mProgressBar, LeftPosZ(4, 424).TopPosZ(8, 24))
+END_LAYOUT
+

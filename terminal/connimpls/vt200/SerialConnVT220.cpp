@@ -201,8 +201,7 @@ void SerialConnVT220::ProcessDECSM(const std::string& p)
     switch (ps) {
     case 25: SetShowCursor(true); break;
     case 42: mModes.DECNRCM = 1; break;
-    default:
-        return SerialConnVT100::ProcessDECSM(p);
+    default: SerialConnVT100::ProcessDECSM(p); break;
     }
 }
 void SerialConnVT220::ProcessDECRM(const std::string& p)
@@ -211,8 +210,7 @@ void SerialConnVT220::ProcessDECRM(const std::string& p)
     switch (ps) {
     case 25: SetShowCursor(false); break;
     case 42: mModes.DECNRCM = 0; break;
-    default:
-        return SerialConnVT100::ProcessDECRM(p);
+    default: SerialConnVT100::ProcessDECRM(p); break;
     }
 }
 void SerialConnVT220::ProcessSS2(const std::string&)

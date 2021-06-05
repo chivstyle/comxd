@@ -97,59 +97,66 @@ bool SerialConnVT::Start()
     return true;
 }
 //
+void SerialConnVT::ShowVTOptions()
+{
+    VTOptionsDialog::Options options;
+    options.Font = mFont;
+    options.LinesBufferSize = (int)this->mMaxLinesBufferSize;
+    options.PaperColor = mColorTbl.GetColor(VTColorTable::kColorId_Paper);
+    options.TextsColor = mColorTbl.GetColor(VTColorTable::kColorId_Texts);
+    VTOptionsDialog opt;
+    opt.SetOptions(options);
+    int ret = opt.Run();
+    if (ret == IDOK) {
+        options = opt.GetOptions();
+        this->mFont = options.Font;
+        this->mMaxLinesBufferSize = options.LinesBufferSize;
+        this->mColorTbl.SetColor(VTColorTable::kColorId_Texts, options.TextsColor);
+        this->mColorTbl.SetColor(VTColorTable::kColorId_Paper, options.PaperColor);
+        //
+        bool vscr_modified = false; // lines buffer or virtual screen was modified ?
+        int fontw = std::max(mFont.GetWidth('M'), mFont.GetWidth('W')), fonth = mFont.GetLineHeight();
+        if (fontw != mFontW || fonth != mFontH) {
+            int shrink_cnt = (int)mLinesBuffer.size() - options.LinesBufferSize;
+            if (shrink_cnt > 0) {
+                mLinesBuffer.erase(mLinesBuffer.begin(), mLinesBuffer.begin() + shrink_cnt);
+            }
+            // will override the old parameters, such as line-height
+            for (size_t k = 0; k < mLinesBuffer.size(); ++k) {
+                int h = mLinesBuffer[k].GetHeight();
+                mLinesBuffer[k].SetHeight((int)((double)h / mFontH * fonth));
+            }
+            for (size_t k = 0; k < mLines.size(); ++k) {
+                int h = mLines[k].GetHeight();
+                mLines[k].SetHeight((int)((double)h / mFontH * fonth));
+            }
+            mFontW = fontw, mFontH = fonth;
+            vscr_modified = true;
+        }
+        if (vscr_modified) {
+            DoLayout();
+            UpdatePresentation();
+        }
+    }
+}
+//
 void SerialConnVT::InstallUserActions()
 {
-    mUsrActions.emplace_back(terminal::text_codec(), t_("Text Codec"), t_("Select a text codec"), [=]() {
-        TextCodecsDialog d(GetCodec()->GetName().c_str());
-        int ret = d.Run();
-        if (ret == IDOK) {
-            this->SetCodec(d.GetCodecName());
-            Refresh();
-        }
-    });
-    mUsrActions.emplace_back(terminal::clear_buffer(),
-        t_("Clear Buffer"), t_("Clear the line buffers"), [=]() { Clear(); });
-    mUsrActions.emplace_back(terminal::vt_options(), t_("VT options"), t_("Virtual terminal options"), [=]() {
-        VTOptionsDialog::Options options;
-        options.Font = mFont;
-        options.LinesBufferSize = (int)this->mMaxLinesBufferSize;
-        options.PaperColor = mColorTbl.GetColor(VTColorTable::kColorId_Paper);
-        options.TextsColor = mColorTbl.GetColor(VTColorTable::kColorId_Texts);
-        VTOptionsDialog opt;
-        opt.SetOptions(options);
-        int ret = opt.Run();
-        if (ret == IDOK) {
-            options = opt.GetOptions();
-            this->mFont = options.Font;
-            this->mMaxLinesBufferSize = options.LinesBufferSize;
-            this->mColorTbl.SetColor(VTColorTable::kColorId_Texts, options.TextsColor);
-            this->mColorTbl.SetColor(VTColorTable::kColorId_Paper, options.PaperColor);
-            //
-            bool vscr_modified = false; // lines buffer or virtual screen was modified ?
-            int fontw = std::max(mFont.GetWidth('M'), mFont.GetWidth('W')), fonth = mFont.GetLineHeight();
-            if (fontw != mFontW || fonth != mFontH) {
-                int shrink_cnt = (int)mLinesBuffer.size() - options.LinesBufferSize;
-                if (shrink_cnt > 0) {
-                    mLinesBuffer.erase(mLinesBuffer.begin(), mLinesBuffer.begin() + shrink_cnt);
-                }
-                // will override the old parameters, such as line-height
-                for (size_t k = 0; k < mLinesBuffer.size(); ++k) {
-                    int h = mLinesBuffer[k].GetHeight();
-                    mLinesBuffer[k].SetHeight((int)((double)h / mFontH * fonth));
-                }
-                for (size_t k = 0; k < mLines.size(); ++k) {
-                    int h = mLines[k].GetHeight();
-                    mLines[k].SetHeight((int)((double)h / mFontH * fonth));
-                }
-                mFontW = fontw, mFontH = fonth;
-                vscr_modified = true;
+    WhenUsrBar = [=](Bar& bar) {
+        bar.Add(t_("Text Codec"), terminal::text_codec(), [=]() {
+            TextCodecsDialog d(GetCodec()->GetName().c_str());
+            int ret = d.Run();
+            if (ret == IDOK) {
+                this->SetCodec(d.GetCodecName());
+                Refresh();
             }
-            if (vscr_modified) {
-                DoLayout();
-                UpdatePresentation();
-            }
-        }
-    });
+        }).Help(t_("Select a text codec"));
+        bar.Add(t_("Clear Buffer"), terminal::clear_buffer(), [=]() { Clear(); }).Help(t_("Clear the line buffers"));
+        bar.Add(t_("VT Options"), terminal::vt_options(), [=]() {
+            ShowVTOptions();
+        }).Help(t_("Virtual terminal options"));
+    };
+    
     WhenBar = [=](Bar& bar) {
         bool has_sel = mSelectionSpan.Valid;
         bar.Add(has_sel, t_("Copy"), [=] {
@@ -328,7 +335,7 @@ void SerialConnVT::RxProc()
         int sz = GetIo()->Available();
         if (sz < 0) {
             PostCallback([=]() {
-                PromptOK(DeQtf(t_("I/O device was disconnected")));
+                PromptOK(DeQtf(this->ConnName()  + ":" + t_("I/O device was disconnected")));
             });
             break;
         } else if (sz == 0) {
@@ -390,6 +397,7 @@ void SerialConnVT::RxProc()
 }
 // This routine guarantee that the width of any char is integral multiple
 // of mFontW.
+extern int mk_wcwidth(uint32_t ucs);
 int SerialConnVT::GetCharWidth(const VTChar& c) const
 {
     int cx = mFontW;
@@ -403,13 +411,7 @@ int SerialConnVT::GetCharWidth(const VTChar& c) const
     case ' ':
         break;
     default: if (1) {
-        if (c.Code() >= 0x04e00 && c.Code() <= 0x09fff ||
-            c.Code() >= 0x03400 && c.Code() <= 0x04dbf ||
-            c.Code() >= 0x20000 && c.Code() <= 0x2ffff ||
-            c.Code() >= 0x30000 && c.Code() <= 0x3ffff)
-        {
-            return mFontW*2;
-        }
+        cx *= mk_wcwidth(c.Code());
     } break;
     }
     return cx;
@@ -887,6 +889,7 @@ void SerialConnVT::LeftUp(Point p, dword)
 void SerialConnVT::Paste()
 {
     String text = ReadClipboardUnicodeText().ToString();
+    text.Replace("\r\n", "\n");
     GetIo()->Write(text.ToStd());
 }
 

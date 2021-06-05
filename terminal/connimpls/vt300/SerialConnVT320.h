@@ -10,16 +10,8 @@ class SerialConnVT320 : public SerialConnVT220 {
 public:
     SerialConnVT320(std::shared_ptr<SerialIo> io);
 protected:
-    DECSASD = VT300_SEQ_BEGIN,
-    DECSSDT,
-    DECRQTSR,
-    DECRQPSR,
-    DECRQM, // set mode dec private
-    ANSIRQM, // set mode ansi
-    DECRPM,
-    DECRQUPSS,
-    virtual void ProcessDECASD(const std::string&);
-    virtual void ProcessDECSDT(const std::string&);
+    virtual void ProcessDECSASD(const std::string&);
+    virtual void ProcessDECSSDT(const std::string&);
     virtual void ProcessDECRQTSR(const std::string&);
     virtual void ProcessDECRQPSR(const std::string&);
     virtual void ProcessDECRQM(const std::string&);

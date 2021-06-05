@@ -39,12 +39,20 @@ void SerialConnVT320::ProcessDECSCL(const std::string& p)
 
 void SerialConnVT320::InstallFunctions()
 {
+    mFunctions[DECSASD] = [=](const std::string& p) { ProcessDECSASD(p); };
+    mFunctions[DECSSDT] = [=](const std::string& p) { ProcessDECSSDT(p); };
+    mFunctions[DECRQTSR] = [=](const std::string& p) { ProcessDECRQTSR(p); };
+    mFunctions[DECRQPSR] = [=](const std::string& p) { ProcessDECRQPSR(p); };
+    mFunctions[DECRQM] = [=](const std::string& p) { ProcessDECRQM(p); };
+    mFunctions[ANSIRQM] = [=](const std::string& p) { ProcessANSIRQM(p); };
+    mFunctions[DECRPM] = [=](const std::string& p) { ProcessDECRPM(p); };
+    mFunctions[DECRQUPSS] = [=](const std::string& p) { ProcessDECRQUPSS(p); };
 }
 //
-void SerialConnVT320::ProcessDECASD(const std::string&)
+void SerialConnVT320::ProcessDECSASD(const std::string&)
 {
 }
-void SerialConnVT320::ProcessDECSDT(const std::string&)
+void SerialConnVT320::ProcessDECSSDT(const std::string&)
 {
 }
 void SerialConnVT320::ProcessDECRQTSR(const std::string&)
@@ -100,7 +108,7 @@ void SerialConnVT320::ProcessDECRM(const std::string& p)
     int ps = atoi(p.c_str());
     switch (ps) {
     case 68: this->mModes.DECKBUM = 0; break;
-    default: SerialConnVT220::ProcessDECSM(p); break;
+    default: SerialConnVT220::ProcessDECRM(p); break;
     }
 }
 

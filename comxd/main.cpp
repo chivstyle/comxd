@@ -50,6 +50,7 @@ public:
 	            // we should save the conn and tab_bar in the instance of TabCloseBtn.
 	            Upp::PostCallback([=]() {
 	                mTabbar->Remove(*mConn);
+	                static_cast<SerialConn*>(mConn)->Stop();
 	                delete mConn;
 	                delete this; // delete myself.
 	            });
@@ -141,18 +142,8 @@ protected:
 	        auto conn = dynamic_cast<SerialConn*>(mDevsTab.GetItem(mDevsTab.Get()).GetSlave());
 	        if (conn) {
 	            // Actions of serial device
-	            auto io_actions = conn->GetIo()->GetActions();
-	            for (auto it = io_actions.begin(); it != io_actions.end(); ++it) {
-	                bar.Add(it->Text, it->Icon, it->Func).Help(it->Help);
-	            }
-	            if (!io_actions.empty()) {
-	                bar.ToolSeparator();
-	            }
-	            // Actions of conn
-	            auto actions = conn->GetActions();
-	            for (auto it = actions.begin(); it != actions.end(); ++it) {
-	                bar.Add(it->Text, it->Icon, it->Func).Help(it->Help);
-	            }
+	            conn->GetIo()->WhenUsrBar(bar);
+	            conn->WhenUsrBar(bar);
 	        }
 	    }
 	}

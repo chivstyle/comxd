@@ -17,6 +17,7 @@ public:
     virtual ~SerialConn() {}
     // start the conn
     virtual bool Start() { return true; }
+    virtual void Stop();
     //
     void SetCodec(const char* codec_name);
     //
@@ -25,19 +26,14 @@ public:
         return mIo->DeviceName();
     }
     //
-    const std::list<UsrAction>& GetActions() const
-    {
-        return mUsrActions;
-    }
-    //
     SerialIo* GetIo() const { return mIo.get(); }
     Codec* GetCodec() const { return mCodec.get(); }
     // terminal size changed
     Upp::Event<Upp::Size> WhenSizeChanged;
+    Upp::Event<Upp::Bar&> WhenUsrBar;
 protected:
     std::shared_ptr<SerialIo> mIo;
     std::shared_ptr<Codec> mCodec;
-    std::list<UsrAction> mUsrActions;
 };
 
 #endif
