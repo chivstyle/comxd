@@ -28,8 +28,6 @@ enum VT420SeqType {
     DECFI,
     //
     DECSNLS,
-    DECSASD,
-    DECSSDT,
     //
     TertiaryDA,
     //

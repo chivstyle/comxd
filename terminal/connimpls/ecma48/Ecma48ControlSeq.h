@@ -24,8 +24,8 @@ enum Ecma48SeqType {
     ECMA48_VT,
     ECMA48_FF,
     ECMA48_CR,
-    ECMA48_SI, // called LS0 in 8bit environment
-    ECMA48_SO, // called LS1 in 8bit environment
+    ECMA48_SO, // called LS0 in 8bit environment
+    ECMA48_SI, // called LS1 in 8bit environment
     ECMA48_DLE,
     ECMA48_DC1,
     ECMA48_DC2,

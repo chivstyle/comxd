@@ -29,8 +29,6 @@ void AddVT420ControlSeqs(ControlSeqFactory* factory)
     REGISTER_SEQ(factory, DECFI, "\E9", No, 0, "");
     //
     REGISTER_SEQ(factory, DECSNLS, kCSI, Pn, 1, "*|");
-    REGISTER_SEQ(factory, DECSASD, kCSI, Pn, 1, "$}");
-    REGISTER_SEQ(factory, DECSSDT, kCSI, Pn, 1, "$~");
     //
     REGISTER_SEQ(factory, TertiaryDA, "\E[=", Pn, 1, "c");
     //

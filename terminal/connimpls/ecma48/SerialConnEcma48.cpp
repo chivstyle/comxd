@@ -1491,6 +1491,22 @@ bool SerialConnEcma48::IsControlSeqPrefix(uint8_t c)
 	} else return SerialConnVT::IsControlSeqPrefix(c);
 }
 
+int SerialConnEcma48::IsControlSeq(const std::string& seq, size_t& p_begin, size_t& p_sz, size_t& s_end)
+{
+    if (seq[0] >= 0 && seq[0] < 0x1f && seq[0] != 0x1b) {
+        p_begin = 0;
+        p_sz = 1;
+        s_end = 1;
+        return ECMA48_NUL + seq[0];
+    } else if (seq[0] == 0x1f) {
+        p_begin = 0;
+        p_sz = 1;
+        s_end = 1;
+        return ECMA48_DEL;
+    }
+    return SerialConnVT::IsControlSeq(seq, p_begin, p_sz, s_end);
+}
+
 void SerialConnEcma48::RefineTheInput(std::string& raw)
 {
 	if (mUseS8C) {
