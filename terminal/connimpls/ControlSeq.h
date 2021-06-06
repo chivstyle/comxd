@@ -39,6 +39,10 @@
 #define VT500_SEQ_BEGIN               VT400_SEQ_END+1 // 809
 #define VT500_SEQ_MAX_COUNT           100
 #define VT500_SEQ_END                 VT500_SEQ_BEGIN+VT500_SEQ_MAX_COUNT // 909
+// xterm
+#define XTERM_SEQ_BEGIN               VT500_SEQ_END+1 // 1010
+#define XTERM_SEQ_MAX_COUNT           100
+#define XTERM_SEQ_END                 XTERM_SEQ_BEGIN+XTERM_SEQ_MAX_COUNT // 1110
 //
 struct ControlSeq {
     int         Type;
