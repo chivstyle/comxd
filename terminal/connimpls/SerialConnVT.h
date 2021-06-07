@@ -23,6 +23,7 @@ public:
     virtual ~SerialConnVT();
     //
     virtual bool Start();
+    virtual void Stop();
     // clear screen and buffer, restore default, .etc, you can override it
     virtual void Clear();
     // Editing commands

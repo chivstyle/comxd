@@ -66,16 +66,14 @@ SerialConnRaw::SerialConnRaw(std::shared_ptr<SerialIo> io)
 
 SerialConnRaw::~SerialConnRaw()
 {
-    mRxShouldStop = true;
-    if (mRxThr.joinable()) {
-        mRxThr.join();
-    }
+    Stop();
     KillTimeCallback(kPeriodicTimerId);
     delete mTxProto;
 }
 
 bool SerialConnRaw::Start()
 {
+    mRxShouldStop = false;
     mRxThr = std::thread([=] { RxProc(); });
     return true;
 }

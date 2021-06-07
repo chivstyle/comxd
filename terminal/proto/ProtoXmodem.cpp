@@ -21,20 +21,21 @@ namespace xmodem {
     static const char fEOF = 26;
     static const char fETB = 23;
     //
-    int calcrc(const unsigned char *ptr, int count)
+    unsigned short calcrc(const unsigned char *ptr, int len)
     {
-        int i, crc = 0;
-        while (--count >= 0) {
-            crc = crc ^ (int)*ptr++ << 8;
-            i = 8;
-            do {
+        unsigned int i;
+        unsigned short crc = 0x0000;
+        
+        while (len--) {
+            crc ^= (unsigned short)(*ptr++) << 8;
+            for (i = 0; i < 8; ++i) {
                 if (crc & 0x8000)
-                    crc = crc << 1 ^ 0x1021;
+                    crc = (crc << 1) ^ 0x1021;
                 else
-                    crc = crc << 1;
-            } while(--i);
+                    crc <<= 1;
+            }
         }
-        return (crc);
+        return crc;
     }
     //
     static const int64 kMaxFileSize = 1024*1024*64;
@@ -114,18 +115,18 @@ std::vector<unsigned char> ProtoXmodem::Pack(const void* input, size_t input_siz
 // find token from response, return the first token
 static inline int expect_resp(SerialIo* io, int timeout, volatile bool* should_stop, const std::vector<char>& tks)
 {
+    std::vector<unsigned char> buff;
     while (timeout >= 0 && !*should_stop) {
         int sz = io->Available();
         if (sz < 0) break; // The IO device was corrupted
         if (sz > 0) {
             auto resp = io->ReadRaw(sz);
+            buff.insert(buff.end(), resp.begin(), resp.end());
             for (size_t k = 0; k < tks.size(); ++k) {
-                auto it = std::find(resp.begin(), resp.end(), tks[k]);
-                if (it != resp.end()) {
+                auto it = std::find(buff.begin(), buff.end(), tks[k]);
+                if (it != buff.end())
                     return *it;
-                }
             }
-            
         } else std::this_thread::sleep_for(std::chrono::duration<double>(0.01));
         //
         timeout -= 10;
@@ -162,31 +163,38 @@ int ProtoXmodem::Transmit(const void* input, size_t input_size, std::string& err
     Progress bar;
     bool failed = false;
     volatile bool should_stop = false;
+    const int kTimeout = 1500;
     auto io = mConn->GetIo();
     //
-    bar.WhenClose = [&]() {
-        should_stop = true;
-    };
+    bar.WhenClose = [&]() { should_stop = true; };
+    //
+    size_t blkcnt = input_size / 128;
+    size_t leftcn = input_size % 128;
+    size_t totcnt = leftcn ? blkcnt + 1 : blkcnt;
+    size_t k;
     // create the job
     auto job = [&]() {
-        size_t blkcnt = input_size / 128;
-        size_t leftcn = input_size % 128;
-        size_t totcnt = leftcn ? blkcnt + 1 : blkcnt;
-        // wait for the synchronization
-        if (expect_seqs(io, 1000, &should_stop, {'C'}) == false) {
-            errmsg = "Sync failed";
+        unsigned char idx = 1; // xmodem begins from 1
+        // wait for sync
+        if (!expect_seqs(io, kTimeout, &should_stop, {'C'})) {
             failed = true;
+            errmsg = "Sync Timeout!";
         }
         //
-        unsigned char idx = 1; // xmodem begins from 1
-        //
-        for (size_t k = 0; k < blkcnt && !should_stop && !failed; ++k) {
-            auto pkt = Pack((const unsigned char*)input + 128*k, 128, idx);
+        char chunk[128];
+        for (k = 0; k < totcnt && !should_stop && !failed; ++k) {
+            memset(chunk, xmodem::fEOF, 128);
+            if (k == blkcnt) {
+                memcpy(chunk, (const char*)input + k*128, leftcn);
+            } else {
+                memcpy(chunk, (const char*)input + k*128, 128);
+            }
+            auto pkt = Pack(chunk, 128, idx++);
             int retry = 3;
             while (retry--) {
                 io->Write(pkt);
                 // wait for the response
-                int ret = expect_resp(io, 1000, &should_stop, {xmodem::fACK, xmodem::fNAK});
+                int ret = expect_resp(io, kTimeout, &should_stop, {xmodem::fACK, xmodem::fNAK, xmodem::fCAN});
                 if (ret < 0) {
                     errmsg = "The remote device was not responsed in time";
                     failed = true;
@@ -195,37 +203,36 @@ int ProtoXmodem::Transmit(const void* input, size_t input_size, std::string& err
                     io->Write(pkt);
                 } else if (ret == xmodem::fACK) {
                     break;
+                } else if (ret == xmodem::fCAN) {
+                    errmsg = "The remote device canceled the transmit";
+                    failed = true;
+                    break;
                 }
             }
-            Upp::GuiLock __;
-            bar.Set(k, totcnt);
-        }
-        // write the last packet
-        if (!failed && leftcn) {
-            io->Write(Pack((const unsigned char*)input + 128*blkcnt, leftcn, idx++));
-            Upp::GuiLock __;
-            bar.Set(blkcnt+1, totcnt);
+            PostCallback([&]() { bar.Set(k, totcnt); });
         }
         // write the tail seq
         if (!failed) {
-            failed = false;
+            failed = true;
             io->Write((const unsigned char*)&xmodem::fEOT, 1);
-            if (expect_resp(io, 100, &should_stop, {xmodem::fACK}) == xmodem::fACK) {
-                io->Write((const unsigned char*)&xmodem::fETB, 1);
-                if (expect_resp(io, 100, &should_stop, {xmodem::fACK}) == xmodem::fACK) {
+            if (expect_resp(io, kTimeout, &should_stop, {xmodem::fACK}) == xmodem::fACK) {
+                //io->Write((const unsigned char*)&xmodem::fETB, 1);
+                //if (expect_resp(io, kTimeout, &should_stop, {xmodem::fACK}) == xmodem::fACK) {
                     // completed.
-                    failed = true;
-                }
+                    failed = false;
+                //} else {
+                //    errmsg = "ETB was not responsed!";
+                //}
+            } else {
+                errmsg = "EOT was not responsed!";
             }
         }
-        Upp::PostCallback([&]() {
-            bar.Close();
-        });
+        Upp::PostCallback([&]() { bar.Close(); });
     };
     // before transmit, we should stop the conn
     mConn->Stop();
     auto thr = std::thread(job);
-    bar.Run(true);
+    bar.RunAppModal();
     thr.join();
     // after transmit, restart the conn
     mConn->Start();

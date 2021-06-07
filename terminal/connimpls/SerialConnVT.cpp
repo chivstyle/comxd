@@ -83,18 +83,23 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
 
 SerialConnVT::~SerialConnVT()
 {
-    mRxShouldStop = true;
-    if (mRxThr.joinable()) {
-        mRxThr.join();
-    }
+    Stop();
     delete mSeqsFactory;
 }
 //
 bool SerialConnVT::Start()
 {
+    mRxShouldStop = false;
     mRxThr = std::thread([=]() { RxProc(); });
     //
     return true;
+}
+void SerialConnVT::Stop()
+{
+    mRxShouldStop = true;
+    if (mRxThr.joinable()) {
+        mRxThr.join();
+    }
 }
 //
 void SerialConnVT::ShowVTOptions()
