@@ -142,8 +142,8 @@ protected:
 	        auto conn = dynamic_cast<SerialConn*>(mDevsTab.GetItem(mDevsTab.Get()).GetSlave());
 	        if (conn) {
 	            // Actions of serial device
-	            conn->GetIo()->WhenBar(bar);
-	            conn->WhenBar(bar);
+	            conn->GetIo()->WhenUsrBar(bar);
+	            conn->WhenUsrBar(bar);
 	        }
 	    }
 	}

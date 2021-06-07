@@ -19,12 +19,11 @@ namespace xmodem {
     static const char fNAK = 21;
     static const char fCAN = 24;
     static const char fEOF = 26;
+    static const char fETB = 23;
     //
     int calcrc(const unsigned char *ptr, int count)
     {
-        int  crc;
-        char i;
-        crc = 0;
+        int i, crc = 0;
         while (--count >= 0) {
             crc = crc ^ (int)*ptr++ << 8;
             i = 8;
@@ -37,11 +36,40 @@ namespace xmodem {
         }
         return (crc);
     }
+    //
+    static const int64 kMaxFileSize = 1024*1024*64;
 }
 
 ProtoXmodem::ProtoXmodem(SerialConn* conn)
     : Proto(conn)
 {
+    WhenUsrBar = [=](Bar& bar) {
+        bar.Add(t_("About"), terminal::help(), [=]() {
+            Upp::PromptOK("Standard XMODEM/CRC v1.0a");
+        });
+        bar.Add(t_("Transmit File..."), [=]() {
+            FileSel fs;
+            if (fs.AllFilesType().ExecuteOpen()) {
+                auto filename = fs.Get();
+                FileIn fin;
+                if (fin.Open(filename)) {
+                    int64 filesz = fin.GetSize();
+                    if (filesz > xmodem::kMaxFileSize) {
+                        PromptOK(t_("The file is too big to transmit!"));
+                    } else {
+                        char* buff = new char[filesz];
+                        std::string errmsg;
+                        this->Transmit(buff, filesz, errmsg);
+                        delete[] buff;
+                        if (!errmsg.empty()) {
+                            PromptOK(errmsg.c_str());
+                        }
+                    }
+                    fin.Close();
+                }
+            }
+        });
+    };
 }
 
 ProtoXmodem::~ProtoXmodem()
@@ -83,44 +111,125 @@ std::vector<unsigned char> ProtoXmodem::Pack(const void* input, size_t input_siz
     //
     return out;
 }
+// find token from response, return the first token
+static inline int expect_resp(SerialIo* io, int timeout, volatile bool* should_stop, const std::vector<char>& tks)
+{
+    while (timeout >= 0 && !*should_stop) {
+        int sz = io->Available();
+        if (sz < 0) break; // The IO device was corrupted
+        if (sz > 0) {
+            auto resp = io->ReadRaw(sz);
+            for (size_t k = 0; k < tks.size(); ++k) {
+                auto it = std::find(resp.begin(), resp.end(), tks[k]);
+                if (it != resp.end()) {
+                    return *it;
+                }
+            }
+            
+        } else std::this_thread::sleep_for(std::chrono::duration<double>(0.01));
+        //
+        timeout -= 10;
+    }
+    return -1;
+}
+// find sequence from response, return 1 for matched seq, others for failure
+static inline bool expect_seqs(SerialIo* io, int timeout, volatile bool* should_stop, const std::vector<char>& tks)
+{
+    std::vector<unsigned char> buff;
+    while (timeout >= 0 && !*should_stop) {
+        int sz = io->Available();
+        if (sz < 0) break; // The IO device was corrupted
+        if (sz > 0) {
+            auto resp = io->ReadRaw(sz);
+            buff.insert(buff.end(), resp.begin(), resp.end());
+            auto it = std::find(buff.begin(), buff.end(), tks[0]);
+            size_t k = 0;
+            for (; k < tks.size() && it != buff.end(); ++k, ++it) {
+                if (tks[k] != *it)
+                    break;
+            }
+            if (k == tks.size())
+                return true;
+        } else std::this_thread::sleep_for(std::chrono::duration<double>(0.01));
+        //
+        timeout -= 10;
+    }
+    return false;
+}
 
 int ProtoXmodem::Transmit(const void* input, size_t input_size, std::string& errmsg)
 {
     Progress bar;
+    bool failed = false;
+    volatile bool should_stop = false;
     auto io = mConn->GetIo();
+    //
+    bar.WhenClose = [&]() {
+        should_stop = true;
+    };
     // create the job
-    [=, &io]() {
-        
+    auto job = [&]() {
         size_t blkcnt = input_size / 128;
         size_t leftcn = input_size % 128;
         size_t totcnt = leftcn ? blkcnt + 1 : blkcnt;
-        
+        // wait for the synchronization
+        if (expect_seqs(io, 1000, &should_stop, {'C'}) == false) {
+            errmsg = "Sync failed";
+            failed = true;
+        }
+        //
         unsigned char idx = 1; // xmodem begins from 1
-        
-        for (size_t k = 0; k < blkcnt; ++k) {
-            
-            io->Write(Pack((const unsigned char*)input + 128*k, 128, idx++));
-            // wait for the response
-            int times = 10;
-            while (times--) {
-                int sz = io->Available();
-                if (sz > 0) {
-                    auto resp = io->ReadRaw(sz);
-                    auto it = std::find(resp.begin(), resp.end(), xmodem::fACK);
-                    if (it != resp.end())
-                        break;
-                } else std::this_thread::sleep_for(std::chrono::duration<double>(0.01));
-            }
-            if (times < 0) {
-                errmsg = "The remote device was not responsed in time!";
-                return -1;
+        //
+        for (size_t k = 0; k < blkcnt && !should_stop && !failed; ++k) {
+            auto pkt = Pack((const unsigned char*)input + 128*k, 128, idx);
+            int retry = 3;
+            while (retry--) {
+                io->Write(pkt);
+                // wait for the response
+                int ret = expect_resp(io, 1000, &should_stop, {xmodem::fACK, xmodem::fNAK});
+                if (ret < 0) {
+                    errmsg = "The remote device was not responsed in time";
+                    failed = true;
+                    break;
+                } else if (ret == xmodem::fNAK) { // retransmit
+                    io->Write(pkt);
+                } else if (ret == xmodem::fACK) {
+                    break;
+                }
             }
             Upp::GuiLock __;
-            bar.SetPos(k, totcnt);
+            bar.Set(k, totcnt);
         }
+        // write the last packet
+        if (!failed && leftcn) {
+            io->Write(Pack((const unsigned char*)input + 128*blkcnt, leftcn, idx++));
+            Upp::GuiLock __;
+            bar.Set(blkcnt+1, totcnt);
+        }
+        // write the tail seq
+        if (!failed) {
+            failed = false;
+            io->Write((const unsigned char*)&xmodem::fEOT, 1);
+            if (expect_resp(io, 100, &should_stop, {xmodem::fACK}) == xmodem::fACK) {
+                io->Write((const unsigned char*)&xmodem::fETB, 1);
+                if (expect_resp(io, 100, &should_stop, {xmodem::fACK}) == xmodem::fACK) {
+                    // completed.
+                    failed = true;
+                }
+            }
+        }
+        Upp::PostCallback([&]() {
+            bar.Close();
+        });
     };
-    
-    return 0;
+    // before transmit, we should stop the conn
+    mConn->Stop();
+    auto thr = std::thread(job);
+    bar.Run(true);
+    thr.join();
+    // after transmit, restart the conn
+    mConn->Start();
+    return failed ? 0 : (int)input_size;
 }
     
 }

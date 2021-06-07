@@ -349,7 +349,9 @@ void SerialConnVT::RxProc()
                 raw.push_back(buff[k]);
         }
         RefineTheInput(raw);
-        while (!raw.empty()) {
+        //
+        int pool = 0;
+        while (!raw.empty() && !mRxShouldStop) {
             if (IsControlSeqPrefix((uint8_t)raw[0])) { // is prefix of some control sequence
                 if (!texts.empty()) {
                     size_t ep;
@@ -378,9 +380,15 @@ void SerialConnVT::RxProc()
                     AddSeq(type, raw.substr(p_begin, p_sz));
                 }
                 raw.erase(raw.begin(), raw.begin() + s_end);
+                //
+                pool++;
             } else {
                 texts.push_back(raw[0]);
                 raw.erase(raw.begin());
+            }
+            if (pool == 10) {
+                PostCallback([=]() { RenderSeqs(); });
+                pool = 0;
             }
         }
         if (!texts.empty()) {

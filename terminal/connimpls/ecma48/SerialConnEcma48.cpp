@@ -1420,7 +1420,8 @@ static std::string S8CToS7C(const std::string& s)
 		"\E\x55", // MW
 		"\E\x56", // SPA
 		"\E\x57", // EPA
-		"", "", "",
+		"", "",
+		"\E\x5a", // DECID
 		"\E\x5b", // CSI
 		"\E\x5c", // ST
 		"\E\x5d", // OSC
@@ -1471,6 +1472,7 @@ static std::string S7CToS8C(const std::string& s)
 				case 0x5d: out.push_back((char)(0x9d)); break; // OSC
 				case 0x5e: out.push_back((char)(0x9e)); break; // PM
 				case 0x5f: out.push_back((char)(0x9f)); break; // APC
+				case 0x5a: out.push_back((char)(0x9a)); break; // DECID
 				default:
 					out.push_back(s[k]);
 					break;
@@ -1487,6 +1489,22 @@ bool SerialConnEcma48::IsControlSeqPrefix(uint8_t c)
 	if (mUseS8C) {
 		return c <= 0x1f || c == 0x7f || (c >= 0x80 && c <= 0x9f);
 	} else return SerialConnVT::IsControlSeqPrefix(c);
+}
+
+int SerialConnEcma48::IsControlSeq(const std::string& seq, size_t& p_begin, size_t& p_sz, size_t& s_end)
+{
+    if (seq[0] >= 0 && seq[0] < 0x1f && seq[0] != 0x1b) {
+        p_begin = 0;
+        p_sz = 1;
+        s_end = 1;
+        return ECMA48_NUL + seq[0];
+    } else if (seq[0] == 0x1f) {
+        p_begin = 0;
+        p_sz = 1;
+        s_end = 1;
+        return ECMA48_DEL;
+    }
+    return SerialConnVT::IsControlSeq(seq, p_begin, p_sz, s_end);
 }
 
 void SerialConnEcma48::RefineTheInput(std::string& raw)

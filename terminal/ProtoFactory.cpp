@@ -17,7 +17,7 @@ ProtoFactory* ProtoFactory::Inst()
     return &inst;
 }
 
-Proto* ProtoFactory::CreateInst(const Upp::String& proto_name, Conn* conn)
+Proto* ProtoFactory::CreateInst(const Upp::String& proto_name, SerialConn* conn)
 {
     auto it = mInsts.find(proto_name);
     if (it != mInsts.end()) {

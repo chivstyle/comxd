@@ -176,6 +176,7 @@ protected:
     //
     void SetUseS8C(bool b);
     bool IsControlSeqPrefix(uint8_t c);
+    int IsControlSeq(const std::string& seq, size_t& p_begin, size_t& p_sz, size_t& s_end);
     void RefineTheInput(std::string& raw);
     void Put(const std::string& s);
 	//

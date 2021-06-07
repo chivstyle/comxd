@@ -29,3 +29,7 @@
 #define VT500_CS_BEGIN           VT400_CS_END+1
 #define VT500_CS_COUNT           10
 #define VT500_CS_END             VT500_CS_BEGIN+VT500_CS_COUNT
+
+#define XTERM_CS_BEGIN           VT500_CS_END+1
+#define XTERM_CS_COUNT           10
+#define XTERM_CS_END             XTERM_CS_BEGIN+XTERM_CS_COUNT
