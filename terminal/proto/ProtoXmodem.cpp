@@ -21,22 +21,23 @@ namespace xmodem {
     static const char fEOF = 26;
     static const char fETB = 23;
     //
-    unsigned short calcrc(const unsigned char *ptr, int len)
-    {
-        unsigned int i;
-        unsigned short crc = 0x0000;
-        
-        while (len--) {
-            crc ^= (unsigned short)(*ptr++) << 8;
-            for (i = 0; i < 8; ++i) {
-                if (crc & 0x8000)
-                    crc = (crc << 1) ^ 0x1021;
-                else
-                    crc <<= 1;
-            }
-        }
-        return crc;
-    }
+    int calcrc(const unsigned char *ptr, int count)
+	{
+	    int  crc;
+	    char i;
+	    crc = 0;
+	    while (--count >= 0) {
+	        crc = crc ^ (int) *ptr++ << 8;
+	        i = 8;
+	        do {
+	            if (crc & 0x8000)
+	                crc = crc << 1 ^ 0x1021;
+	            else
+	                crc = crc << 1;
+	        } while(--i);
+	    }
+	    return (crc);
+	}
     //
     static const int64 kMaxFileSize = 1024*1024*64;
 }
@@ -108,7 +109,7 @@ std::vector<unsigned char> ProtoXmodem::Pack(const void* input, size_t input_siz
     out[1] = pkt_idx;
     out[2] = ~pkt_idx;
     unsigned short crc = (unsigned short)xmodem::calcrc(out.data() + 3, 128);
-    out[131] = (unsigned char)(crc >> 16);
+    out[131] = (unsigned char)(crc >> 8);
     out[132] = (unsigned char)(crc & 0xff);
     //
     return out;
@@ -116,16 +117,14 @@ std::vector<unsigned char> ProtoXmodem::Pack(const void* input, size_t input_siz
 // find token from response, return the first token
 static inline int expect_resp(SerialIo* io, int timeout, volatile bool* should_stop, const std::vector<char>& tks)
 {
-    std::vector<unsigned char> buff;
     while (timeout >= 0 && !*should_stop) {
         int sz = io->Available();
         if (sz < 0) break; // The IO device was corrupted
         if (sz > 0) {
-            auto resp = io->ReadRaw(sz);
-            buff.insert(buff.end(), resp.begin(), resp.end());
+            auto resp = io->ReadRaw(1);
             for (size_t k = 0; k < tks.size(); ++k) {
-                auto it = std::find(buff.begin(), buff.end(), tks[k]);
-                if (it != buff.end())
+                auto it = std::find(resp.begin(), resp.end(), tks[k]);
+                if (it != resp.end())
                     return *it;
             }
         } else std::this_thread::sleep_for(std::chrono::duration<double>(0.01));
