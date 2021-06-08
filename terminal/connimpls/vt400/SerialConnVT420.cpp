@@ -24,10 +24,10 @@ SerialConnVT420::SerialConnVT420(std::shared_ptr<SerialIo> io)
 
 void SerialConnVT420::InstallFunctions()
 {
-    mFunctions[TertiaryDA] = [=](const std::string& p) { ProcessTertiaryDA(p); };
+    mFunctions[TertiaryDA] = [=](const std::string_view& p) { ProcessTertiaryDA(p); };
 }
 
-void SerialConnVT420::ProcessDECSCL(const std::string& p)
+void SerialConnVT420::ProcessDECSCL(const std::string_view& p)
 {
     if (p == "64" || p == "64;0" || p == "64;2" || \
         p == "63" || p == "63;0" || p == "63;2" || \
@@ -50,26 +50,26 @@ void SerialConnVT420::SetHostToS8C()
     GetIo()->Write("\E G");
 }
 
-void SerialConnVT420::ProcessDECSM(const std::string& p)
+void SerialConnVT420::ProcessDECSM(const std::string_view& p)
 {
-    int ps = atoi(p.c_str());
+    int ps = atoi(p.data());
     switch (ps) {
     case 81:
     default: SerialConnVT320::ProcessDECSM(p);
     }
 }
-void SerialConnVT420::ProcessDECRM(const std::string& p)
+void SerialConnVT420::ProcessDECRM(const std::string_view& p)
 {
-    int ps = atoi(p.c_str());
+    int ps = atoi(p.data());
     switch (ps) {
     case 81:
     default: SerialConnVT320::ProcessDECRM(p);
     }
 }
 
-void SerialConnVT420::ProcessDA(const std::string& p)
+void SerialConnVT420::ProcessDA(const std::string_view& p)
 {
-    int pn = atoi(p.c_str());
+    int pn = atoi(p.data());
     switch (pn) {
     case 0:
         // CSI ? Psc; Ps1; ...Psn c
@@ -86,9 +86,9 @@ void SerialConnVT420::ProcessDA(const std::string& p)
     }
 }
 
-void SerialConnVT420::ProcessSecondaryDA(const std::string& p)
+void SerialConnVT420::ProcessSecondaryDA(const std::string_view& p)
 {
-    int pn = atoi(p.c_str());
+    int pn = atoi(p.data());
     switch (pn) {
     case 0:
         // CSI > 41; Pv; 0 c
@@ -99,9 +99,9 @@ void SerialConnVT420::ProcessSecondaryDA(const std::string& p)
     }
 }
 
-void SerialConnVT420::ProcessTertiaryDA(const std::string& p)
+void SerialConnVT420::ProcessTertiaryDA(const std::string_view& p)
 {
-    int pn = atoi(p.c_str());
+    int pn = atoi(p.data());
     switch (pn) {
     case 0:
         // DCS!|D...D ST
@@ -111,9 +111,9 @@ void SerialConnVT420::ProcessTertiaryDA(const std::string& p)
     }
 }
 // TODO: https://vt100.net/docs/vt420-uu/chapter9.html, 12 VT420 Reports
-void SerialConnVT420::ProcessDECDSR(const std::string& p)
+void SerialConnVT420::ProcessDECDSR(const std::string_view& p)
 {
-    int pn = atoi(p.c_str());
+    int pn = atoi(p.data());
     switch (pn) {
     case 6: if (1) {
         std::string rsp = std::string("\E[?") + \

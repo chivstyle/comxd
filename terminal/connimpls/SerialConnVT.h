@@ -62,7 +62,7 @@ public:
     Upp::Event<Upp::Bar&> WhenBar;
 protected:
     ControlSeqFactory* mSeqsFactory;
-    std::map<int, std::function<void(const std::string&)> > mFunctions;
+    std::map<int, std::function<void(const std::string_view&)> > mFunctions;
     //
     void ShowVTOptions();
     //------------------------------------------------------------------------------------------
@@ -119,6 +119,11 @@ protected:
     {
         std::lock_guard<std::mutex> _(mLockSeqs);
         mSeqs.push(Seq(std::forward<Type>(text)));
+    }
+    void AddSeq(int seq_type, std::string&& p)
+    {
+        std::lock_guard<std::mutex> _(mLockSeqs);
+        mSeqs.push(Seq(seq_type, std::move(p)));
     }
     void AddSeq(int seq_type, const std::string& p)
     {
@@ -234,11 +239,11 @@ protected:
     ///   it will be processed later.
     ///   If IsControlSeq returns true, it should set the p_begin, p_sz to tell the receiver
     ///   the location and size of the parameter.
-    virtual int IsControlSeq(const std::string& seq, size_t& p_begin, size_t& p_sz, size_t& s_end);
+    virtual int IsControlSeq(const std::string_view& seq, size_t& p_begin, size_t& p_sz, size_t& s_end);
     /// process the seq
     /// @param seq_type Type of sequence
     /// @param p Parameter of this sequence
-    virtual bool ProcessControlSeq(int seq_type, const std::string& p);
+    virtual bool ProcessControlSeq(int seq_type, const std::string_view& p);
     // with K_DELTA
     virtual bool ProcessKeyDown(Upp::dword key, Upp::dword flags);
     virtual bool ProcessKeyUp(Upp::dword key, Upp::dword flags);

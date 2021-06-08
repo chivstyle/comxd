@@ -5,7 +5,7 @@
 /// return - <0 Failed
 ///        - =0 Need more
 ///        - >0 End of pn
-static inline int ParsePs(const std::string& seq, size_t p_begin)
+static inline int ParsePs(const std::string_view& seq, size_t p_begin)
 {
     while (seq[p_begin] >= '0' && seq[p_begin] <= '9') {
         p_begin++;
@@ -16,7 +16,7 @@ static inline int ParsePs(const std::string& seq, size_t p_begin)
     }
 }
 //
-static inline int ParsePs(const std::string& seq, size_t p_begin, int pn_count)
+static inline int ParsePs(const std::string_view& seq, size_t p_begin, int pn_count)
 {
     if (pn_count > 0) {
         int p = ParsePs(seq, p_begin);
@@ -47,7 +47,7 @@ static inline int ParsePs(const std::string& seq, size_t p_begin, int pn_count)
 /// return - <0 Failed
 ///        - =0 Need more
 ///        - >0 End of pn
-static inline int ParsePn(const std::string& seq, size_t p_begin)
+static inline int ParsePn(const std::string_view& seq, size_t p_begin)
 {
     while (seq[p_begin] >= '0' && seq[p_begin] <= '9') {
         p_begin++;
@@ -58,7 +58,7 @@ static inline int ParsePn(const std::string& seq, size_t p_begin)
     }
 }
 
-static inline int ParsePn(const std::string& seq, size_t p_begin, int pn_count)
+static inline int ParsePn(const std::string_view& seq, size_t p_begin, int pn_count)
 {
     if (pn_count > 0) {
         int p = ParsePn(seq, p_begin);
@@ -87,7 +87,7 @@ static inline int ParsePn(const std::string& seq, size_t p_begin, int pn_count)
     }
 }
 // Valid chars, from 0x20~0x74
-static inline int ParseGs(const std::string& seq, size_t p_begin)
+static inline int ParseGs(const std::string_view& seq, size_t p_begin)
 {
 	// we should accept anything except the ASCII control chars
     while ((unsigned char)seq[p_begin] >= 0x20 && seq[p_begin] != 0x7f) {
@@ -96,7 +96,7 @@ static inline int ParseGs(const std::string& seq, size_t p_begin)
     return (int)p_begin;
 }
 //
-static inline int ParseGn(const std::string& seq, size_t p_begin, int pn)
+static inline int ParseGn(const std::string_view& seq, size_t p_begin, int pn)
 {
 	int cn = 0;
 	for (size_t k = p_begin; k < seq.length() && cn < pn; ++k) {
@@ -105,7 +105,7 @@ static inline int ParseGn(const std::string& seq, size_t p_begin, int pn)
 	return cn < pn ? 0 : (int)p_begin + cn;
 }
 
-int ControlSeqFactory::IsControlSeq(const std::string& seq, size_t& p_begin, size_t& p_sz, size_t& s_end)
+int ControlSeqFactory::IsControlSeq(const std::string_view& seq, size_t& p_begin, size_t& p_sz, size_t& s_end)
 {
     int type = SEQ_NONE; s_end = seq.length();
     size_t head_max = 0;

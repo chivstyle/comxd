@@ -25,7 +25,7 @@ SerialConnVT320::SerialConnVT320(std::shared_ptr<SerialIo> io)
     InstallFunctions();
 }
 
-void SerialConnVT320::ProcessDECSCL(const std::string& p)
+void SerialConnVT320::ProcessDECSCL(const std::string_view& p)
 {
     if (p == "63" || p == "63;0" || p == "63;2" || p == "62" || \
         p == "62;0" || p == "62;2") {
@@ -39,44 +39,44 @@ void SerialConnVT320::ProcessDECSCL(const std::string& p)
 
 void SerialConnVT320::InstallFunctions()
 {
-    mFunctions[DECSASD] = [=](const std::string& p) { ProcessDECSASD(p); };
-    mFunctions[DECSSDT] = [=](const std::string& p) { ProcessDECSSDT(p); };
-    mFunctions[DECRQTSR] = [=](const std::string& p) { ProcessDECRQTSR(p); };
-    mFunctions[DECRQPSR] = [=](const std::string& p) { ProcessDECRQPSR(p); };
-    mFunctions[DECRQM] = [=](const std::string& p) { ProcessDECRQM(p); };
-    mFunctions[ANSIRQM] = [=](const std::string& p) { ProcessANSIRQM(p); };
-    mFunctions[DECRPM] = [=](const std::string& p) { ProcessDECRPM(p); };
-    mFunctions[DECRQUPSS] = [=](const std::string& p) { ProcessDECRQUPSS(p); };
+    mFunctions[DECSASD]   = [=](const std::string_view& p) { ProcessDECSASD(p); };
+    mFunctions[DECSSDT]   = [=](const std::string_view& p) { ProcessDECSSDT(p); };
+    mFunctions[DECRQTSR]  = [=](const std::string_view& p) { ProcessDECRQTSR(p); };
+    mFunctions[DECRQPSR]  = [=](const std::string_view& p) { ProcessDECRQPSR(p); };
+    mFunctions[DECRQM]    = [=](const std::string_view& p) { ProcessDECRQM(p); };
+    mFunctions[ANSIRQM]   = [=](const std::string_view& p) { ProcessANSIRQM(p); };
+    mFunctions[DECRPM]    = [=](const std::string_view& p) { ProcessDECRPM(p); };
+    mFunctions[DECRQUPSS] = [=](const std::string_view& p) { ProcessDECRQUPSS(p); };
 }
 //
-void SerialConnVT320::ProcessDECSASD(const std::string&)
+void SerialConnVT320::ProcessDECSASD(const std::string_view&)
 {
 }
-void SerialConnVT320::ProcessDECSSDT(const std::string&)
+void SerialConnVT320::ProcessDECSSDT(const std::string_view&)
 {
 }
-void SerialConnVT320::ProcessDECRQTSR(const std::string&)
+void SerialConnVT320::ProcessDECRQTSR(const std::string_view&)
 {
 }
-void SerialConnVT320::ProcessDECRQPSR(const std::string&)
+void SerialConnVT320::ProcessDECRQPSR(const std::string_view&)
 {
 }
-void SerialConnVT320::ProcessDECRQM(const std::string&)
+void SerialConnVT320::ProcessDECRQM(const std::string_view&)
 {
 }
-void SerialConnVT320::ProcessANSIRQM(const std::string&)
+void SerialConnVT320::ProcessANSIRQM(const std::string_view&)
 {
 }
-void SerialConnVT320::ProcessDECRPM(const std::string&)
+void SerialConnVT320::ProcessDECRPM(const std::string_view&)
 {
 }
-void SerialConnVT320::ProcessDECRQUPSS(const std::string&)
+void SerialConnVT320::ProcessDECRQUPSS(const std::string_view&)
 {
 }
 //
-void SerialConnVT320::ProcessDA(const std::string& p)
+void SerialConnVT320::ProcessDA(const std::string_view& p)
 {
-    int ps = atoi(p.c_str());
+    int ps = atoi(p.data());
     switch (ps) {
     case 0:
         // level3 (VT300), NRC sets
@@ -84,9 +84,9 @@ void SerialConnVT320::ProcessDA(const std::string& p)
         break;
     }
 }
-void SerialConnVT320::ProcessSecondaryDA(const std::string& p)
+void SerialConnVT320::ProcessSecondaryDA(const std::string_view& p)
 {
-    int ps = atoi(p.c_str());
+    int ps = atoi(p.data());
     switch (ps) {
     case 0:
         // vt320
@@ -95,27 +95,27 @@ void SerialConnVT320::ProcessSecondaryDA(const std::string& p)
     }
 }
 
-void SerialConnVT320::ProcessDECSM(const std::string& p)
+void SerialConnVT320::ProcessDECSM(const std::string_view& p)
 {
-    int ps = atoi(p.c_str());
+    int ps = atoi(p.data());
     switch (ps) {
     case 68: this->mModes.DECKBUM = 1; break;
     default: SerialConnVT220::ProcessDECSM(p); break;
     }
 }
-void SerialConnVT320::ProcessDECRM(const std::string& p)
+void SerialConnVT320::ProcessDECRM(const std::string_view& p)
 {
-    int ps = atoi(p.c_str());
+    int ps = atoi(p.data());
     switch (ps) {
     case 68: this->mModes.DECKBUM = 0; break;
     default: SerialConnVT220::ProcessDECRM(p); break;
     }
 }
 
-void SerialConnVT320::ProcessDECSEL(const std::string& p)
+void SerialConnVT320::ProcessDECSEL(const std::string_view& p)
 {
     if (mSelectiveErase == false) return;
-    int ps = atoi(p.c_str());
+    int ps = atoi(p.data());
     switch (ps) {
     case 0: if (1) {
         VTLine& vline = mLines[mVy];
@@ -137,10 +137,10 @@ void SerialConnVT320::ProcessDECSEL(const std::string& p)
     } break;
     }
 }
-void SerialConnVT320::ProcessDECSED(const std::string& p)
+void SerialConnVT320::ProcessDECSED(const std::string_view& p)
 {
     if (mSelectiveErase == false) return;
-    int ps = atoi(p.c_str());
+    int ps = atoi(p.data());
     switch (ps) {
     case 0: if (1) {
         VTLine& vline = mLines[mVy];

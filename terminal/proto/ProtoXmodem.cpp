@@ -60,6 +60,7 @@ ProtoXmodem::ProtoXmodem(SerialConn* conn)
                     } else {
                         char* buff = new char[filesz];
                         std::string errmsg;
+                        fin.Get(buff, filesz);
                         this->Transmit(buff, filesz, errmsg);
                         delete[] buff;
                         if (!errmsg.empty()) {

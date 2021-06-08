@@ -253,12 +253,12 @@ void SerialConnVT::Clear()
     UpdatePresentation();
 }
 //
-int SerialConnVT::IsControlSeq(const std::string& seq, size_t& p_begin, size_t& p_sz, size_t& s_end)
+int SerialConnVT::IsControlSeq(const std::string_view& seq, size_t& p_begin, size_t& p_sz, size_t& s_end)
 {
     return mSeqsFactory->IsControlSeq(seq, p_begin, p_sz, s_end);
 }
 //
-bool SerialConnVT::ProcessControlSeq(int seq_type, const std::string& p)
+bool SerialConnVT::ProcessControlSeq(int seq_type, const std::string_view& p)
 {
     auto it = mFunctions.find(seq_type);
     if (it != mFunctions.end()) {
@@ -332,10 +332,8 @@ void SerialConnVT::Put(const std::string& s)
 // receiver
 void SerialConnVT::RxProc()
 {
-    bool pending = false; // If pending is true, that stands for a VT seq is pending
-        // we should treat the successive characters as a part of last
-        // VT seq.
-    std::string raw, texts;
+    std::string raw, texts; // before the loop, define these two vars firstly.
+    texts.reserve(32768);
     while (!mRxShouldStop) {
         int sz = GetIo()->Available();
         if (sz < 0) {
@@ -356,12 +354,14 @@ void SerialConnVT::RxProc()
         RefineTheInput(raw);
         //
         int pool = 0;
-        while (!raw.empty() && !mRxShouldStop) {
-            if (IsControlSeqPrefix((uint8_t)raw[0])) { // is prefix of some control sequence
+        size_t rawp = 0;
+        while (rawp < raw.length() && !mRxShouldStop) {
+            if (IsControlSeqPrefix((uint8_t)raw[rawp])) { // is prefix of some control sequence
                 if (!texts.empty()) {
-                    size_t ep;
+                    size_t ep; // end position
                     auto s = this->TranscodeToUTF32(texts, ep);
                     texts = texts.substr(ep);
+                    // add the unrecognized chars, treat them as UTF-32
                     for (size_t k = 0; k < texts.size(); ++k) {
                         s.push_back((uint8_t)texts[k]);
                     }
@@ -371,7 +371,7 @@ void SerialConnVT::RxProc()
                     texts.clear();
                 }
                 size_t p_begin, p_sz, s_end;
-                int type = IsControlSeq(raw, p_begin, p_sz, s_end);
+                int type = IsControlSeq(raw.c_str() + rawp, p_begin, p_sz, s_end);
                 if (type == SEQ_PENDING) {
                     // should we go on ?
                     if (*raw.rbegin() == '\r') { // CR will break the pending sequence
@@ -380,22 +380,24 @@ void SerialConnVT::RxProc()
                 }
                 else if (type == SEQ_CORRUPTED || type == SEQ_NONE) {
                     // TODO: process corrupted, or unrecognized seqence
-                    LOGF("Unrecognized:%s\n", raw.substr(0, s_end).c_str());
+                    LOGF("Unrecognized:%s\n", raw.substr(rawp, s_end).c_str());
                 } else {
-                    AddSeq(type, raw.substr(p_begin, p_sz));
+                    AddSeq(type, raw.substr(rawp + p_begin, p_sz));
                 }
-                raw.erase(raw.begin(), raw.begin() + s_end);
+                rawp += s_end;
                 //
                 pool++;
             } else {
-                texts.push_back(raw[0]);
-                raw.erase(raw.begin());
+                texts.push_back(raw[rawp]);
+                rawp++;
             }
-            if (pool == 10) {
+            if (pool == 20) {
                 PostCallback([=]() { RenderSeqs(); });
                 pool = 0;
             }
         }
+        raw = raw.substr(rawp);
+        //
         if (!texts.empty()) {
             size_t ep;
             auto s = this->TranscodeToUTF32(texts, ep);

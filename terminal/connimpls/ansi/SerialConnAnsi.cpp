@@ -23,15 +23,15 @@ SerialConnAnsi::SerialConnAnsi(std::shared_ptr<SerialIo> io)
 
 void SerialConnAnsi::InstallFunctions()
 {
-	mFunctions[ANSI_RCP] = [=](const std::string& p) { this->LoadCursorData(this->mCursorData); };
-	mFunctions[ANSI_SCP] = [=](const std::string& p) { this->SaveCursorData(this->mCursorData); };
+	mFunctions[ANSI_RCP] = [=](const std::string_view& p) { this->LoadCursorData(this->mCursorData); };
+	mFunctions[ANSI_SCP] = [=](const std::string_view& p) { this->SaveCursorData(this->mCursorData); };
 }
 
-void SerialConnAnsi::ProcessSS2(const std::string&)
+void SerialConnAnsi::ProcessSS2(const std::string_view&)
 {
 	mCharset = mCharsets[2];
 }
-void SerialConnAnsi::ProcessSS3(const std::string&)
+void SerialConnAnsi::ProcessSS3(const std::string_view&)
 {
 	mCharset = mCharsets[3];
 }

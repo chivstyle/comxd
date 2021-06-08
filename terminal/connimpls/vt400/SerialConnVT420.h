@@ -17,14 +17,14 @@ protected:
         VT420_CL_MAX
     };
     // override vt320
-    void ProcessDECSCL(const std::string& p);
-    void ProcessDECSM(const std::string& p);
-    void ProcessDECRM(const std::string& p);
-    void ProcessDA(const std::string&);
-    void ProcessSecondaryDA(const std::string&);
-    void ProcessDECDSR(const std::string& p);
+    void ProcessDECSCL(const std::string_view& p);
+    void ProcessDECSM(const std::string_view& p);
+    void ProcessDECRM(const std::string_view& p);
+    void ProcessDA(const std::string_view&);
+    void ProcessSecondaryDA(const std::string_view&);
+    void ProcessDECDSR(const std::string_view& p);
     // vt400
-    virtual void ProcessTertiaryDA(const std::string&);
+    virtual void ProcessTertiaryDA(const std::string_view&);
     //
     void SetHostToS7C();
     void SetHostToS8C();

@@ -38,35 +38,35 @@ SerialConnVT100::SerialConnVT100(std::shared_ptr<SerialIo> io)
 
 void SerialConnVT100::InstallFunctions()
 {
-    mFunctions[DECSM] = [=](const std::string& p) { ProcessDECSM(p); };
-    mFunctions[DECRM] = [=](const std::string& p) { ProcessDECRM(p); };
-    mFunctions[DECDSR] = [=](const std::string& p) { ProcessDECDSR(p); };
+    mFunctions[DECSM] = [=](const std::string_view& p) { ProcessDECSM(p); };
+    mFunctions[DECRM] = [=](const std::string_view& p) { ProcessDECRM(p); };
+    mFunctions[DECDSR] = [=](const std::string_view& p) { ProcessDECDSR(p); };
     //
-    mFunctions[G0_CS] = [=](const std::string& p) { ProcessG0_CS(p); };
-    mFunctions[G1_CS] = [=](const std::string& p) { ProcessG1_CS(p); };
+    mFunctions[G0_CS] = [=](const std::string_view& p) { ProcessG0_CS(p); };
+    mFunctions[G1_CS] = [=](const std::string_view& p) { ProcessG1_CS(p); };
     //
-    mFunctions[DECREQTPARM] = [=](const std::string& p) { ProcessDECREQTPARM(p); };
-    mFunctions[DECSTBM] = [=](const std::string& p) { ProcessDECSTBM(p); };
-    mFunctions[DECSC] = [=](const std::string& p) { ProcessDECSC(p); };
-    mFunctions[DECRC] = [=](const std::string& p) { ProcessDECRC(p); };
-    mFunctions[DECALN] = [=](const std::string& p) { ProcessDECALN(p); };
-    mFunctions[DECTST] = [=](const std::string& p) { ProcessDECTST(p); };
-    mFunctions[DECLL] = [=](const std::string& p) { ProcessDECLL(p); };
-    mFunctions[DECIND] = [=](const std::string& p) { ProcessDECIND(p); };
+    mFunctions[DECREQTPARM] = [=](const std::string_view& p) { ProcessDECREQTPARM(p); };
+    mFunctions[DECSTBM] = [=](const std::string_view& p) { ProcessDECSTBM(p); };
+    mFunctions[DECSC] = [=](const std::string_view& p) { ProcessDECSC(p); };
+    mFunctions[DECRC] = [=](const std::string_view& p) { ProcessDECRC(p); };
+    mFunctions[DECALN] = [=](const std::string_view& p) { ProcessDECALN(p); };
+    mFunctions[DECTST] = [=](const std::string_view& p) { ProcessDECTST(p); };
+    mFunctions[DECLL] = [=](const std::string_view& p) { ProcessDECLL(p); };
+    mFunctions[DECIND] = [=](const std::string_view& p) { ProcessDECIND(p); };
 }
 //
-void SerialConnVT100::ProcessDECKPNM(const std::string&)
+void SerialConnVT100::ProcessDECKPNM(const std::string_view&)
 {
 	mKeypadMode = DECKPNM;
 }
-void SerialConnVT100::ProcessDECKPAM(const std::string&)
+void SerialConnVT100::ProcessDECKPAM(const std::string_view&)
 {
 	mKeypadMode = DECKPAM;
 }
 //
-void SerialConnVT100::ProcessDA(const std::string& p)
+void SerialConnVT100::ProcessDA(const std::string_view& p)
 {
-    int ps = atoi(p.c_str());
+    int ps = atoi(p.data());
     switch (ps) {
     case 0:
         // https://www.vt100.net/docs/vt100-ug/chapter3.html#DA
@@ -92,19 +92,19 @@ void SerialConnVT100::ProcessDA(const std::string& p)
 	mCharset = mCharsets[g]; \
 } while (0)
 //
-void SerialConnVT100::ProcessG0_CS(const std::string& p)
+void SerialConnVT100::ProcessG0_CS(const std::string_view& p)
 {
 	DO_SET_CHARSET(0);
 }
-void SerialConnVT100::ProcessG1_CS(const std::string& p)
+void SerialConnVT100::ProcessG1_CS(const std::string_view& p)
 {
     DO_SET_CHARSET(1);
 }
-void SerialConnVT100::ProcessSI(const std::string& p)
+void SerialConnVT100::ProcessSI(const std::string_view&)
 {
     mCharset = mCharsets[0];
 }
-void SerialConnVT100::ProcessSO(const std::string& p)
+void SerialConnVT100::ProcessSO(const std::string_view&)
 {
     mCharset = mCharsets[1];
 }
@@ -289,9 +289,9 @@ bool SerialConnVT100::ProcessKeyDown(Upp::dword key, Upp::dword flags)
     return processed ? true : SerialConnEcma48::ProcessKeyDown(key, flags);
 }
 //
-void SerialConnVT100::ProcessDECSM(const std::string& p)
+void SerialConnVT100::ProcessDECSM(const std::string_view& p)
 {
-    int ps = atoi(p.c_str());
+    int ps = atoi(p.data());
     switch (ps) {
     case 1:  mModes.DECCKM  = 1; break;
     case 3:  mModes.DECCOLM = 1; break;
@@ -309,9 +309,9 @@ void SerialConnVT100::ProcessDECSM(const std::string& p)
     case 19: mModes.DECPEX  = 1; break;
     }
 }
-void SerialConnVT100::ProcessDECRM(const std::string& p)
+void SerialConnVT100::ProcessDECRM(const std::string_view& p)
 {
-    int ps = atoi(p.c_str());
+    int ps = atoi(p.data());
     switch (ps) {
     case 1:  mModes.DECCKM  = 0; break;
     case 2:  mModes.DECANM  = 0; break;
@@ -331,9 +331,9 @@ void SerialConnVT100::ProcessDECRM(const std::string& p)
     }
 }
 //
-void SerialConnVT100::ProcessDECDSR(const std::string& p)
+void SerialConnVT100::ProcessDECDSR(const std::string_view& p)
 {
-    int ps = atoi(p.c_str());
+    int ps = atoi(p.data());
     switch (ps) {
     case 15:
         Put("\x1b[?13n"); // No printer
@@ -341,10 +341,10 @@ void SerialConnVT100::ProcessDECDSR(const std::string& p)
     }
 }
 //
-void SerialConnVT100::ProcessCUP(const std::string& p)
+void SerialConnVT100::ProcessCUP(const std::string_view& p)
 {
     int idx = 0, pn[2] = {1, 1};
-    SplitString(p.c_str(), ';', [&](const char* token) {
+    SplitString(p.data(), ';', [&](const char* token) {
         if (idx < 2)
             pn[idx++] = atoi(token);
     });
@@ -364,12 +364,12 @@ void SerialConnVT100::ProcessCUP(const std::string& p)
     }
 }
 //
-void SerialConnVT100::ProcessHVP(const std::string& p)
+void SerialConnVT100::ProcessHVP(const std::string_view& p)
 {
     ProcessCUP(p);
 }
 //
-void SerialConnVT100::ProcessDECIND(const std::string&)
+void SerialConnVT100::ProcessDECIND(const std::string_view&)
 {
     int bot = mScrollingRegion.Bottom;
     if (bot < 0) bot = (int)mLines.size()-1;
@@ -387,11 +387,11 @@ void SerialConnVT100::ProcessDECIND(const std::string&)
     }
 }
 //
-void SerialConnVT100::ProcessDECSTBM(const std::string& p)
+void SerialConnVT100::ProcessDECSTBM(const std::string_view& p)
 {
     Size csz = GetConsoleSize();
     int idx = 0, pn[2] = {1, 1};
-    SplitString(p.c_str(), ';', [=, &idx, &pn](const char* token) {
+    SplitString(p.data(), ';', [=, &idx, &pn](const char* token) {
         if (idx < 2)
             pn[idx++] = atoi(token);
     });
@@ -423,16 +423,16 @@ void SerialConnVT100::LoadCursorData(const CursorDataVT100& cd)
     mCharset = cd.Charset;
     mStyle = cd.Style;
 }
-void SerialConnVT100::ProcessDECSC(const std::string&)
+void SerialConnVT100::ProcessDECSC(const std::string_view&)
 {
     SaveCursorData(mCursorData);
 }
-void SerialConnVT100::ProcessDECRC(const std::string& p)
+void SerialConnVT100::ProcessDECRC(const std::string_view&)
 {
     LoadCursorData(mCursorData);
 }
 //
-void SerialConnVT100::ProcessDECALN(const std::string&)
+void SerialConnVT100::ProcessDECALN(const std::string_view&)
 {
     for (size_t vy = 0; vy < mLines.size(); ++vy) {
         VTLine& vline = mLines[vy];
@@ -441,12 +441,12 @@ void SerialConnVT100::ProcessDECALN(const std::string&)
         }
     }
 }
-void SerialConnVT100::ProcessDECTST(const std::string& p)
+void SerialConnVT100::ProcessDECTST(const std::string_view& p)
 {
 }
-void SerialConnVT100::ProcessDECLL(const std::string& p)
+void SerialConnVT100::ProcessDECLL(const std::string_view& p)
 {
 }
-void SerialConnVT100::ProcessDECREQTPARM(const std::string& p)
+void SerialConnVT100::ProcessDECREQTPARM(const std::string_view& p)
 {
 }
