@@ -64,6 +64,8 @@ protected:
     ControlSeqFactory* mSeqsFactory;
     std::map<int, std::function<void(const std::string_view&)> > mFunctions;
     //
+    void RunParserBenchmark();
+    //
     void ShowVTOptions();
     //------------------------------------------------------------------------------------------
     // Font
@@ -93,7 +95,7 @@ protected:
         int Type;
         std::pair<int, std::string> Ctrl;
         std::vector<uint32_t> Text;
-        Seq(int seq_type, const std::string& p)
+        Seq(int seq_type, const std::string_view& p)
         {
             Type = CTRL_SEQ;
             Ctrl = std::make_pair(seq_type, p);
@@ -130,6 +132,8 @@ protected:
         std::lock_guard<std::mutex> _(mLockSeqs);
         mSeqs.push(Seq(seq_type, p));
     }
+    size_t ParseSeqs(const std::string_view& raw, std::queue<struct Seq>& seqs);
+    //
     virtual void RenderSeqs();
     //
     virtual void Put(const std::string& s);

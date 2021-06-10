@@ -8,6 +8,9 @@
 #include "TextCodecsDialog.h"
 #include "VTOptionsDialog.h"
 #include <algorithm>
+//
+#define ENABLE_H_SCROLLBAR     0
+#define ENABLE_BLINK_TEXT      1
 // register
 using namespace Upp;
 //----------------------------------------------------------------------------------------------
@@ -64,11 +67,13 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
         UpdatePresentationPos();
         Refresh();
     };
+#if ENABLE_BLINK_TIMER
     // blink timer
     mBlinkTimer.Set(-500, [&]() {
         mBlinkSignal = !mBlinkSignal;
         this->Refresh();
     });
+#endif
     // initialize size
     VTLine vline = VTLine(80, mBlankChar).SetHeight(mFontH);
     mLines.insert(mLines.begin(), 30, vline);
@@ -160,6 +165,10 @@ void SerialConnVT::InstallUserActions()
         bar.Add(t_("VT Options"), terminal::vt_options(), [=]() {
             ShowVTOptions();
         }).Help(t_("Virtual terminal options"));
+        //
+        bar.Add(t_("Benchmark"), terminal::benchmark(), [=]() {
+            RunParserBenchmark();
+        }).Help(t_("Test the performance of the parser"));
     };
     
     WhenBar = [=](Bar& bar) {
@@ -311,8 +320,8 @@ void SerialConnVT::RenderSeqs()
         } else if (mVy != vy) {
             UpdatePresentationPos(0x2); flags |= 0x4;
         }
-        if (flags & 0x4) Refresh();
     }
+    Refresh();
 }
 //
 bool SerialConnVT::IsControlSeqPrefix(uint8_t c)
@@ -329,6 +338,77 @@ void SerialConnVT::Put(const std::string& s)
 {
 	GetIo()->Write(s);
 }
+//
+size_t SerialConnVT::ParseSeqs(const std::string_view& raw, std::queue<struct Seq>& seqs)
+{
+    bool got_text = false;
+    //std::string texts;
+    size_t rawp = 0;
+    size_t seqs_cnt = 0;
+    while (rawp < raw.length()) {
+        if (IsControlSeqPrefix((uint8_t)raw[rawp])) { // is prefix of some control sequence
+#if 0
+            if (!texts.empty()) {
+                size_t ep; // end position
+                auto s = this->TranscodeToUTF32(texts, ep);
+                if (!s.empty()) {
+                    //seqs.push(Seq(std::move(s)));
+                    seqs_cnt++;
+                }
+                texts.clear();
+            }
+#else
+            if (got_text)
+                seqs_cnt++;
+            got_text = false;
+#endif
+            size_t p_begin, p_sz, s_end;
+            int type = IsControlSeq(raw.data() + rawp, p_begin, p_sz, s_end);
+            if (type == SEQ_PENDING) {
+                // should we go on ?
+                if (*raw.rbegin() == '\r') { // CR will break the pending sequence
+                    type = SEQ_CORRUPTED;
+                } else break; // break this loop, read new characters from I/O
+            }
+            else if (type == SEQ_CORRUPTED || type == SEQ_NONE) {
+            } else {
+                //seqs.push(Seq(type, raw.substr(rawp + p_begin, p_sz)));
+                seqs_cnt++;
+            }
+            rawp += s_end;
+        } else {
+            //texts.push_back(raw[rawp]);
+            got_text = true;
+            rawp++;
+        }
+    }
+    return seqs_cnt;
+}
+//
+void SerialConnVT::RunParserBenchmark()
+{
+    FileSel fs;
+    if (fs.AllFilesType().ExecuteOpen()) {
+        auto filename = fs.Get();
+        FileIn fin;
+        if (fin.Open(filename)) {
+            int64 filesz = fin.GetSize();
+            char* buffer = new char[filesz + 1];
+            fin.Get(buffer, filesz);
+            buffer[filesz] = '\0';
+            std::queue<Seq> seqs;
+            auto t1 = std::chrono::high_resolution_clock::now();
+            size_t ns = ParseSeqs(buffer, seqs);
+            auto t2 = std::chrono::high_resolution_clock::now();
+            auto ts = std::chrono::duration<double>(t2 - t1).count();
+            auto ps = ns / ts;
+            std::string report = std::to_string(ps) + " seqs per second";
+            PromptOK(report.c_str());
+            
+            fin.Close();
+        }
+    }
+}
 // receiver
 void SerialConnVT::RxProc()
 {
@@ -342,7 +422,7 @@ void SerialConnVT::RxProc()
             });
             break;
         } else if (sz == 0) {
-            std::this_thread::sleep_for(std::chrono::duration<double>(0.01));
+            std::this_thread::sleep_for(std::chrono::duration<double>(0.001));
             continue;
         }
         // read raw, not string, so, we could read NUL from the device.
@@ -360,11 +440,13 @@ void SerialConnVT::RxProc()
                 if (!texts.empty()) {
                     size_t ep; // end position
                     auto s = this->TranscodeToUTF32(texts, ep);
+#if 0 // discard the corrupted parts
                     texts = texts.substr(ep);
                     // add the unrecognized chars, treat them as UTF-32
                     for (size_t k = 0; k < texts.size(); ++k) {
                         s.push_back((uint8_t)texts[k]);
                     }
+#endif
                     if (!s.empty()) {
                         AddSeq(std::move(s));
                     }
@@ -391,10 +473,12 @@ void SerialConnVT::RxProc()
                 texts.push_back(raw[rawp]);
                 rawp++;
             }
+#if 1
             if (pool == 20) {
                 PostCallback([=]() { RenderSeqs(); });
                 pool = 0;
             }
+#endif
         }
         raw = raw.substr(rawp);
         //
@@ -1466,6 +1550,7 @@ void SerialConnVT::UpdateVScrollbar()
 
 void SerialConnVT::UpdateHScrollbar()
 {
+#if ENABLE_H_SCROLLBAR
     int lx = 0, ly = mSbV.Get();
     int px, next_px, py, next_py;
     Point vpos = LogicToVirtual(lx, ly, px, next_px, py, next_py);
@@ -1501,6 +1586,7 @@ void SerialConnVT::UpdateHScrollbar()
         longest_linesz = std::max(this->GetLogicWidth(*vline, mVx, false), longest_linesz);
     }
     mSbH.SetTotal(longest_linesz);
+#endif
 }
 
 void SerialConnVT::UpdatePresentation()

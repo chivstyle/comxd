@@ -1,13 +1,8 @@
 description "virtual terminal\377";
 
 uses
-	Core/SSH;
-
-library
-	;
-
-options
-	;
+	Core/SSH,
+	jemalloc;
 
 link(MSVC) /NODEFAULTLIB:LIBCMT;
 

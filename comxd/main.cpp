@@ -5,6 +5,8 @@
 // dialogs or forms
 #include "ioimpls/SerialDevsDialog.h"
 #include "ioimpls/SSHDevsDialog.h"
+#include "jemalloc/jemalloc.h"
+
 // main window
 class MainWindow : public WithMainWindow<TopWindow> {
 	typedef MainWindow CLASSNAME;
@@ -154,6 +156,24 @@ protected:
 	}
 };
 
+static void printcb(void* p, const char* s)
+{
+    FileOut* fo = static_cast<FileOut*>(p);
+    fo->Put(s);
+}
+#if 1
+void *operator new(size_t size)                                    { void *ptr = je_malloc(size); return ptr; }
+void operator  delete(void *ptr) noexcept(true)                    { je_free(ptr); }
+
+void *operator new[](size_t size)                                  { void *ptr = je_malloc(size); return ptr; }
+void operator  delete[](void *ptr) noexcept(true)                  { je_free(ptr); }
+
+void *operator new(size_t size, const std::nothrow_t&) noexcept    { void *ptr = je_malloc(size); return ptr; }
+void operator  delete(void *ptr, const std::nothrow_t&) noexcept   { je_free(ptr); }
+
+void *operator new[](size_t size, const std::nothrow_t&) noexcept  { void *ptr = je_malloc(size); return ptr; }
+void operator  delete[](void *ptr, const std::nothrow_t&) noexcept { je_free(ptr); }
+#endif
 GUI_APP_MAIN
 {
 	Upp::SetLanguage(GetSystemLNG());
@@ -161,4 +181,10 @@ GUI_APP_MAIN
 	MainWindow win;
 	win.SetRect(0, 0, 800, 600);
 	win.Run();
+	//
+	FileOut fo;
+    if (fo.Open("cb.txt")) {
+        je_malloc_stats_print(printcb, &fo, NULL);
+        fo.Close();
+    }
 }

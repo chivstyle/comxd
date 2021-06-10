@@ -1493,7 +1493,7 @@ bool SerialConnEcma48::IsControlSeqPrefix(uint8_t c)
 
 int SerialConnEcma48::IsControlSeq(const std::string_view& seq, size_t& p_begin, size_t& p_sz, size_t& s_end)
 {
-    if (seq[0] >= 0 && seq[0] < 0x1f && seq[0] != 0x1b) {
+    if (seq[0] >= 0 && seq[0] < 0x20 && seq[0] != 0x1b) {
         p_begin = 0;
         p_sz = 1;
         s_end = 1;
