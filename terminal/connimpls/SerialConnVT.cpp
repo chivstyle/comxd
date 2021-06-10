@@ -363,7 +363,7 @@ size_t SerialConnVT::ParseSeqs(const std::string_view& raw, std::queue<struct Se
             got_text = false;
 #endif
             size_t p_begin, p_sz, s_end;
-            int type = IsControlSeq(raw.data() + rawp, p_begin, p_sz, s_end);
+            int type = IsControlSeq(raw.substr(rawp), p_begin, p_sz, s_end);
             if (type == SEQ_PENDING) {
                 // should we go on ?
                 if (*raw.rbegin() == '\r') { // CR will break the pending sequence
