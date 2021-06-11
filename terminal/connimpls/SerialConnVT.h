@@ -120,17 +120,17 @@ protected:
     void AddSeq(Type&& text)
     {
         std::lock_guard<std::mutex> _(mLockSeqs);
-        mSeqs.push(Seq(std::forward<Type>(text)));
+        mSeqs.emplace(std::forward<Type>(text));
     }
     void AddSeq(int seq_type, std::string&& p)
     {
         std::lock_guard<std::mutex> _(mLockSeqs);
-        mSeqs.push(Seq(seq_type, std::move(p)));
+        mSeqs.emplace(seq_type, std::move(p));
     }
     void AddSeq(int seq_type, const std::string& p)
     {
         std::lock_guard<std::mutex> _(mLockSeqs);
-        mSeqs.push(Seq(seq_type, p));
+        mSeqs.emplace(seq_type, p);
     }
     size_t ParseSeqs(const std::string_view& raw, std::queue<struct Seq>& seqs);
     //

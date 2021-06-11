@@ -42,16 +42,18 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
     mFontH = mFont.GetLineHeight();
     // default style
     mBlankChar.SetCode(' ');
+#if ENABLE_H_SCROLLBAR
     // enable scroll bar
     mSbH.SetLine(mFontW);
     mSbH.Set(0);
-    mSbV.SetTotal(0);
     AddFrame(mSbH);
     mSbH.WhenScroll = [=]() {
         UpdatePresentationPos();
         Refresh();
     };
+#endif
     // vertical
+    mSbV.SetTotal(0);
     mSbV.SetLine(mFontH);
     mSbV.Set(0);
     mSbV.SetTotal(0);
@@ -341,29 +343,22 @@ void SerialConnVT::Put(const std::string& s)
 //
 size_t SerialConnVT::ParseSeqs(const std::string_view& raw, std::queue<struct Seq>& seqs)
 {
-    bool got_text = false;
-    //std::string texts;
+    std::string texts;
     size_t rawp = 0;
     size_t seqs_cnt = 0;
     while (rawp < raw.length()) {
         if (IsControlSeqPrefix((uint8_t)raw[rawp])) { // is prefix of some control sequence
-#if 0
             if (!texts.empty()) {
                 size_t ep; // end position
                 auto s = this->TranscodeToUTF32(texts, ep);
                 if (!s.empty()) {
-                    //seqs.push(Seq(std::move(s)));
+                    seqs.push(Seq(std::move(s)));
                     seqs_cnt++;
                 }
                 texts.clear();
             }
-#else
-            if (got_text)
-                seqs_cnt++;
-            got_text = false;
-#endif
             size_t p_begin, p_sz, s_end;
-            int type = IsControlSeq(raw.data() + rawp, p_begin, p_sz, s_end);
+            int type = IsControlSeq(raw.substr(rawp), p_begin, p_sz, s_end);
             if (type == SEQ_PENDING) {
                 // should we go on ?
                 if (*raw.rbegin() == '\r') { // CR will break the pending sequence
@@ -372,13 +367,12 @@ size_t SerialConnVT::ParseSeqs(const std::string_view& raw, std::queue<struct Se
             }
             else if (type == SEQ_CORRUPTED || type == SEQ_NONE) {
             } else {
-                //seqs.push(Seq(type, raw.substr(rawp + p_begin, p_sz)));
+                seqs.push(Seq(type, raw.substr(rawp + p_begin, p_sz)));
                 seqs_cnt++;
             }
             rawp += s_end;
         } else {
-            //texts.push_back(raw[rawp]);
-            got_text = true;
+            texts.push_back(raw[rawp]);
             rawp++;
         }
     }
