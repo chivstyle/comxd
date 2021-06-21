@@ -135,6 +135,8 @@ protected:
     size_t ParseSeqs(const std::string_view& raw, std::queue<struct Seq>& seqs);
     //
     virtual void RenderSeqs();
+    virtual void RenderSeq(const std::vector<uint32_t>& s);
+    virtual void RenderSeq(int seq, const std::string_view& p);
     //
     virtual void Put(const std::string& s);
     //-------------------------------------------------------------------------------------

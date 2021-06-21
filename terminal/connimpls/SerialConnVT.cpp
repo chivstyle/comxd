@@ -280,13 +280,81 @@ bool SerialConnVT::ProcessControlSeq(int seq_type, const std::string_view& p)
     return false;
 }
 //
+void SerialConnVT::RenderSeq(const std::vector<uint32_t>& texts)
+{
+	int flags = 0;
+	int px = mPx, py = mPy, vx = mVx, vy = mVy;
+    //--------------------------------------------------------------------------------------
+    {
+        int cx = (int)mLines[mVy].size();
+        RenderText(texts); // will change vx
+        if (mVx > cx) flags |= 0x2; // the line was extended
+    }
+    //--------------------------------------------------------------------------------------
+    Seq seq;
+    if (ProcessOverflowLines(seq)) { flags |= 0x1; }
+    if (ProcessOverflowChars(seq)) { flags |= 0x2; } // fix vx/vy
+    if (flags & 0x1) { UpdateVScrollbar(); }
+    if (flags & 0x2) { UpdateHScrollbar(); }
+    // Update vx/vy
+    if (mPx != px && mPy != py) {
+        UpdateDataPos(); vx = mVx; vy = mVy; flags |= 0x4;
+    } else if (mPx != px) {
+        UpdateDataPos(0x1); vx = mVx; flags |= 0x4;
+    } else if (mPy != py) {
+        UpdateDataPos(0x2); vy = mVy; flags |= 0x4;
+    }
+    // update px/py
+    if (mVx != vx && mVy != vy) {
+        UpdatePresentationPos(); flags |= 0x4;
+    } else if (mVx != vx) {
+        UpdatePresentationPos(0x1); flags |= 0x4;
+    } else if (mVy != vy) {
+        UpdatePresentationPos(0x2); flags |= 0x4;
+    }
+}
+void SerialConnVT::RenderSeq(int type, const std::string_view& p)
+{
+	int flags = 0;
+	int px = mPx, py = mPy, vx = mVx, vy = mVy;
+    //--------------------------------------------------------------------------------------
+    {
+        ProcessControlSeq(type, p); // will change vx,vy,px,py
+    }
+    //--------------------------------------------------------------------------------------
+    Seq seq(type, p);
+    if (ProcessOverflowLines(seq)) { flags |= 0x1; }
+    if (ProcessOverflowChars(seq)) { flags |= 0x2; } // fix vx/vy
+    if (flags & 0x1) { UpdateVScrollbar(); }
+    if (flags & 0x2) { UpdateHScrollbar(); }
+    // Update vx/vy
+    if (mPx != px && mPy != py) {
+        UpdateDataPos(); vx = mVx; vy = mVy; flags |= 0x4;
+    } else if (mPx != px) {
+        UpdateDataPos(0x1); vx = mVx; flags |= 0x4;
+    } else if (mPy != py) {
+        UpdateDataPos(0x2); vy = mVy; flags |= 0x4;
+    }
+    // update px/py
+    if (mVx != vx && mVy != vy) {
+        UpdatePresentationPos(); flags |= 0x4;
+    } else if (mVx != vx) {
+        UpdatePresentationPos(0x1); flags |= 0x4;
+    } else if (mVy != vy) {
+        UpdatePresentationPos(0x2); flags |= 0x4;
+    }
+}
+//
 void SerialConnVT::RenderSeqs()
 {
-    while (1) {
+	//std::lock_guard<std::mutex> _(mLockSeqs);
+	//if (mSeqs.empty()) return;
+	mLockSeqs.lock();
+    while (!mSeqs.empty()) {
         int flags = 0;
         //--------------------------------------------------------------------------------------
-        mLockSeqs.lock();
-        if (mSeqs.empty()) { mLockSeqs.unlock(); break; }
+        //mLockSeqs.lock();
+        //if (mSeqs.empty()) { mLockSeqs.unlock(); break; }
         int px = mPx, py = mPy, vx = mVx, vy = mVy;
         Seq seq = mSeqs.front();
         switch (seq.Type) {
@@ -300,7 +368,7 @@ void SerialConnVT::RenderSeqs()
         } break;
         }
         mSeqs.pop();
-        mLockSeqs.unlock();
+        //mLockSeqs.unlock();
         //--------------------------------------------------------------------------------------
         if (ProcessOverflowLines(seq)) { flags |= 0x1; }
         if (ProcessOverflowChars(seq)) { flags |= 0x2; } // fix vx/vy
@@ -323,6 +391,7 @@ void SerialConnVT::RenderSeqs()
             UpdatePresentationPos(0x2); flags |= 0x4;
         }
     }
+    mLockSeqs.unlock();
     Refresh();
 }
 //
@@ -434,7 +503,7 @@ void SerialConnVT::RxProc()
                 if (!texts.empty()) {
                     size_t ep; // end position
                     auto s = this->TranscodeToUTF32(texts, ep);
-#if 0 // discard the corrupted parts
+#if 1 // discard the corrupted parts
                     texts = texts.substr(ep);
                     // add the unrecognized chars, treat them as UTF-32
                     for (size_t k = 0; k < texts.size(); ++k) {
@@ -468,7 +537,7 @@ void SerialConnVT::RxProc()
                 rawp++;
             }
 #if 1
-            if (pool == 20) {
+            if (pool == 200) {
                 PostCallback([=]() { RenderSeqs(); });
                 pool = 0;
             }
@@ -551,9 +620,13 @@ Point SerialConnVT::VirtualToLogic(const std::vector<VTLine>& lines, int vx, int
     if (vy < 0 || vy >= (int)lines.size())
         return Size(-1, -1);
     int ly = 0;
+#if 0
     for (size_t k = 0; k < vy && k < lines.size(); ++k) {
         ly += lines[k].GetHeight();
     }
+#else
+	ly = mFontH * (int)lines.size();
+#endif
     int lx = 0;
     int nchars = ignore_tail_blanks ?
         (int)lines[vy].size() - this->CalculateNumberOfPureBlankCharsFromEnd(lines[vy]) : (int)lines[vy].size();
@@ -570,12 +643,16 @@ Point SerialConnVT::VirtualToLogic(int vx, int vy, bool ignore_tail_blanks)
         return Point(-1, -1);
     // calculate ly
     int ly = 0;
+#if 0
     for (size_t k = 0; k < (int)mLinesBuffer.size() && k < vy; ++k) {
         ly += mLinesBuffer[k].GetHeight();
     }
     for (int k = (int)mLinesBuffer.size(); k < vy; ++k) {
         ly += mLines[k - (int)mLinesBuffer.size()].GetHeight();
     }
+#else
+	ly = mFontH * vy;
+#endif
     // calculate lx
     int lx = 0;
     int nchars = ignore_tail_blanks ?
@@ -620,6 +697,7 @@ Point SerialConnVT::LogicToVirtual(const std::vector<VTLine>& lines, int lx, int
     int vy = (int)lines.size() - 1;
     py = 0;
     next_py = 0;
+#if 0
     for (int i = 0; i < (int)lines.size(); ++i) {
         int line_sz = lines[i].GetHeight();
         next_py += line_sz;
@@ -630,6 +708,13 @@ Point SerialConnVT::LogicToVirtual(const std::vector<VTLine>& lines, int lx, int
         }
         py += line_sz;
     }
+#else
+	py = ly;
+	next_py = py + mFontH;
+	vy = ly / mFontH;
+	if (vy >= (int)lines.size())
+		vy = -1;
+#endif
     int nchars = ignore_tail_blanks ?
         (int)lines[vy].size() - this->CalculateNumberOfPureBlankCharsFromEnd(lines[vy]) : (int)lines[vy].size();
     int vx = nchars == 0 ? 0 : (int)nchars - 1;
@@ -658,6 +743,7 @@ Point SerialConnVT::LogicToVirtual(int lx, int ly, int& px, int& next_px,
     int vy = -1;
     py = 0;
     next_py = 0;
+#if 0
     for (int i = 0; i < (int)mLinesBuffer.size(); ++i) {
         int line_sz = mLinesBuffer[i].GetHeight();
         next_py += line_sz;
@@ -679,6 +765,13 @@ Point SerialConnVT::LogicToVirtual(int lx, int ly, int& px, int& next_px,
             py += line_sz;
         }
     }
+#else
+	py = mFontH * vy;
+	next_py = py + mFontH;
+	vy = ly / mFontH;
+	if (vy >= (int)(mLinesBuffer.size() + mLines.size()))
+		vy = -1;
+#endif
     if (vy < 0)
         return Point(-1, -1); // Error, what's wrong? Because lines and linesbuffer all all empty.
     //
@@ -1403,7 +1496,10 @@ void SerialConnVT::DrawCursor(Draw& draw)
     
     int px = mPx - mSbH.Get();
     int py = mPy + (mSbV.GetTotal() - mSbV.Get() - mSbV.GetPage());
-    
+#if 0
+#else
+	py = py / mFontH * mFontH;
+#endif
     Size usz = GetSize();
     if (px >= 0 && py < usz.cx && py >= 0 && py < usz.cy) {
         // a visible char.
@@ -1512,6 +1608,7 @@ void SerialConnVT::UpdatePresentationPos(int flags)
 {
     if (mLines.empty()) return;
     if (flags & 0x2) {
+#if 0
         // cache to avoid multiple calculating
         int buff_height = 0;
 	    int posl_height = 0;
@@ -1523,6 +1620,9 @@ void SerialConnVT::UpdatePresentationPos(int flags)
 	        posl_height += mLines[k].GetHeight();
 	    }
         mPy = posl_height - buff_height;
+#else
+		mPy = mFontH * mVy;
+#endif
     }
     if (flags & 0x1) {
         int x0 = this->VirtualToLogic(mLines[mVy], mVx, false);
@@ -1600,7 +1700,11 @@ void SerialConnVT::DrawVT(Draw& draw)
     Point vpos = LogicToVirtual(lx, ly, px, next_px, py, next_py);
     if (vpos.x < 0 || vpos.y < 0)
         return;
+#if 0
     int lyoff = py - ly;
+#else
+	int lyoff = 0;
+#endif
     //--------------------------------------------------------------
     // draw lines, and calculate the presentation information
     Size usz = GetSize();
