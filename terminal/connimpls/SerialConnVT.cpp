@@ -299,7 +299,7 @@ void SerialConnVT::RenderSeqs()
             if (mVx > cx) flags |= 0x2; // the line was extended
         } break;
         }
-        mSeqs.pop();
+        mSeqs.pop_front();
         mLockSeqs.unlock();
         //--------------------------------------------------------------------------------------
         if (ProcessOverflowLines(seq)) { flags |= 0x1; }
