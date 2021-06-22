@@ -9,8 +9,9 @@
 #include "VTOptionsDialog.h"
 #include <algorithm>
 //
-#define ENABLE_H_SCROLLBAR     0
-#define ENABLE_BLINK_TEXT      1
+#define ENABLE_H_SCROLLBAR           0
+#define ENABLE_BLINK_TEXT            1
+#define ENABLE_FIXED_LINE_HEIGHT     1
 // register
 using namespace Upp;
 //----------------------------------------------------------------------------------------------
@@ -69,9 +70,9 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
         UpdatePresentationPos();
         Refresh();
     };
-#if ENABLE_BLINK_TIMER
+#if ENABLE_BLINK_TEXT
     // blink timer
-    mBlinkTimer.Set(-500, [&]() {
+    mBlinkTimer.Set(-50, [&]() {
         mBlinkSignal = !mBlinkSignal;
         this->Refresh();
     });
@@ -280,15 +281,13 @@ bool SerialConnVT::ProcessControlSeq(int seq_type, const std::string_view& p)
     return false;
 }
 //
-void SerialConnVT::RenderSeqs()
+void SerialConnVT::RenderSeqs(const std::deque<Seq>& seqs)
 {
-    while (1) {
+    for (auto it = seqs.begin(); it != seqs.end(); ++it) {
+        auto seq = *it;
         int flags = 0;
         //--------------------------------------------------------------------------------------
-        mLockSeqs.lock();
-        if (mSeqs.empty()) { mLockSeqs.unlock(); break; }
         int px = mPx, py = mPy, vx = mVx, vy = mVy;
-        Seq seq = mSeqs.front();
         switch (seq.Type) {
         case Seq::CTRL_SEQ:
             ProcessControlSeq(seq.Ctrl.first, seq.Ctrl.second); // will change vx,vy,px,py
@@ -299,8 +298,6 @@ void SerialConnVT::RenderSeqs()
             if (mVx > cx) flags |= 0x2; // the line was extended
         } break;
         }
-        mSeqs.pop_front();
-        mLockSeqs.unlock();
         //--------------------------------------------------------------------------------------
         if (ProcessOverflowLines(seq)) { flags |= 0x1; }
         if (ProcessOverflowChars(seq)) { flags |= 0x2; } // fix vx/vy
@@ -323,6 +320,17 @@ void SerialConnVT::RenderSeqs()
             UpdatePresentationPos(0x2); flags |= 0x4;
         }
     }
+}
+//
+void SerialConnVT::RenderSeqs()
+{
+    mLockSeqs.lock();
+    {
+        RenderSeqs(mSeqs);
+        mSeqs.clear();
+    }
+    mLockSeqs.unlock();
+    //
     Refresh();
 }
 //
@@ -341,7 +349,7 @@ void SerialConnVT::Put(const std::string& s)
 	GetIo()->Write(s);
 }
 //
-size_t SerialConnVT::ParseSeqs(const std::string_view& raw, std::queue<struct Seq>& seqs)
+size_t SerialConnVT::ParseSeqs(const std::string_view& raw, std::deque<struct Seq>& seqs)
 {
     std::string texts;
     size_t rawp = 0;
@@ -352,7 +360,7 @@ size_t SerialConnVT::ParseSeqs(const std::string_view& raw, std::queue<struct Se
                 size_t ep; // end position
                 auto s = this->TranscodeToUTF32(texts, ep);
                 if (!s.empty()) {
-                    seqs.push(Seq(std::move(s)));
+                    seqs.emplace_back(std::move(s));
                     seqs_cnt++;
                 }
                 texts.clear();
@@ -367,7 +375,7 @@ size_t SerialConnVT::ParseSeqs(const std::string_view& raw, std::queue<struct Se
             }
             else if (type == SEQ_CORRUPTED || type == SEQ_NONE) {
             } else {
-                seqs.push(Seq(type, raw.substr(rawp + p_begin, p_sz)));
+                seqs.emplace_back(type, raw.substr(rawp + p_begin, p_sz));
                 seqs_cnt++;
             }
             rawp += s_end;
@@ -389,17 +397,29 @@ void SerialConnVT::RunParserBenchmark()
             int64 filesz = fin.GetSize();
             char* buffer = new char[filesz + 1];
             fin.Get(buffer, filesz);
-            buffer[filesz] = '\0';
-            std::queue<Seq> seqs;
-            auto t1 = std::chrono::high_resolution_clock::now();
-            size_t ns = ParseSeqs(buffer, seqs);
-            auto t2 = std::chrono::high_resolution_clock::now();
-            auto ts = std::chrono::duration<double>(t2 - t1).count();
-            auto ps = ns / ts;
-            std::string report = std::to_string(ps) + " seqs per second";
-            PromptOK(report.c_str());
-            
             fin.Close();
+            buffer[filesz] = '\0';
+            std::deque<Seq> seqs;
+            if (1) {
+                auto t1 = std::chrono::high_resolution_clock::now();
+                size_t ns = ParseSeqs(buffer, seqs);
+                auto t2 = std::chrono::high_resolution_clock::now();
+                auto ts = std::chrono::duration<double>(t2 - t1).count();
+                auto ps = ns / ts;
+                std::string report = std::to_string(ps) + " seqs per second - Parser";
+                PromptOK(report.c_str());
+            }
+            // render seqs
+            if (1) {
+                size_t ns = seqs.size();
+                auto t1 = std::chrono::high_resolution_clock::now();
+                RenderSeqs(seqs);
+                auto t2 = std::chrono::high_resolution_clock::now();
+                auto ts = std::chrono::duration<double>(t2 - t1).count();
+                auto ps = ns / ts;
+                std::string report = std::to_string(ps) + " seqs per second - Renderer";
+                PromptOK(report.c_str());
+            }
         }
     }
 }
@@ -427,8 +447,8 @@ void SerialConnVT::RxProc()
         }
         RefineTheInput(raw);
         //
-        int pool = 0;
         size_t rawp = 0;
+        std::lock_guard<std::mutex> _(mLockSeqs);
         while (rawp < raw.length() && !mRxShouldStop) {
             if (IsControlSeqPrefix((uint8_t)raw[rawp])) { // is prefix of some control sequence
                 if (!texts.empty()) {
@@ -442,7 +462,7 @@ void SerialConnVT::RxProc()
                     }
 #endif
                     if (!s.empty()) {
-                        AddSeq(std::move(s));
+                        mSeqs.emplace_back(std::move(s));
                     }
                     texts.clear();
                 }
@@ -458,34 +478,25 @@ void SerialConnVT::RxProc()
                     // TODO: process corrupted, or unrecognized seqence
                     LOGF("Unrecognized:%s\n", raw.substr(rawp, s_end).c_str());
                 } else {
-                    AddSeq(type, raw.substr(rawp + p_begin, p_sz));
+                    mSeqs.emplace_back(type, raw.substr(rawp + p_begin, p_sz));
                 }
                 rawp += s_end;
-                //
-                pool++;
             } else {
                 texts.push_back(raw[rawp]);
                 rawp++;
             }
-#if 1
-            if (pool == 20) {
-                PostCallback([=]() { RenderSeqs(); });
-                pool = 0;
-            }
-#endif
         }
-        raw = raw.substr(rawp);
-        //
         if (!texts.empty()) {
             size_t ep;
             auto s = this->TranscodeToUTF32(texts, ep);
             texts = texts.substr(ep);
             if (!s.empty()) {
-                AddSeq(std::move(s));
+                mSeqs.emplace_back(std::move(s));
             }
         }
-        // callback is
         PostCallback([=]() { RenderSeqs(); });
+        //
+        raw = raw.substr(rawp);
     }
 }
 // This routine guarantee that the width of any char is integral multiple
@@ -551,9 +562,13 @@ Point SerialConnVT::VirtualToLogic(const std::vector<VTLine>& lines, int vx, int
     if (vy < 0 || vy >= (int)lines.size())
         return Size(-1, -1);
     int ly = 0;
+#if ENABLE_FIXED_LINE_HEIGHT == 0
     for (size_t k = 0; k < vy && k < lines.size(); ++k) {
         ly += lines[k].GetHeight();
     }
+#else
+	ly = mFontH * (int)lines.size();
+#endif
     int lx = 0;
     int nchars = ignore_tail_blanks ?
         (int)lines[vy].size() - this->CalculateNumberOfPureBlankCharsFromEnd(lines[vy]) : (int)lines[vy].size();
@@ -570,12 +585,16 @@ Point SerialConnVT::VirtualToLogic(int vx, int vy, bool ignore_tail_blanks)
         return Point(-1, -1);
     // calculate ly
     int ly = 0;
+#if ENABLE_FIXED_LINE_HEIGHT == 0
     for (size_t k = 0; k < (int)mLinesBuffer.size() && k < vy; ++k) {
         ly += mLinesBuffer[k].GetHeight();
     }
     for (int k = (int)mLinesBuffer.size(); k < vy; ++k) {
         ly += mLines[k - (int)mLinesBuffer.size()].GetHeight();
     }
+#else
+	ly = mFontH * vy;
+#endif
     // calculate lx
     int lx = 0;
     int nchars = ignore_tail_blanks ?
@@ -620,6 +639,7 @@ Point SerialConnVT::LogicToVirtual(const std::vector<VTLine>& lines, int lx, int
     int vy = (int)lines.size() - 1;
     py = 0;
     next_py = 0;
+#if ENABLE_FIXED_LINE_HEIGHT == 0
     for (int i = 0; i < (int)lines.size(); ++i) {
         int line_sz = lines[i].GetHeight();
         next_py += line_sz;
@@ -630,6 +650,13 @@ Point SerialConnVT::LogicToVirtual(const std::vector<VTLine>& lines, int lx, int
         }
         py += line_sz;
     }
+#else
+	py = ly;
+	next_py = py + mFontH;
+	vy = ly / mFontH;
+	if (vy >= (int)lines.size())
+		vy = -1;
+#endif
     int nchars = ignore_tail_blanks ?
         (int)lines[vy].size() - this->CalculateNumberOfPureBlankCharsFromEnd(lines[vy]) : (int)lines[vy].size();
     int vx = nchars == 0 ? 0 : (int)nchars - 1;
@@ -658,6 +685,7 @@ Point SerialConnVT::LogicToVirtual(int lx, int ly, int& px, int& next_px,
     int vy = -1;
     py = 0;
     next_py = 0;
+#if ENABLE_FIXED_LINE_HEIGHT == 0
     for (int i = 0; i < (int)mLinesBuffer.size(); ++i) {
         int line_sz = mLinesBuffer[i].GetHeight();
         next_py += line_sz;
@@ -679,6 +707,13 @@ Point SerialConnVT::LogicToVirtual(int lx, int ly, int& px, int& next_px,
             py += line_sz;
         }
     }
+#else
+	py = mFontH * vy;
+	next_py = py + mFontH;
+	vy = ly / mFontH;
+	if (vy >= (int)(mLinesBuffer.size() + mLines.size()))
+		vy = -1;
+#endif
     if (vy < 0)
         return Point(-1, -1); // Error, what's wrong? Because lines and linesbuffer all all empty.
     //
@@ -782,8 +817,13 @@ bool SerialConnVT::ProcessOverflowLines()
 		if (top == 0) {
 		    this->PushToLinesBufferAndCheck(mLines[top]);
 		}
-		mLines.insert(mLines.begin() + bot+1, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
-		mLines.erase(mLines.begin() + top);
+		for (size_t k = top+1; k <= bot; ++k) {
+		    std::swap(mLines[k-1], mLines[k]);
+		}
+		VTLine& vline = mLines[bot];
+		for (size_t k = 0; k < vline.size(); ++k) {
+		    vline[k] = mBlankChar;
+		}
 		// fix
 		mVy = bot;
 		//
@@ -1250,6 +1290,7 @@ void SerialConnVT::DoLayout()
             while (overflow_cnt--)
                 vline.pop_back();
 #else
+            // only strip tail blanks
             int blanks_cnt = this->CalculateNumberOfBlankCharsFromEnd(vline);
             int k = 0;
             while (k < overflow_cnt && k < blanks_cnt) {
@@ -1403,7 +1444,12 @@ void SerialConnVT::DrawCursor(Draw& draw)
     
     int px = mPx - mSbH.Get();
     int py = mPy + (mSbV.GetTotal() - mSbV.Get() - mSbV.GetPage());
-    
+#if ENABLE_FIXED_LINE_HEIGHT == 0
+    // do nothing here
+#else
+    // align
+	py = py / mFontH * mFontH;
+#endif
     Size usz = GetSize();
     if (px >= 0 && py < usz.cx && py >= 0 && py < usz.cy) {
         // a visible char.
@@ -1512,6 +1558,7 @@ void SerialConnVT::UpdatePresentationPos(int flags)
 {
     if (mLines.empty()) return;
     if (flags & 0x2) {
+#if ENABLE_FIXED_LINE_HEIGHT == 0
         // cache to avoid multiple calculating
         int buff_height = 0;
 	    int posl_height = 0;
@@ -1523,6 +1570,9 @@ void SerialConnVT::UpdatePresentationPos(int flags)
 	        posl_height += mLines[k].GetHeight();
 	    }
         mPy = posl_height - buff_height;
+#else
+		mPy = mFontH * mVy;
+#endif
     }
     if (flags & 0x1) {
         int x0 = this->VirtualToLogic(mLines[mVy], mVx, false);
@@ -1600,7 +1650,11 @@ void SerialConnVT::DrawVT(Draw& draw)
     Point vpos = LogicToVirtual(lx, ly, px, next_px, py, next_py);
     if (vpos.x < 0 || vpos.y < 0)
         return;
+#if ENABLE_FIXED_LINE_HEIGHT == 0
     int lyoff = py - ly;
+#else
+	int lyoff = 0;
+#endif
     //--------------------------------------------------------------
     // draw lines, and calculate the presentation information
     Size usz = GetSize();

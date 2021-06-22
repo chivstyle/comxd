@@ -115,26 +115,13 @@ protected:
             Type = NULL_SEQ;
         }
     };
+    // double buffer
     std::deque<Seq> mSeqs;
-    template <class Type>
-    void AddSeq(Type&& text)
-    {
-        std::lock_guard<std::mutex> _(mLockSeqs);
-        mSeqs.emplace_back(std::forward<Type>(text));
-    }
-    void AddSeq(int seq_type, std::string&& p)
-    {
-        std::lock_guard<std::mutex> _(mLockSeqs);
-        mSeqs.emplace_back(seq_type, std::move(p));
-    }
-    void AddSeq(int seq_type, const std::string& p)
-    {
-        std::lock_guard<std::mutex> _(mLockSeqs);
-        mSeqs.emplace_back(seq_type, p);
-    }
-    size_t ParseSeqs(const std::string_view& raw, std::queue<struct Seq>& seqs);
+    //
+    size_t ParseSeqs(const std::string_view& raw, std::deque<struct Seq>& seqs);
     //
     virtual void RenderSeqs();
+    virtual void RenderSeqs(const std::deque<Seq>& seqs);
     //
     virtual void Put(const std::string& s);
     //-------------------------------------------------------------------------------------

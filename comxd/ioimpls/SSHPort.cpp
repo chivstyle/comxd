@@ -15,9 +15,11 @@ SSHPort::SSHPort(std::shared_ptr<Upp::SshSession> session, String name, String t
 	mShell->Timeout(Null);
 	mShell->WhenOutput = [=](const void* out, int out_len) {
 		if (out_len > 0) {
-			std::lock_guard<std::mutex> _(mLock);
+			mLock.lock();
 			mRxBuffer.insert(mRxBuffer.end(), (unsigned char*)out, (unsigned char*)out + out_len);
 			mCond.notify_one();
+			size_t len = mRxBuffer.size();
+			mLock.unlock();
 		}
 	};
 }
