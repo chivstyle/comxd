@@ -10,22 +10,29 @@ SSHPort::SSHPort(std::shared_ptr<Upp::SshSession> session, String name, String t
 	: mSession(session)
 	, mDeviceName(name)
 	, mTerm(term)
+	, mShouldExit(false)
 {
 	mShell = new SshShell(*mSession.get());
 	mShell->Timeout(Null);
 	mShell->WhenOutput = [=](const void* out, int out_len) {
 		if (out_len > 0) {
-			mLock.lock();
-			mRxBuffer.insert(mRxBuffer.end(), (unsigned char*)out, (unsigned char*)out + out_len);
-			mCond.notify_one();
-			size_t len = mRxBuffer.size();
-			mLock.unlock();
+			std::unique_lock<std::mutex> _(mLock);
+			mCondWrite.wait(_, [=]() {
+				// limit stream to 16K
+				return mRxBuffer.size() < 16384 || mShouldExit;
+			});
+			if (!mShouldExit) {
+				mRxBuffer.insert(mRxBuffer.end(), (unsigned char*)out, (unsigned char*)out + out_len);
+				mCondRead.notify_one();
+			}
 		}
 	};
 }
 
 SSHPort::~SSHPort()
 {
+	mShouldExit = true;
+	//
     mShell->Close();
     //
     mJob.Finish();
@@ -40,6 +47,7 @@ void SSHPort::Stop()
 
 bool SSHPort::Start()
 {
+	mShouldExit = false;
 	mJob & [=]() {
 		mShell->Run(mTerm, 80, 34, Null);
 	};
@@ -61,10 +69,11 @@ int SSHPort::Available() const
 size_t SSHPort::Read(unsigned char* buf, size_t sz)
 {
 	std::unique_lock<std::mutex> _(mLock);
-	if (mCond.wait_for(_, std::chrono::milliseconds(50), [=]() { return !mRxBuffer.empty(); })) {
+	if (mCondRead.wait_for(_, std::chrono::milliseconds(50), [=]() { return !mRxBuffer.empty(); })) {
 		size_t minsz = std::min(sz, mRxBuffer.size());
 		memcpy(buf, mRxBuffer.data(), minsz);
 		mRxBuffer.erase(mRxBuffer.begin(), mRxBuffer.begin() + minsz);
+		mCondWrite.notify_one();
 		//
 		return minsz;
 	}

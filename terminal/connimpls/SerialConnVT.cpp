@@ -301,8 +301,8 @@ void SerialConnVT::RenderSeqs(const std::deque<Seq>& seqs)
         //--------------------------------------------------------------------------------------
         if (ProcessOverflowLines(seq)) { flags |= 0x1; }
         if (ProcessOverflowChars(seq)) { flags |= 0x2; } // fix vx/vy
-        if (flags & 0x1) { UpdateVScrollbar(); }
-        if (flags & 0x2) { UpdateHScrollbar(); }
+        //if (flags & 0x1) { UpdateVScrollbar(); }
+        //if (flags & 0x2) { UpdateHScrollbar(); }
         // Update vx/vy
         if (mPx != px && mPy != py) {
             UpdateDataPos(); vx = mVx; vy = mVy; flags |= 0x4;
@@ -330,6 +330,9 @@ void SerialConnVT::RenderSeqs()
         mSeqs.clear();
     }
     mLockSeqs.unlock();
+    //
+    UpdateVScrollbar();
+    UpdateHScrollbar();
     //
     Refresh();
 }
@@ -765,9 +768,9 @@ void SerialConnVT::PushToLinesBufferAndCheck(const VTLine& vline)
     for (int i = 0; i < nchars; ++i) {
         buff[i] = vline[i];
     }
-    mLinesBuffer.push_back(buff);
+    mLinesBuffer.push_back(std::move(buff));
     if (mLinesBuffer.size() > mMaxLinesBufferSize) {
-        mLinesBuffer.erase(mLinesBuffer.begin());
+		mLinesBuffer.erase(mLinesBuffer.begin());
     }
 }
 //
@@ -815,7 +818,7 @@ bool SerialConnVT::ProcessOverflowLines()
 	if (yn == 1) {
 		Size csz = GetConsoleSize();
 		if (top == 0) {
-		    this->PushToLinesBufferAndCheck(mLines[top]);
+		    this->PushToLinesBufferAndCheck(std::move(mLines[top]));
 		}
 		for (size_t k = top+1; k <= bot; ++k) {
 		    std::swap(mLines[k-1], mLines[k]);
@@ -1467,11 +1470,27 @@ void SerialConnVT::DrawCursor(Draw& draw)
 
 int SerialConnVT::GetVTLinesHeight(const std::vector<VTLine>& lines) const
 {
+#if ENABLE_FIXED_LINE_HEIGHT == 1
+	return mFontH * (int)lines.size();
+#else
     int linesz = 0;
     for (size_t k = 0; k < lines.size(); ++k) {
         linesz += lines[k].GetHeight();
     }
     return linesz;
+#endif
+}
+int SerialConnVT::GetVTLinesHeight(const std::deque<VTLine>& lines) const
+{
+#if ENABLE_FIXED_LINE_HEIGHT == 1
+	return mFontH * (int)lines.size();
+#else
+    int linesz = 0;
+    for (auto it = lines.begin(); it != lines.end(); ++it) {
+        linesz += it->GetHeight();
+    }
+    return linesz;
+#endif
 }
 
 void SerialConnVT::UseStyle(const VTChar& c, Upp::Font& font, Upp::Color& fg_color, Upp::Color& bg_color,

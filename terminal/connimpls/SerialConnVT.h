@@ -45,7 +45,7 @@ public:
     };
     // public methods
     struct ScreenData {
-        std::vector<VTLine> LinesBuffer;
+        std::deque<VTLine> LinesBuffer;
         std::vector<VTLine> Lines;       // virtual screen
         VTStyle Style;
         int Vx, Vy;
@@ -82,7 +82,7 @@ protected:
     virtual Upp::Image CursorImage(Upp::Point p, Upp::dword keyflags);
     //
     VTChar mBlankChar;
-    std::vector<VTLine> mLinesBuffer;
+    std::deque<VTLine> mLinesBuffer;
     std::vector<VTLine> mLines; //<! Text on current screen, treat is as virtual screen
     //-------------------------------------------------------------------------------------
     std::mutex mLockSeqs;
@@ -256,6 +256,7 @@ protected:
                             int lxoff, int lyoff);
     //
     int GetVTLinesHeight(const std::vector<VTLine>& lines) const;
+    int GetVTLinesHeight(const std::deque<VTLine>& lines) const;
     //
     virtual void UpdatePresentationPos(int flags = -1); // Vx,Vy -> Px,Py
     virtual void UpdateDataPos(int flags = -1); // Px,Py -> Vx,Vy

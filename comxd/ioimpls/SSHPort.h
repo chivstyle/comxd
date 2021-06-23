@@ -31,8 +31,10 @@ private:
 	std::shared_ptr<Upp::SshSession> mSession;
 	std::string mDeviceName;
 	Upp::String mTerm;
-	std::condition_variable mCond;
+	std::condition_variable mCondRead;
+	std::condition_variable mCondWrite;
 	mutable std::mutex mLock;
 	std::vector<unsigned char> mRxBuffer;
+	volatile bool mShouldExit;
 	Upp::CoWorkNX mJob;
 };
