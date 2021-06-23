@@ -816,7 +816,6 @@ bool SerialConnVT::ProcessOverflowLines()
 	int yn = mVy - bot;
 	// I tested mintty, we buffer lines like that.
 	if (yn == 1) {
-		Size csz = GetConsoleSize();
 		if (top == 0) {
 		    this->PushToLinesBufferAndCheck(std::move(mLines[top]));
 		}
@@ -1256,7 +1255,7 @@ void SerialConnVT::ShrinkVirtualScreen(int cx, int cy)
         bot = (int)mLines.size() - 1;
     }
     // 0. remove blanks firstly
-    int blankcnt = CalculateNumberOfBlankLinesFromEnd(mLines);
+    int blankcnt = std::min(CalculateNumberOfBlankLinesFromEnd(mLines), (int)mLines.size() - mVy);
     int shkcn = (int)mLines.size() - cy;
     int ln = 0;
     for (int i = 0; i < shkcn && i < blankcnt; ++i) {
