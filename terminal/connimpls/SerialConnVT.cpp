@@ -420,6 +420,10 @@ void SerialConnVT::RunParserBenchmark()
                 auto t2 = std::chrono::high_resolution_clock::now();
                 auto ts = std::chrono::duration<double>(t2 - t1).count();
                 auto ps = ns / ts;
+                //
+                UpdateVScrollbar();
+                UpdateHScrollbar();
+                //
                 std::string report = std::to_string(ps) + " seqs per second - Renderer";
                 PromptOK(report.c_str());
             }
