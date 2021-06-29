@@ -32,7 +32,6 @@ public:
     struct SelectionSpan {
         int X0, Y0; // virtual screen, unit: char [fixed width]
         int X1, Y1; // virtual screen, unit: char [fixed height]
-        int x0, y0; // reserved for define the whether the span is valid.
         bool Valid;
         SelectionSpan()
             : X0(0)

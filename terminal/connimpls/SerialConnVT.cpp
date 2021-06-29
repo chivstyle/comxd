@@ -9,7 +9,7 @@
 #include "VTOptionsDialog.h"
 #include <algorithm>
 //
-#define ENABLE_H_SCROLLBAR           0
+#define ENABLE_H_SCROLLBAR           1
 #define ENABLE_BLINK_TEXT            1
 #define ENABLE_FIXED_LINE_HEIGHT     1
 // register
@@ -301,8 +301,10 @@ void SerialConnVT::RenderSeqs(const std::deque<Seq>& seqs)
         //--------------------------------------------------------------------------------------
         if (ProcessOverflowLines(seq)) { flags |= 0x1; }
         if (ProcessOverflowChars(seq)) { flags |= 0x2; } // fix vx/vy
-        //if (flags & 0x1) { UpdateVScrollbar(); }
-        //if (flags & 0x2) { UpdateHScrollbar(); }
+#if 0
+        if (flags & 0x1) { UpdateVScrollbar(); }
+        if (flags & 0x2) { UpdateHScrollbar(); }
+#endif
         // Update vx/vy
         if (mPx != px && mPy != py) {
             UpdateDataPos(); vx = mVx; vy = mVy; flags |= 0x4;
@@ -775,6 +777,18 @@ void SerialConnVT::PushToLinesBufferAndCheck(const VTLine& vline)
     mLinesBuffer.push_back(std::move(buff));
     if (mLinesBuffer.size() > mMaxLinesBufferSize) {
 		mLinesBuffer.erase(mLinesBuffer.begin());
+#if 1
+		// we should move the selection span up
+		if (mSelectionSpan.Y0 > 0) {
+			mSelectionSpan.Y0 -= 1;
+		} else {
+			mSelectionSpan.X0 = 0;
+		}
+		if (mSelectionSpan.Y1 > 0) mSelectionSpan.Y1 -= 1;
+		else {
+			mSelectionSpan.Valid = false;
+		}
+#endif
     }
 }
 //
