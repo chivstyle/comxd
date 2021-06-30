@@ -72,7 +72,7 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
     };
 #if ENABLE_BLINK_TEXT
     // blink timer
-    mBlinkTimer.Set(-50, [&]() {
+    mBlinkTimer.Set(-500, [&]() {
         mBlinkSignal = !mBlinkSignal;
         this->Refresh();
     });
@@ -721,7 +721,7 @@ Point SerialConnVT::LogicToVirtual(int lx, int ly, int& px, int& next_px,
 	next_py = py + mFontH;
 	vy = ly / mFontH;
 	if (vy >= (int)(mLinesBuffer.size() + mLines.size()))
-		vy = -1;
+		vy = (int)(mLinesBuffer.size() + mLines.size()) - 1;
 #endif
     if (vy < 0)
         return Point(-1, -1); // Error, what's wrong? Because lines and linesbuffer all all empty.
