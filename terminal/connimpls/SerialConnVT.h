@@ -45,16 +45,22 @@ public:
     // public methods
     struct ScreenData {
         std::deque<VTLine> LinesBuffer;
-        std::vector<VTLine> Lines;       // virtual screen
+        std::deque<VTLine> Lines;       // virtual screen
         VTStyle Style;
         int Vx, Vy;
         Upp::Font Font;
         struct SelectionSpan SelSpan;
+        ScreenData()
+            : Vx(0)
+            , Vy(0)
+        {
+        }
     };
     void SaveScr(ScreenData& sd);
     void LoadScr(const ScreenData& sd);
     // swap current scr and sd
     void SwapScr(ScreenData& sd);
+    //
     void SetWrapLine(bool b);
     void SetShowCursor(bool b);
     //
@@ -82,7 +88,7 @@ protected:
     //
     VTChar mBlankChar;
     std::deque<VTLine> mLinesBuffer;
-    std::vector<VTLine> mLines; //<! Text on current screen, treat is as virtual screen
+    std::deque<VTLine> mLines; //<! Text on current screen, treat is as virtual screen
     //-------------------------------------------------------------------------------------
     std::mutex mLockSeqs;
     struct Seq {
@@ -145,7 +151,7 @@ protected:
     virtual bool ProcessOverflowLines(const struct Seq& seq);
     virtual bool ProcessOverflowChars(const struct Seq& seq);
     // calcualte blank lines from end of lines
-    int CalculateNumberOfBlankLinesFromEnd(const std::vector<VTLine>& lines) const;
+    int CalculateNumberOfBlankLinesFromEnd(const std::deque<VTLine>& lines) const;
     int CalculateNumberOfBlankCharsFromEnd(const VTLine& vline) const;
     int CalculateNumberOfPureBlankCharsFromEnd(const VTLine& vline) const;
     //
@@ -164,9 +170,9 @@ protected:
     // lx, ly - lines is virtual screen
     //        cN       cN+1   cN+2
     // lx     |____lx___|______|
-    Upp::Point LogicToVirtual(const std::vector<VTLine>& lines, int lx, int ly, int& px, int& next_px,
+    Upp::Point LogicToVirtual(const std::deque<VTLine>& lines, int lx, int ly, int& px, int& next_px,
                                                                                 int& py, int& next_py, bool ignore_tail_blanks = true);
-    Upp::Point VirtualToLogic(const std::vector<VTLine>& lines, int vx, int vy, bool ignore_tail_blanks = true);
+    Upp::Point VirtualToLogic(const std::deque<VTLine>& lines, int vx, int vy, bool ignore_tail_blanks = true);
     //        cN       cN+1   cN+2
     // lx     |____lx___|______|
     int LogicToVirtual(const VTLine& vline, int lx, int& px, int& next_px, bool ignore_tail_blanks = true);

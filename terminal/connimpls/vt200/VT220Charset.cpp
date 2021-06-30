@@ -5,11 +5,36 @@
 #include "VT220Charset.h"
 #include "connimpls/vt100/VT100Charset.h"
 
+static const uint32_t kDecSupplementalGs[] = {
+    // C1 CODES
+    '?', '?', '?', '?', '?', '?', '?', '?',
+    '?', '?', '?', '?', '?', '?', '?', '?',
+    '?', '?', '?', '?', '?', '?', '?', '?',
+    '?', '?', '?', '?', '?', '?', '?', '?',
+    //
+    L' ', L'¡', L'¢', L'£', L' ', L'¥', L' ', L'§',
+    L'¤', L'©', L'ª', L'«', L' ', L' ', L' ', L' ',
+    L'°', L'±', L'²', L'³', L' ', L'µ', L'¶', L'·',
+    L' ', L'¹', L'º', L'»', L'¼', L'½', L' ', L'¿',
+    L' ', L'Ñ', L'Ò', L'Ó', L'Ô', L'Õ', L'Ö', L'Œ',
+    L'Ø', L'Ù', L'Ú', L'Û', L'Ü', L'Ÿ', L' ', L'ß',
+    L'à', L'á', L'â', L'ã', L'ä', L'å', L'æ', L'ç',
+    L'è', L'é', L'ê', L'ë', L'ì', L'í', L'î', L'ï',
+    L' ', L'ñ', L'ò', L'ó', L'ô', L'õ', L'ö', L'œ',
+    L'ø', L'ù', L'ú', L'û', L'ü', L'ÿ', L' ', L' '
+};
 
-
-uint32_t VT220_RemapCharacter(uint32_t uc, int cs, int extended_cs)
+uint32_t VT220_RemapR(uint32_t uc, int cs)
 {
-	switch (cs) {
+    switch (cs) {
+    case CS_DEC_SUPPLEMENTAL:
+        return kDecSupplementalGs[uc - 0x80];
+    }
+    return uc;
+}
+uint32_t VT220_RemapL(uint32_t uc, int cs)
+{
+    switch (cs) {
 	case CS_BRITISH: if (uc == 0x24) return 0xa3; else break;
 	case CS_DEC_SPECIAL_GRAPHICS: return VT100_RemapCharacter(uc, CS_LINE_DRAWING);
 	// vt220, table 2-6
@@ -145,4 +170,11 @@ uint32_t VT220_RemapCharacter(uint32_t uc, int cs, int extended_cs)
 	default:break;
 	}
 	return uc;
+}
+
+uint32_t VT220_RemapCharacter(uint32_t uc, int cs, int extended_cs)
+{
+    if (uc < 0x80) return VT220_RemapL(uc, cs);
+    else if (uc < 0x100) return VT220_RemapR(uc, extended_cs);
+    else return uc;
 }

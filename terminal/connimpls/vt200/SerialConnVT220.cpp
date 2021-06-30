@@ -18,8 +18,8 @@ SerialConnVT220::SerialConnVT220(std::shared_ptr<SerialIo> io)
     , mOperatingLevel(VT200_S7C)
 {
     // vt100 supports G0,G1, vt200 supports G2,G3
-    mCharsets[2] = CS_DEFAULT;
-    mCharsets[3] = CS_DEFAULT;
+    mCharsets[2] = CS_DEC_SUPPLEMENTAL;
+    mCharsets[3] = CS_DEC_SUPPLEMENTAL;
     this->mExtendedCharset = mCharsets[0];
     //
     SaveCursorData(mCursorData);
@@ -221,10 +221,6 @@ void SerialConnVT220::ProcessSS3(const std::string_view&)
 {
     mCharset = mCharsets[3];
 }
-void SerialConnVT220::ProcessLS1R(const std::string_view&)
-{
-    mExtendedCharset = mCharsets[1];
-}
 void SerialConnVT220::ProcessLS2(const std::string_view&)
 {
     mCharset = mCharsets[2];
@@ -232,6 +228,13 @@ void SerialConnVT220::ProcessLS2(const std::string_view&)
 void SerialConnVT220::ProcessLS3(const std::string_view&)
 {
     mCharset = mCharsets[3];
+}
+// for 0x80-0xff, we call them extended cs, we do not use them actually,
+// because we treat all of inputs as UTF-8 default. Programs who did not
+// support UTF-8 were too old to support well.
+void SerialConnVT220::ProcessLS1R(const std::string_view&)
+{
+    mExtendedCharset = mCharsets[1];
 }
 void SerialConnVT220::ProcessLS2R(const std::string_view&)
 {

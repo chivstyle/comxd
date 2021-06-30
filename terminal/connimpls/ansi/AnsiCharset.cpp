@@ -6,8 +6,9 @@
 
 uint32_t Ansi_RemapCharacter(uint32_t uc, int cs)
 {
-	const uint32_t extended_cs[] = {
-		0x00c7,
+    // https://coding.tools/ascii-table
+	static const uint32_t extended_cs[] = {
+	    0x00c7,
 		0x00fc,
 		0x00e9,
 		0x0203,
@@ -37,7 +38,7 @@ uint32_t Ansi_RemapCharacter(uint32_t uc, int cs)
 		0x023c,
 		0x00a3,
 		0xffe5,
-		'?',
+		0x00d7,
 		0x0192,
 		0x00e1,
 		0x00ed,
@@ -134,7 +135,7 @@ uint32_t Ansi_RemapCharacter(uint32_t uc, int cs)
 		0x00b2,
 		0x207f,
 		0x2bc0,
-		0x0000
+		0x00a0 // nbsp
 	};
 	if (uc >= 0x80 && uc <= 0xff) return extended_cs[uc - 0x80];
 	else return uc;

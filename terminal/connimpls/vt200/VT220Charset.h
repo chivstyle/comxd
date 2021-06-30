@@ -28,4 +28,6 @@ enum VT220Charset {
 };
 static_assert(VT220_CS_MAX < VT200_CS_END, "please define VT200_CS_COUNT big enough");
 
+uint32_t VT220_RemapL(uint32_t uc, int cs);
+uint32_t VT220_RemapR(uint32_t uc, int cs);
 uint32_t VT220_RemapCharacter(uint32_t uc, int cs, int extended_cs);

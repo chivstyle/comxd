@@ -49,6 +49,36 @@ void SerialConnVT320::InstallFunctions()
     mFunctions[DECRQUPSS] = [=](const std::string_view& p) { ProcessDECRQUPSS(p); };
 }
 //
+#define DO_SET_CHARSET(g) do { \
+    if (p == "%5") { \
+        mCharsets[g] = CS_DEC_SUPPLEMENTAL_VT320; \
+    } else if (p == "`" || p == "E" || p == "6") { \
+        mCharsets[g] = CS_DANISH_VT320; \
+    } else if (p == "%6") { \
+        mCharsets[g] = CS_PORTUGUESE; \
+    } else if (p == "<") { \
+        mCharsets[g] = CS_USER_PREFERED_SUPPLEMENTAL; \
+    } else \
+        SerialConnVT220::ProcessG##g##_CS(p); \
+} while (0)
+//
+void SerialConnVT320::ProcessG0_CS(const std::string_view& p)
+{
+    DO_SET_CHARSET(0);
+}
+void SerialConnVT320::ProcessG1_CS(const std::string_view& p)
+{
+    DO_SET_CHARSET(1);
+}
+void SerialConnVT320::ProcessG2_CS(const std::string_view& p)
+{
+    DO_SET_CHARSET(2);
+}
+void SerialConnVT320::ProcessG3_CS(const std::string_view& p)
+{
+    DO_SET_CHARSET(3);
+}
+//
 void SerialConnVT320::ProcessDECSASD(const std::string_view&)
 {
 }

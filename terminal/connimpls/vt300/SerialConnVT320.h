@@ -10,6 +10,7 @@ class SerialConnVT320 : public SerialConnVT220 {
 public:
     SerialConnVT320(std::shared_ptr<SerialIo> io);
 protected:
+    // vt320
     virtual void ProcessDECSASD(const std::string_view&);
     virtual void ProcessDECSSDT(const std::string_view&);
     virtual void ProcessDECRQTSR(const std::string_view&);
@@ -32,6 +33,11 @@ protected:
     void ProcessDECRM(const std::string_view&);
     void ProcessDA(const std::string_view&);
     void ProcessSecondaryDA(const std::string_view&);
+    // override cs
+    void ProcessG0_CS(const std::string_view&);
+    void ProcessG1_CS(const std::string_view&);
+    void ProcessG2_CS(const std::string_view&);
+    void ProcessG3_CS(const std::string_view&);
     //
     struct VT320Modes {
         enum DECKBUMValue {

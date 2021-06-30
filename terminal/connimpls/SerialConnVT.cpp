@@ -566,7 +566,7 @@ const VTLine* SerialConnVT::GetVTLine(int vy) const
     return vline;
 }
 //
-Point SerialConnVT::VirtualToLogic(const std::vector<VTLine>& lines, int vx, int vy, bool ignore_tail_blanks)
+Point SerialConnVT::VirtualToLogic(const std::deque<VTLine>& lines, int vx, int vy, bool ignore_tail_blanks)
 {
     if (vy < 0 || vy >= (int)lines.size())
         return Size(-1, -1);
@@ -631,14 +631,14 @@ int SerialConnVT::GetLogicWidth(const VTLine& vline, int count, bool ignore_tail
     if (count < 0)
         count = ignore_tail_blanks ?
             (int)vline.size() - this->CalculateNumberOfPureBlankCharsFromEnd(vline) : (int)vline.size();
-    for (int k = 0; k < count; ++k) {
+    for (int k = 0; k < count && k < (int)vline.size(); ++k) {
         x += GetCharWidth(vline[k]);
     }
     return x;
 }
 //
 // lx, ly - lines is virtual screen
-Point SerialConnVT::LogicToVirtual(const std::vector<VTLine>& lines, int lx, int ly, int& px, int& next_px,
+Point SerialConnVT::LogicToVirtual(const std::deque<VTLine>& lines, int lx, int ly, int& px, int& next_px,
     int& py, int& next_py, bool ignore_tail_blanks)
 {
     if (lx < 0)
@@ -1185,7 +1185,7 @@ bool SerialConnVT::Key(dword key, int)
     return processed;
 }
 //
-int SerialConnVT::CalculateNumberOfBlankLinesFromEnd(const std::vector<VTLine>& lines) const
+int SerialConnVT::CalculateNumberOfBlankLinesFromEnd(const std::deque<VTLine>& lines) const
 {
     int cn = 0;
     size_t sz = lines.size();
