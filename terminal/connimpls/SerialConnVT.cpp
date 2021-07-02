@@ -484,8 +484,7 @@ void SerialConnVT::RxProc()
                     } else break; // break this loop, read new characters from I/O
                 }
                 else if (type == SEQ_CORRUPTED || type == SEQ_NONE) {
-                    // TODO: process corrupted, or unrecognized seqence
-                    LOGF("Unrecognized:%s\n", raw.substr(rawp, s_end).c_str());
+                    // Ignore unrecognized seq
                 } else {
                     mSeqs.emplace_back(type, raw.substr(rawp + p_begin, p_sz));
                 }
@@ -673,7 +672,7 @@ Point SerialConnVT::LogicToVirtual(const std::deque<VTLine>& lines, int lx, int 
     for (int i = 0; i < nchars; ++i) {
         int vchar_sz = GetCharWidth(lines[vy][i]);
         next_px += vchar_sz;
-        // [px, px+vchar_sz]
+        // [px, px+vchar_sz)
         if (lx >= px && lx < next_px) {
             vx = i;
             break;
@@ -734,7 +733,7 @@ Point SerialConnVT::LogicToVirtual(int lx, int ly, int& px, int& next_px,
     for (int k = 0; k < nchars; ++k) {
         int vchar_sz = GetCharWidth(vline->at(k));
         next_px += vchar_sz;
-        // [px, px+vchar_sz]
+        // [px, px+vchar_sz)
         if (lx >= px && lx < next_px) {
             vx = k;
             break;
@@ -756,7 +755,7 @@ int SerialConnVT::LogicToVirtual(const VTLine& vline, int lx, int& px, int& next
     for (int i = 0; i < nchars; ++i) {
         int vchar_sz = GetCharWidth(vline[i]);
         next_px += vchar_sz;
-        // [px, px+vchar_sz]
+        // [px, px+vchar_sz)
         if (lx >= px && lx < next_px) {
             vx = i;
             break;
@@ -948,8 +947,12 @@ void SerialConnVT::MouseMove(Point p, dword)
         }
         int lx = mSbH.Get() + p.x, ly = mSbV.Get() + p.y;
         int px, next_px, py, next_py;
+        // lx - cursor position.x
+        // px - font base position.x
+        // next_px - next font base position.x
+        // Current font width = next_px - px
         Point vpos = LogicToVirtual(lx, ly, px, next_px, py, next_py);
-        mSelectionSpan.X1 = (lx - px) > (next_px - px) / 2 ? vpos.x + 1 : vpos.x;
+        mSelectionSpan.X1 = (lx - px) >= (next_px - px) / 2 ? vpos.x + 1 : vpos.x;
         mSelectionSpan.Y1 = vpos.y;
         mSelectionSpan.Valid = mSelectionSpan.X0 != mSelectionSpan.X1 || mSelectionSpan.Y0 != mSelectionSpan.Y1;
         //

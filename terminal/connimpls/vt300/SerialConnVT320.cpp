@@ -146,7 +146,7 @@ void SerialConnVT320::ProcessDECRM(const std::string_view& p)
 
 void SerialConnVT320::ProcessDECSEL(const std::string_view& p)
 {
-    if (mSelectiveErase == false) return;
+    if (mCursorData.SelectiveErase) return;
     int ps = atoi(p.data());
     switch (ps) {
     case 0: if (1) {
@@ -171,7 +171,7 @@ void SerialConnVT320::ProcessDECSEL(const std::string_view& p)
 }
 void SerialConnVT320::ProcessDECSED(const std::string_view& p)
 {
-    if (mSelectiveErase == false) return;
+    if (!mCursorData.SelectiveErase) return;
     int ps = atoi(p.data());
     switch (ps) {
     case 0: if (1) {

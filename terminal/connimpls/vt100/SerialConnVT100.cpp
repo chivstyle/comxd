@@ -31,8 +31,6 @@ SerialConnVT100::SerialConnVT100(std::shared_ptr<SerialIo> io)
     mCharsets[0] = CS_US;
     mCharsets[1] = CS_UK;
     //
-    SaveCursorData(mCursorData);
-    //
     InstallFunctions();
 }
 

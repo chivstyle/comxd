@@ -11,29 +11,29 @@
 class SerialConnVT100 : public SerialConnEcma48 {
 public:
     SerialConnVT100(std::shared_ptr<SerialIo> io);
-    // from ECMA48
-    virtual void ProcessDA(const std::string_view& p);
-    virtual void ProcessCUP(const std::string_view& p);
-    virtual void ProcessHVP(const std::string_view& p);
-    virtual void ProcessSI(const std::string_view& p);
-    virtual void ProcessSO(const std::string_view& p);
+    // override ECMA48
+    void ProcessDA(const std::string_view& p);
+    void ProcessCUP(const std::string_view& p);
+    void ProcessHVP(const std::string_view& p);
+    void ProcessSI(const std::string_view& p);
+    void ProcessSO(const std::string_view& p);
     // VT100 modes, DEC private
     virtual void ProcessDECSM(const std::string_view& p);
     virtual void ProcessDECRM(const std::string_view& p);
     // DEC private
-    void ProcessDECDSR(const std::string_view& p);
-    void ProcessDECIND(const std::string_view& p);
+    virtual void ProcessDECDSR(const std::string_view& p);
+    virtual void ProcessDECIND(const std::string_view& p);
     // VT100 specific, DEC private
     // DECID was ignored, according to vt100 specification
-    void ProcessDECREQTPARM(const std::string_view& p);
-    void ProcessDECSTBM(const std::string_view& p);
-    void ProcessDECSC(const std::string_view& p);
-    void ProcessDECRC(const std::string_view& p);
-    void ProcessDECALN(const std::string_view& p);
-    void ProcessDECTST(const std::string_view& p);
-    void ProcessDECLL(const std::string_view& p);
-    void ProcessDECKPNM(const std::string_view&);
-    void ProcessDECKPAM(const std::string_view&);
+    virtual void ProcessDECREQTPARM(const std::string_view& p);
+    virtual void ProcessDECSTBM(const std::string_view& p);
+    virtual void ProcessDECSC(const std::string_view& p);
+    virtual void ProcessDECRC(const std::string_view& p);
+    virtual void ProcessDECALN(const std::string_view& p);
+    virtual void ProcessDECTST(const std::string_view& p);
+    virtual void ProcessDECLL(const std::string_view& p);
+    virtual void ProcessDECKPNM(const std::string_view&);
+    virtual void ProcessDECKPAM(const std::string_view&);
     // charset
     virtual void ProcessG0_CS(const std::string_view& p);
     virtual void ProcessG1_CS(const std::string_view& p);
@@ -106,11 +106,12 @@ public:
         int Charset;
         VTStyle Style;
     };
+    int mKeypadMode;
+    //
+    CursorDataVT100 mCursorData;
+    //
     void SaveCursorData(CursorDataVT100& cd);
     void LoadCursorData(const CursorDataVT100& cd);
-    CursorDataVT100 mCursorData;
 private:
-	int mKeypadMode;
-	//
     void InstallFunctions();
 };
