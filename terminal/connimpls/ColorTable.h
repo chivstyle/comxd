@@ -24,7 +24,9 @@ public:
         kColorId_White,
         kColorId_Magenta,
         kColorId_Cyan,
-        kColorId_Yellow
+        kColorId_Yellow,
+        //
+        kColorId_Max
     };
     //
     void Swap(const ColorId& color_id1, const ColorId& color_id2)
@@ -33,6 +35,7 @@ public:
     }
     //
     const Upp::Color& GetColor(int color_id);
+    const Upp::Color& GetIndexColor(int index);
     
     void SetColor(int color_id, const Upp::Color& color)
     {

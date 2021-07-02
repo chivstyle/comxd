@@ -29,6 +29,15 @@ void VTColorTable::SetFallbackColor(const Upp::Color& color)
     mFallbackColor = color;
 }
 
+const Color& VTColorTable::GetIndexColor(int color_id)
+{
+    auto it = mTbl.find(kColorId_Max + color_id);
+    if (it != mTbl.end()) {
+        return it->second;
+    }
+    return mFallbackColor;
+}
+
 const Color& VTColorTable::GetColor(int color_id)
 {
     auto it = mTbl.find(color_id);

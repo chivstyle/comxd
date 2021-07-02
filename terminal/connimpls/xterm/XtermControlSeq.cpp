@@ -12,10 +12,6 @@ void AddXtermControlSeqs(ControlSeqFactory* factory)
 {
     REGISTER_SEQ(factory, XTWINOPS,       "\E[",  Ps, 0, "t");
     REGISTER_SEQ(factory, XTOSC,          "\E]",  Gs, 0, "\x07");
-    // For convenience, we do not use strict parameter conditions, so
-    // "\E\>1T", "\E\>1;2;3T", .etc were parsed as A single seq, the ECMA-048
-    // defines it to SD, if there are three Ps in the parameter, you should
-    // treat the seq as XTRMTITLE. please override ProcessSD to implement this feature.
     REGISTER_SEQ(factory, XTRMTITLE,      "\E[>", Ps, 0, "T");
     REGISTER_SEQ(factory, XTSMTITLE,      "\E[>", Ps, 0, "t");
     REGISTER_SEQ(factory, XTMODKEYS,      "\E[>", Ps, 0, "m");
@@ -30,6 +26,10 @@ void AddXtermControlSeqs(ControlSeqFactory* factory)
     REGISTER_SEQ(factory, XTSMGRAPHICS,   "\E[?", Ps, 0, "S");
     REGISTER_SEQ(factory, XTRESTORE,      "\E[?", Ps, 0, "r");
     REGISTER_SEQ(factory, XTSAVE,         "\E[?", Ps, 0, "s");
+    // For convenience, we do not use strict parameter conditions, so
+    // "\E\>1T", "\E\>1;2;3;4;5T", .etc were parsed as A single seq, the ECMA-048
+    // defines it to SD, if there are three Ps in the parameter, you should
+    // treat the seq as XTHIMOUSE. please override ProcessSD to implement this feature.
     REGISTER_SEQ(factory, XTHIMOUSE,      "\E[",  Ps, 0, "T");
     REGISTER_SEQ(factory, XTPUSHSGR,      "\E[",  Ps, 0, "p");
     REGISTER_SEQ(factory, XTPUSHSGR,      "\E[",  No, 0, "#{");

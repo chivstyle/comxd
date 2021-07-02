@@ -29,6 +29,9 @@ protected:
     // override vt520
     void ProcessDECSM(const std::string_view& p);
     void ProcessDECRM(const std::string_view& p);
+    void ProcessSD(const std::string_view& p);
+    // override Paste to support bracketed paste.
+    void Paste();
     // Xterm provides a alternate screen
     ScreenData mAlternateScr;
     //
