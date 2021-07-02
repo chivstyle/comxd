@@ -38,6 +38,9 @@ SerialConnVT100::SerialConnVT100(std::shared_ptr<SerialIo> io)
 
 void SerialConnVT100::InstallFunctions()
 {
+    mFunctions[DECKPNM] = [=](const std::string_view& p) { ProcessDECKPNM(p); };
+    mFunctions[DECKPAM] = [=](const std::string_view& p) { ProcessDECKPAM(p); };
+    //
     mFunctions[DECSM] = [=](const std::string_view& p) { ProcessDECSM(p); };
     mFunctions[DECRM] = [=](const std::string_view& p) { ProcessDECRM(p); };
     mFunctions[DECDSR] = [=](const std::string_view& p) { ProcessDECDSR(p); };

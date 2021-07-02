@@ -17,6 +17,7 @@ protected:
     void ProcessDECRM(const std::string_view& p);
     void ProcessSM(const std::string_view& p);
     void ProcessRM(const std::string_view& p);
+    void ProcessDA(const std::string_view& p);
     // level 5
     enum VT520_OperatingLevel {
         VT500_S7C = VT420_CL_MAX,

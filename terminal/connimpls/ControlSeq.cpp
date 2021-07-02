@@ -134,7 +134,7 @@ int ControlSeqFactory::IsControlSeq(const std::string_view& seq, size_t& p_begin
         case ControlSeq::No: ret = (int)p_begin; break;
         default: abort(); break;
         }
-        if (ret < 0) return SEQ_CORRUPTED;
+        if (ret < 0) continue; // It's not a valid parameter, continue to try
         else if (ret == 0) return SEQ_PENDING;
         else {
             if (ret >= (int)seq.length() && !it->Tail.empty()) return SEQ_PENDING;

@@ -52,6 +52,7 @@ void SerialConnVT520::ProcessDECSM(const std::string_view& p)
     case 117: mModes.DECECM = 1; break;
     default:
         SerialConnVT420::ProcessDECSM(p);
+        break;
     }
 }
 void SerialConnVT520::ProcessDECRM(const std::string_view& p)
@@ -80,8 +81,41 @@ void SerialConnVT520::ProcessDECRM(const std::string_view& p)
     case 117: mModes.DECECM = 0; break;
     default:
         SerialConnVT420::ProcessDECRM(p);
+        break;
     }
 }
+
+void SerialConnVT520::ProcessDA(const std::string_view& p)
+{
+    int ps = atoi(p.data());
+    switch (ps) {
+    case 0:
+        // 1   132 columns
+        // 2   Printer port
+        // 6   Selective erase
+        // 7   Soft character set
+        // 8   User defined keys
+        // 9   National replacement character sets
+        // 12  Serbo-Croatian
+        // 15  Technical character sets
+        // 18  Windowing capability
+        // 19  Sessions
+        // 21  Horizontal scrolling
+        // 22  Color
+        // 23  Greek
+        // 24  Turkish
+        // 42  ISO Latin-2
+        // 44  PCTerm
+        // 45  Soft key mapping
+        // 46  ASCII terminal emulation
+        Put("\E[?7;9;22;23;24;42;44;45;46c");
+        break;
+    default:
+        SerialConnVT420::ProcessDA(p);
+        break;
+    }
+}
+
 void SerialConnVT520::ProcessSM(const std::string_view& p)
 {
     int pn = atoi(p.data());
@@ -89,6 +123,7 @@ void SerialConnVT520::ProcessSM(const std::string_view& p)
     case 97: mModes.DECCRTSM = 1; break;
     default:
         SerialConnVT420::ProcessSM(p);
+        break;
     }
 }
 void SerialConnVT520::ProcessRM(const std::string_view& p)
@@ -98,6 +133,7 @@ void SerialConnVT520::ProcessRM(const std::string_view& p)
     case 97: mModes.DECCRTSM = 0; break;
     default:
         SerialConnVT420::ProcessRM(p);
+        break;
     }
 }
 
@@ -120,9 +156,9 @@ void SerialConnVT520::ProcessSecondaryDA(const std::string_view& p)
     int pn = atoi(p.data());
     switch (pn) {
     case 0:
-        // CSI > 64; Pv; 0 c , VT520
+        // CSI > 64; Pv; 1 c , VT520
         // Pv - firmware version.
-        GetIo()->Write("\E[>64;v1.0a;0c");
+        GetIo()->Write("\E[>64;20;1c");
         break;
     default:SerialConnVT420::ProcessSecondaryDA(p);
     }

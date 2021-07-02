@@ -38,6 +38,9 @@ void SerialConnXterm::ProcessDECSM(const std::string_view& p)
             mCurrentScr = SC_Alternate;
         }
         break;
+    default:
+        SerialConnVT520::ProcessDECSM(p);
+        break;
     }
 }
 
@@ -51,6 +54,9 @@ void SerialConnXterm::ProcessDECRM(const std::string_view& p)
             this->SwapScr(mAlternateScr);
             mCurrentScr = SC_Main;
         }
+        break;
+    default:
+        SerialConnVT520::ProcessDECRM(p);
         break;
     }
 }

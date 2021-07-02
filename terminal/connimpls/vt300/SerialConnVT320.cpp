@@ -119,9 +119,11 @@ void SerialConnVT320::ProcessSecondaryDA(const std::string_view& p)
     int ps = atoi(p.data());
     switch (ps) {
     case 0:
-        // vt320
-        Put("\033[0;24;0;0;0c");
+        // vt320 CSI > Pp ; Pv ; Po c
+        Put("\033[24;20;0c");
         break;
+    default:
+        SerialConnVT220::ProcessSecondaryDA(p);
     }
 }
 

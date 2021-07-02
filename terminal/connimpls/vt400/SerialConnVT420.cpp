@@ -104,9 +104,9 @@ void SerialConnVT420::ProcessSecondaryDA(const std::string_view& p)
     int pn = atoi(p.data());
     switch (pn) {
     case 0:
-        // CSI > 41; Pv; 0 c
+        // CSI > 41; Pv; 1 c
         // Pv - firmware version.
-        GetIo()->Write("\E[>41;v1.0a;0c");
+        GetIo()->Write("\E[>41;20;1c");
         break;
     default:SerialConnVT320::ProcessSecondaryDA(p);
     }

@@ -807,6 +807,7 @@ void SerialConnVT::CheckAndFix(ScrollingRegion& span)
 bool SerialConnVT::ProcessOverflowChars()
 {
 	bool overflow = false;
+	if (mVx < 0) mVx = 0;
 	if (mVy < 0) mVy = 0;
     if (mVy < (int)mLines.size()) {
 	    int dx = mVx - (int)mLines[mVy].size() + 1;
