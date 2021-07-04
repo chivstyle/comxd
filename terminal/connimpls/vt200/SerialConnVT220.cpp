@@ -14,17 +14,16 @@ using namespace Upp;
 SerialConnVT220::SerialConnVT220(std::shared_ptr<SerialIo> io)
     : SerialConnVT100(io)
     , SerialConnVT(io)
-    , mSelectiveErase(false)
     , mOperatingLevel(VT200_S7C)
 {
     // vt100 supports G0,G1, vt200 supports G2,G3
-    mCharsets[2] = CS_DEFAULT;
-    mCharsets[3] = CS_DEFAULT;
-    this->mExtendedCharset = mCharsets[0];
-    //
-    SaveCursorData(mCursorData);
+    mCharsets[2] = CS_DEC_SUPPLEMENTAL;
+    mCharsets[3] = CS_DEC_SUPPLEMENTAL;
+    this->mExtendedCharset = CS_DEC_SUPPLEMENTAL;
     //
     AddVT220ControlSeqs(this->mSeqsFactory);
+    //
+    SaveCursorData(mCursorData);
     //
     InstallFunctions();
 }
@@ -45,7 +44,6 @@ void SerialConnVT220::InstallFunctions()
 // compatible level
 void SerialConnVT220::ProcessDECSCL(const std::string_view& p)
 {
-    // TODO: Should we support 8-bit control seq ?
     if (p == "61") { // level1, vt100
         mOperatingLevel = VT200_S7C;
     } else if (p == "62" || p == "62;2" || p == "62;0") { // level2, vt200, 8-bit controls
@@ -114,19 +112,28 @@ void SerialConnVT220::ProcessS8C1T(const std::string_view&)
     SetUseS8C(true);
 }
 
+void SerialConnVT220::ProcessDECSC(const std::string_view&)
+{
+    SaveCursorData(mCursorData);
+}
+void SerialConnVT220::ProcessDECRC(const std::string_view&)
+{
+    LoadCursorData(mCursorData);
+}
+
 void SerialConnVT220::ProcessDECSCA(const std::string_view& p)
 {
     int ps = atoi(p.data());
     switch (ps) {
-    case 0: this->SetDefaultStyle(); mSelectiveErase = true; break;
-    case 1: mSelectiveErase = false; break;
-    case 2: mSelectiveErase = true; break;
+    case 0: this->SetDefaultStyle(); mCursorData.SelectiveErase = 1; break;
+    case 1: mCursorData.SelectiveErase = 0; break;
+    case 2: mCursorData.SelectiveErase = 1; break;
     default: break;
     }
 }
 void SerialConnVT220::ProcessDECSEL(const std::string_view&)
 {
-    if (mSelectiveErase) {
+    if (mCursorData.SelectiveErase) {
         VTLine& vline = mLines[mVy];
         for (int i = mVx; i < (int)vline.size(); ++i) {
             vline[i] = ' ';
@@ -135,7 +142,7 @@ void SerialConnVT220::ProcessDECSEL(const std::string_view&)
 }
 void SerialConnVT220::ProcessDECSED(const std::string_view&)
 {
-    if (mSelectiveErase) {
+    if (mCursorData.SelectiveErase) {
         // erase char, do not erase the style
         VTLine& vline = mLines[mVy];
         for (int i = mVx; i < (int)vline.size(); ++i) {
@@ -172,14 +179,12 @@ void SerialConnVT220::ProcessSecondaryDA(const std::string_view& p)
 void SerialConnVT220::SaveCursorData(CursorDataVT220& cd)
 {
     SerialConnVT100::SaveCursorData(cd);
-    cd.DECOM = SerialConnVT100::mModes.DECOM;
-    cd.SelectiveErase = mSelectiveErase;
+    cd.SelectiveErase = mCursorData.SelectiveErase;
 }
 void SerialConnVT220::LoadCursorData(const CursorDataVT220& cd)
 {
     SerialConnVT100::LoadCursorData(cd);
-    mSelectiveErase = cd.SelectiveErase;
-    SerialConnVT100::mModes.DECOM = cd.DECOM;
+    mCursorData.SelectiveErase = cd.SelectiveErase;
 }
 
 void SerialConnVT220::ProcessDECDSR(const std::string_view& p)
@@ -187,7 +192,7 @@ void SerialConnVT220::ProcessDECDSR(const std::string_view& p)
     int ps = atoi(p.data());
     switch (ps) {
     case 26:
-        Put("\x1b?27;1n"); // set keyboard language to "North American"
+        Put("\E[?27;1n"); // set keyboard language to "North American"
         break;
     default:
         SerialConnVT100::ProcessDECDSR(p);
@@ -221,10 +226,6 @@ void SerialConnVT220::ProcessSS3(const std::string_view&)
 {
     mCharset = mCharsets[3];
 }
-void SerialConnVT220::ProcessLS1R(const std::string_view&)
-{
-    mExtendedCharset = mCharsets[1];
-}
 void SerialConnVT220::ProcessLS2(const std::string_view&)
 {
     mCharset = mCharsets[2];
@@ -232,6 +233,13 @@ void SerialConnVT220::ProcessLS2(const std::string_view&)
 void SerialConnVT220::ProcessLS3(const std::string_view&)
 {
     mCharset = mCharsets[3];
+}
+// for 0x80-0xff, we call them extended cs, we do not use them actually,
+// because we treat all of inputs as UTF-8 default. Programs who did not
+// support UTF-8 were too old to support well.
+void SerialConnVT220::ProcessLS1R(const std::string_view&)
+{
+    mExtendedCharset = mCharsets[1];
 }
 void SerialConnVT220::ProcessLS2R(const std::string_view&)
 {
@@ -253,6 +261,48 @@ bool SerialConnVT220::ProcessKeyDown(Upp::dword key, Upp::dword flags)
     if (flags == 0 && mOperatingLevel > VT100) {
         processed = true;
         switch (key) {
+        case K_SPACE:
+            if (SerialConnVT100::mModes.DECKPM == VT100Modes::DECKPM_PNM) {
+                Put(" ");
+            } else {
+                Put("\EO ");
+            }
+            break;
+        case K_TAB:
+            if (SerialConnVT100::mModes.DECKPM == VT100Modes::DECKPM_PNM) {
+                Put("\t");
+            } else {
+                Put("\EOI");
+            }
+            break;
+        case K_MULTIPLY:
+            if (SerialConnVT100::mModes.DECKPM == VT100Modes::DECKPM_PNM) {
+                Put("*");
+            } else {
+                Put("\EOj");
+            }
+            break;
+        case K_ADD:
+            if (SerialConnVT100::mModes.DECKPM == VT100Modes::DECKPM_PNM) {
+                Put("+");
+            } else {
+                Put("\EOk");
+            }
+            break;
+        case K_DIVIDE:
+            if (SerialConnVT100::mModes.DECKPM == VT100Modes::DECKPM_PNM) {
+                Put("/");
+            } else {
+                Put("\033Oo");
+            }
+            break;
+        case '=':
+            if (SerialConnVT100::mModes.DECKPM == VT100Modes::DECKPM_PNM) {
+                Put("=");
+            } else {
+                Put("\033OX");
+            }
+            break;
         case K_F6: Put("\E[17~"); break;
         case K_F7: Put("\E[18~"); break;
         case K_F8: Put("\E[19~"); break;
@@ -260,6 +310,9 @@ bool SerialConnVT220::ProcessKeyDown(Upp::dword key, Upp::dword flags)
         case K_F10: Put("\E[21~"); break;
         case K_F11: Put("\E[23~"); break;
         case K_F12: Put("\E[24~"); break;
+        // vt220 provides 6 key editing keypad.
+        case K_HOME: Put("\E[1~"); break;
+        case K_END: Put("\E[4~"); break;
         case K_DELETE: Put("\E[3~"); break; // vt220, Remove
         case K_INSERT: Put("\E[2~"); break; // vt220, Insert
         case K_PAGEUP: Put("\E[5~"); break; // vt220, prev screen

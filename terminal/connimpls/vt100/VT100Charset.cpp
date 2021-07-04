@@ -6,7 +6,7 @@
 
 uint32_t VT100_RemapCharacter(uint32_t uc, int cs)
 {
-    const uint32_t cs_drawing[] = {
+    static const uint32_t cs_drawing[] = {
         0x02666,
         0x02592,
         0x02192,
@@ -24,7 +24,7 @@ uint32_t VT100_RemapCharacter(uint32_t uc, int cs)
         0x0253c,
         0x023ba,
         0x023bb,
-        0x02500,
+        0x02212,
         0x023bc,
         0x023bd,
         0x0251c,

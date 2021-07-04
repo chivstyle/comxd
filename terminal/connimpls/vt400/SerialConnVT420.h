@@ -12,7 +12,7 @@ public:
 protected:
     // level 4
     enum VT320_OperatingLevel {
-        VT400_S7C = VT220_CL_MAX,
+        VT400_S7C = VT320_CL_MAX,
         VT400_S8C,
         VT420_CL_MAX
     };
@@ -25,6 +25,8 @@ protected:
     void ProcessDECDSR(const std::string_view& p);
     // vt400
     virtual void ProcessTertiaryDA(const std::string_view&);
+    virtual void ProcessDECBI(const std::string_view&);
+    virtual void ProcessDECFI(const std::string_view&);
     //
     void SetHostToS7C();
     void SetHostToS8C();

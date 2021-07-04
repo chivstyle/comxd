@@ -27,6 +27,15 @@ void SerialConnVT420::InstallFunctions()
     mFunctions[TertiaryDA] = [=](const std::string_view& p) { ProcessTertiaryDA(p); };
 }
 
+void SerialConnVT420::ProcessDECFI(const std::string_view& p)
+{
+    mPx -= mFontW;
+}
+void SerialConnVT420::ProcessDECBI(const std::string_view& p)
+{
+    mPx += mFontW;
+}
+
 void SerialConnVT420::ProcessDECSCL(const std::string_view& p)
 {
     if (p == "64" || p == "64;0" || p == "64;2" || \
@@ -55,6 +64,8 @@ void SerialConnVT420::ProcessDECSM(const std::string_view& p)
     int ps = atoi(p.data());
     switch (ps) {
     case 81:
+        mModes.DECKPM = 1;
+        break;
     default: SerialConnVT320::ProcessDECSM(p);
     }
 }
@@ -63,6 +74,8 @@ void SerialConnVT420::ProcessDECRM(const std::string_view& p)
     int ps = atoi(p.data());
     switch (ps) {
     case 81:
+        mModes.DECKPM = 0;
+        break;
     default: SerialConnVT320::ProcessDECRM(p);
     }
 }
@@ -91,9 +104,9 @@ void SerialConnVT420::ProcessSecondaryDA(const std::string_view& p)
     int pn = atoi(p.data());
     switch (pn) {
     case 0:
-        // CSI > 41; Pv; 0 c
+        // CSI > 41; Pv; 1 c
         // Pv - firmware version.
-        GetIo()->Write("\E[>41;v1.0a;0c");
+        GetIo()->Write("\E[>41;20;1c");
         break;
     default:SerialConnVT320::ProcessSecondaryDA(p);
     }

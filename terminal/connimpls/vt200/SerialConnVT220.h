@@ -29,16 +29,16 @@ protected:
     void ProcessG0_CS(const std::string_view&);
     void ProcessG1_CS(const std::string_view&);
     // vt200
-    void ProcessDECSCL(const std::string_view&);
-    void ProcessG2_CS(const std::string_view&);
-    void ProcessG3_CS(const std::string_view&);
-    void ProcessS7C1T(const std::string_view&);
-    void ProcessS8C1T(const std::string_view&);
-    void ProcessDECSCA(const std::string_view&);
-    void ProcessDECSEL(const std::string_view&);
-    void ProcessDECSED(const std::string_view&);
-    void ProcessDECSTR(const std::string_view&);
-    void ProcessSecondaryDA(const std::string_view&);
+    virtual void ProcessDECSCL(const std::string_view&);
+    virtual void ProcessG2_CS(const std::string_view&);
+    virtual void ProcessG3_CS(const std::string_view&);
+    virtual void ProcessS7C1T(const std::string_view&);
+    virtual void ProcessS8C1T(const std::string_view&);
+    virtual void ProcessDECSCA(const std::string_view&);
+    virtual void ProcessDECSEL(const std::string_view&);
+    virtual void ProcessDECSED(const std::string_view&);
+    virtual void ProcessDECSTR(const std::string_view&);
+    virtual void ProcessSecondaryDA(const std::string_view&);
     // override
     uint32_t RemapCharacter(uint32_t uc, int charset);
     //
@@ -53,15 +53,11 @@ protected:
     virtual bool ProcessKeyDown(Upp::dword key, Upp::dword flags);
     // VT220 cursor data
     struct CursorDataVT220 : public CursorDataVT100 {
-        bool       SelectiveErase;
-        uint32_t   DECOM : 1;
+        uint32_t   SelectiveErase : 1;
     };
-    CursorDataVT220 mCursorData;
     void SaveCursorData(CursorDataVT220& cd);
     void LoadCursorData(const CursorDataVT220& cd);
-    // selective erase attribute bit write state
-    bool mSelectiveErase;
-    //
+    // stands for GR
     int  mExtendedCharset;
     //
     struct VT220Modes {
@@ -72,6 +68,7 @@ protected:
         uint32_t DECNRCM : 1;
     };
     VT220Modes mModes;
+    CursorDataVT220 mCursorData;
 private:
     void InstallFunctions();
 };

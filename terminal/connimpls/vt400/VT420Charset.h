@@ -8,6 +8,8 @@
 #include "connimpls/Charset.h"
 
 enum VT420Charset {
+    // There's a ISO Latin-1 Supplemental in vt420, but we ignore it, why ?
+    // We use unicode to render characters, 0x80-0xff was remapped to Latin1 already.
     VT420_CS_BEGIN = VT400_CS_BEGIN,
     VT420_CS_MAX
 };

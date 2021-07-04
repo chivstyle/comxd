@@ -14,7 +14,6 @@ REGISTER_CONN_INSTANCE("vt100 by chiv", "vt100", SerialConnVT100);
 SerialConnVT100::SerialConnVT100(std::shared_ptr<SerialIo> io)
     : SerialConnVT(io)
     , SerialConnEcma48(io)
-    , mKeypadMode(DECKPNM)
 {
     AddVT100ControlSeqs(this->mSeqsFactory);
     // VT100, permanently selected modes
@@ -31,13 +30,14 @@ SerialConnVT100::SerialConnVT100(std::shared_ptr<SerialIo> io)
     mCharsets[0] = CS_US;
     mCharsets[1] = CS_UK;
     //
-    SaveCursorData(mCursorData);
-    //
     InstallFunctions();
 }
 
 void SerialConnVT100::InstallFunctions()
 {
+    mFunctions[DECKPNM] = [=](const std::string_view& p) { ProcessDECKPNM(p); };
+    mFunctions[DECKPAM] = [=](const std::string_view& p) { ProcessDECKPAM(p); };
+    //
     mFunctions[DECSM] = [=](const std::string_view& p) { ProcessDECSM(p); };
     mFunctions[DECRM] = [=](const std::string_view& p) { ProcessDECRM(p); };
     mFunctions[DECDSR] = [=](const std::string_view& p) { ProcessDECDSR(p); };
@@ -57,11 +57,11 @@ void SerialConnVT100::InstallFunctions()
 //
 void SerialConnVT100::ProcessDECKPNM(const std::string_view&)
 {
-	mKeypadMode = DECKPNM;
+	mModes.DECKPM = VT100Modes::DECKPM_PNM;
 }
 void SerialConnVT100::ProcessDECKPAM(const std::string_view&)
 {
-	mKeypadMode = DECKPAM;
+	mModes.DECKPM = VT100Modes::DECKPM_PAM;
 }
 //
 void SerialConnVT100::ProcessDA(const std::string_view& p)
@@ -70,7 +70,7 @@ void SerialConnVT100::ProcessDA(const std::string_view& p)
     switch (ps) {
     case 0:
         // https://www.vt100.net/docs/vt100-ug/chapter3.html#DA
-        Put("\x1b[?1;2c"); // Advanced video option
+        Put("\E[?1;2c"); // Advanced video option
         break;
     }
 }
@@ -122,161 +122,189 @@ bool SerialConnVT100::ProcessKeyDown(Upp::dword key, Upp::dword flags)
     if (flags == 0) {
         processed = true;
         switch (key) {
+        case K_PERIOD:
+            if (mModes.DECKPM == VT100Modes::DECKPM_PNM) {
+                Put(".");
+            } else {
+                Put("\033On");
+            }
+            break;
+        case K_COMMA:
+            if (mModes.DECKPM == VT100Modes::DECKPM_PNM) {
+                Put(",");
+            } else {
+                Put("\033Ol");
+            }
+            break;
+        case K_MINUS:
+            if (mModes.DECKPM == VT100Modes::DECKPM_PNM) {
+                Put("-");
+            } else {
+                Put("\033Om");
+            }
+            break;
+        case K_ENTER:
+            if (mModes.DECKPM == VT100Modes::DECKPM_PNM) {
+                Put("\x0d");
+            } else {
+                Put("\EOM");
+            }
+            break;
         case K_UP:
             if (mModes.DECCKM == VT100Modes::DECCKM_Cursor) {
-                Put("\033[A");
+                Put("\E[A");
             } else {
-                Put("\033OA");
+                Put("\EOA");
             }
             break;
         case K_DOWN:
             if (mModes.DECCKM == VT100Modes::DECCKM_Cursor) {
-                Put("\033[B");
+                Put("\E[B");
             } else {
-                Put("\033OB");
+                Put("\EOB");
             }
             break;
         case K_LEFT:
             if (mModes.DECCKM == VT100Modes::DECCKM_Cursor) {
-                Put("\033[D");
+                Put("\E[D");
             } else {
-                Put("\033OD");
+                Put("\EOD");
             }
             break;
         case K_RIGHT:
             if (mModes.DECCKM == VT100Modes::DECCKM_Cursor) {
-                Put("\033[C");
+                Put("\E[C");
             } else {
-                Put("\033OC");
+                Put("\EOC");
             }
             break;
         /*! PF1 ~ PF4 */
         case K_F1:
             if (mModes.DECANM == VT100Modes::DECANM_ANSI) {
-                Put("\x1bOP");
+                Put("\EOP");
             } else {
-                Put("\x1bP");
+                Put("\EP");
             }
             break;
 		case K_F2:
             if (mModes.DECANM == VT100Modes::DECANM_ANSI) {
-                Put("\x1bOQ");
+                Put("\EOQ");
             } else {
-                Put("\x1bQ");
+                Put("\EQ");
             }
             break;
 		case K_F3:
             if (mModes.DECANM == VT100Modes::DECANM_ANSI) {
-                Put("\x1bOR");
+                Put("\EOR");
             } else {
-                Put("\x1bR");
+                Put("\ER");
             }
             break;
 		case K_F4:
             if (mModes.DECANM == VT100Modes::DECANM_ANSI) {
-                Put("\x1bOS");
+                Put("\EOS");
             } else {
-                Put("\x1bS");
+                Put("\ES");
             }
             break;
 		/*! keys below, I'm not sure, from libncurse */
-		case K_F5:  Put("\x1bOt"); break;
-		case K_F6:  Put("\x1bOu"); break;
-		case K_F7:  Put("\x1bOv"); break;
-		case K_F8:  Put("\x1bOl"); break;
-		case K_F9:  Put("\x1bOw"); break;
-		case K_F10: Put("\x1bOx"); break;
+		case K_F5:  Put("\EOt"); break;
+		case K_F6:  Put("\EOu"); break;
+		case K_F7:  Put("\EOv"); break;
+		case K_F8:  Put("\EOl"); break;
+		case K_F9:  Put("\EOw"); break;
+		case K_F10: Put("\EOx"); break;
         case K_HOME:if (1) {
-                Put("\033[H");
+                Put("\E[H");
         } break;
         // keypad
         case K_NUMPAD0:
-            if (mKeypadMode == DECKPNM) {
-                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\x1bOp" : "\x1b?p");
+            if (mModes.DECKPM == VT100Modes::DECKPM_PNM) {
+                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\EOp" : "\E?p");
             } else {
                 Put("0");
             }
             break;
         case K_NUMPAD1:
-            if (mKeypadMode == DECKPNM) {
-                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\x1bOq" : "\x1b?q");
+            if (mModes.DECKPM == VT100Modes::DECKPM_PNM) {
+                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\EOq" : "\E?q");
             } else {
                 Put("1");
             }
             break;
         case K_NUMPAD2:
-            if (mKeypadMode == DECKPNM) {
-                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\x1bOr" : "\x1b?r");
+            if (mModes.DECKPM == VT100Modes::DECKPM_PNM) {
+                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\EOr" : "\E?r");
             } else {
                 Put("2");
             }
             break;
         case K_NUMPAD3:
-            if (mKeypadMode == DECKPNM) {
-                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\x1bOs" : "\x1b?s");
+            if (mModes.DECKPM == VT100Modes::DECKPM_PNM) {
+                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\EOs" : "\E?s");
             } else {
                 Put("3");
             }
             break;
         case K_NUMPAD4:
-            if (mKeypadMode == DECKPNM) {
-                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\x1bOt" : "\x1b?t");
+            if (mModes.DECKPM == VT100Modes::DECKPM_PNM) {
+                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\EOt" : "\E?t");
             } else {
                 Put("4");
             }
             break;
         case K_NUMPAD5:
-            if (mKeypadMode == DECKPNM) {
-                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\x1bOu" : "\x1b?u");
+            if (mModes.DECKPM == VT100Modes::DECKPM_PNM) {
+                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\EOu" : "\E?u");
             } else {
                 Put("5");
             }
             break;
         case K_NUMPAD6:
-            if (mKeypadMode == DECKPNM) {
-                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\x1bOv" : "\x1b?v");
+            if (mModes.DECKPM == VT100Modes::DECKPM_PNM) {
+                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\EOv" : "\E?v");
             } else {
                 Put("6");
             }
             break;
         case K_NUMPAD7:
-            if (mKeypadMode == DECKPNM) {
-                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\x1bOw" : "\x1b?w");
+            if (mModes.DECKPM == VT100Modes::DECKPM_PNM) {
+                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\EOw" : "\E?w");
             } else {
                 Put("7");
             }
             break;
         case K_NUMPAD8:
-            if (mKeypadMode == DECKPNM) {
-                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\x1bOx" : "\x1b?x");
+            if (mModes.DECKPM == VT100Modes::DECKPM_PNM) {
+                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\EOx" : "\E?x");
             } else {
                 Put("8");
             }
             break;
         case K_NUMPAD9:
-            if (mKeypadMode == DECKPNM) {
-                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\x1bOy" : "\x1b?y");
+            if (mModes.DECKPM == VT100Modes::DECKPM_PNM) {
+                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\EOy" : "\E?y");
             } else {
                 Put("9");
             }
             break;
         case K_SUBTRACT:
-            if (mKeypadMode == DECKPNM) {
-                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\x1bOm" : "\x1b?m");
+            if (mModes.DECKPM == VT100Modes::DECKPM_PNM) {
+                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\EOm" : "\E?m");
             } else {
                 Put("-");
             }
             break;
         case K_SEPARATOR:
-            if (mKeypadMode == DECKPNM) {
-                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\x1bOl" : "\x1b?l");
+            if (mModes.DECKPM == VT100Modes::DECKPM_PNM) {
+                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\EOl" : "\E?l");
             } else {
                 Put(",");
             }
             break;
         case K_DECIMAL:
-            if (mKeypadMode == DECKPNM) {
-                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\x1bOn" : "\x1b?n");
+            if (mModes.DECKPM == VT100Modes::DECKPM_PNM) {
+                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\EOn" : "\E?n");
             } else {
                 Put(".");
             }
@@ -336,7 +364,7 @@ void SerialConnVT100::ProcessDECDSR(const std::string_view& p)
     int ps = atoi(p.data());
     switch (ps) {
     case 15:
-        Put("\x1b[?13n"); // No printer
+        Put("\E[?13n"); // No printer
         break;
     }
 }
