@@ -122,34 +122,6 @@ bool SerialConnVT100::ProcessKeyDown(Upp::dword key, Upp::dword flags)
     if (flags == 0) {
         processed = true;
         switch (key) {
-        case K_PERIOD:
-            if (mModes.DECKPM == VT100Modes::DECKPM_PNM) {
-                Put(".");
-            } else {
-                Put("\033On");
-            }
-            break;
-        case K_COMMA:
-            if (mModes.DECKPM == VT100Modes::DECKPM_PNM) {
-                Put(",");
-            } else {
-                Put("\033Ol");
-            }
-            break;
-        case K_MINUS:
-            if (mModes.DECKPM == VT100Modes::DECKPM_PNM) {
-                Put("-");
-            } else {
-                Put("\033Om");
-            }
-            break;
-        case K_ENTER:
-            if (mModes.DECKPM == VT100Modes::DECKPM_PNM) {
-                Put("\x0d");
-            } else {
-                Put("\EOM");
-            }
-            break;
         case K_UP:
             if (mModes.DECCKM == VT100Modes::DECCKM_Cursor) {
                 Put("\E[A");
@@ -186,129 +158,35 @@ bool SerialConnVT100::ProcessKeyDown(Upp::dword key, Upp::dword flags)
                 Put("\EP");
             }
             break;
-		case K_F2:
+        case K_F2:
             if (mModes.DECANM == VT100Modes::DECANM_ANSI) {
                 Put("\EOQ");
             } else {
                 Put("\EQ");
             }
             break;
-		case K_F3:
+        case K_F3:
             if (mModes.DECANM == VT100Modes::DECANM_ANSI) {
                 Put("\EOR");
             } else {
                 Put("\ER");
             }
             break;
-		case K_F4:
+        case K_F4:
             if (mModes.DECANM == VT100Modes::DECANM_ANSI) {
                 Put("\EOS");
             } else {
                 Put("\ES");
             }
             break;
-		/*! keys below, I'm not sure, from libncurse */
-		case K_F5:  Put("\EOt"); break;
-		case K_F6:  Put("\EOu"); break;
-		case K_F7:  Put("\EOv"); break;
-		case K_F8:  Put("\EOl"); break;
-		case K_F9:  Put("\EOw"); break;
-		case K_F10: Put("\EOx"); break;
-        case K_HOME:if (1) {
-                Put("\E[H");
-        } break;
-        // keypad
-        case K_NUMPAD0:
-            if (mModes.DECKPM == VT100Modes::DECKPM_PNM) {
-                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\EOp" : "\E?p");
-            } else {
-                Put("0");
-            }
-            break;
-        case K_NUMPAD1:
-            if (mModes.DECKPM == VT100Modes::DECKPM_PNM) {
-                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\EOq" : "\E?q");
-            } else {
-                Put("1");
-            }
-            break;
-        case K_NUMPAD2:
-            if (mModes.DECKPM == VT100Modes::DECKPM_PNM) {
-                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\EOr" : "\E?r");
-            } else {
-                Put("2");
-            }
-            break;
-        case K_NUMPAD3:
-            if (mModes.DECKPM == VT100Modes::DECKPM_PNM) {
-                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\EOs" : "\E?s");
-            } else {
-                Put("3");
-            }
-            break;
-        case K_NUMPAD4:
-            if (mModes.DECKPM == VT100Modes::DECKPM_PNM) {
-                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\EOt" : "\E?t");
-            } else {
-                Put("4");
-            }
-            break;
-        case K_NUMPAD5:
-            if (mModes.DECKPM == VT100Modes::DECKPM_PNM) {
-                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\EOu" : "\E?u");
-            } else {
-                Put("5");
-            }
-            break;
-        case K_NUMPAD6:
-            if (mModes.DECKPM == VT100Modes::DECKPM_PNM) {
-                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\EOv" : "\E?v");
-            } else {
-                Put("6");
-            }
-            break;
-        case K_NUMPAD7:
-            if (mModes.DECKPM == VT100Modes::DECKPM_PNM) {
-                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\EOw" : "\E?w");
-            } else {
-                Put("7");
-            }
-            break;
-        case K_NUMPAD8:
-            if (mModes.DECKPM == VT100Modes::DECKPM_PNM) {
-                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\EOx" : "\E?x");
-            } else {
-                Put("8");
-            }
-            break;
-        case K_NUMPAD9:
-            if (mModes.DECKPM == VT100Modes::DECKPM_PNM) {
-                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\EOy" : "\E?y");
-            } else {
-                Put("9");
-            }
-            break;
-        case K_SUBTRACT:
-            if (mModes.DECKPM == VT100Modes::DECKPM_PNM) {
-                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\EOm" : "\E?m");
-            } else {
-                Put("-");
-            }
-            break;
-        case K_SEPARATOR:
-            if (mModes.DECKPM == VT100Modes::DECKPM_PNM) {
-                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\EOl" : "\E?l");
-            } else {
-                Put(",");
-            }
-            break;
-        case K_DECIMAL:
-            if (mModes.DECKPM == VT100Modes::DECKPM_PNM) {
-                Put(mModes.DECANM == VT100Modes::DECANM_ANSI ? "\EOn" : "\E?n");
-            } else {
-                Put(".");
-            }
-            break;
+        /*! keys below, I'm not sure, from libncurse */
+        case K_F5:  Put("\EOt"); break;
+        case K_F6:  Put("\EOu"); break;
+        case K_F7:  Put("\EOv"); break;
+        case K_F8:  Put("\EOl"); break;
+        case K_F9:  Put("\EOw"); break;
+        case K_F10: Put("\EOx"); break;
+        case K_HOME: Put("\E[H"); break;
         default:
             processed = false;
             break;
@@ -326,8 +204,8 @@ void SerialConnVT100::ProcessDECSM(const std::string_view& p)
     case 4:  mModes.DECSCLM = 1; break;
     case 5:
         if (!mModes.DECSCNM) {
-	        mModes.DECSCNM = 1;
-	        mColorTbl.Swap(VTColorTable::kColorId_Paper, VTColorTable::kColorId_Texts);
+            mModes.DECSCNM = 1;
+            mColorTbl.Swap(VTColorTable::kColorId_Paper, VTColorTable::kColorId_Texts);
         }
         break;
     case 6:  mModes.DECOM   = 1; ProcessCUP(""); /*! home */ break;

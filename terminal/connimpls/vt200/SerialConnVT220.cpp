@@ -261,48 +261,6 @@ bool SerialConnVT220::ProcessKeyDown(Upp::dword key, Upp::dword flags)
     if (flags == 0 && mOperatingLevel > VT100) {
         processed = true;
         switch (key) {
-        case K_SPACE:
-            if (SerialConnVT100::mModes.DECKPM == VT100Modes::DECKPM_PNM) {
-                Put(" ");
-            } else {
-                Put("\EO ");
-            }
-            break;
-        case K_TAB:
-            if (SerialConnVT100::mModes.DECKPM == VT100Modes::DECKPM_PNM) {
-                Put("\t");
-            } else {
-                Put("\EOI");
-            }
-            break;
-        case K_MULTIPLY:
-            if (SerialConnVT100::mModes.DECKPM == VT100Modes::DECKPM_PNM) {
-                Put("*");
-            } else {
-                Put("\EOj");
-            }
-            break;
-        case K_ADD:
-            if (SerialConnVT100::mModes.DECKPM == VT100Modes::DECKPM_PNM) {
-                Put("+");
-            } else {
-                Put("\EOk");
-            }
-            break;
-        case K_DIVIDE:
-            if (SerialConnVT100::mModes.DECKPM == VT100Modes::DECKPM_PNM) {
-                Put("/");
-            } else {
-                Put("\033Oo");
-            }
-            break;
-        case '=':
-            if (SerialConnVT100::mModes.DECKPM == VT100Modes::DECKPM_PNM) {
-                Put("=");
-            } else {
-                Put("\033OX");
-            }
-            break;
         case K_F6: Put("\E[17~"); break;
         case K_F7: Put("\E[18~"); break;
         case K_F8: Put("\E[19~"); break;

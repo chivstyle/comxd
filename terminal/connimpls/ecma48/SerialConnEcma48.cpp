@@ -1509,12 +1509,12 @@ int SerialConnEcma48::IsControlSeq(const std::string_view& seq, size_t& p_begin,
 
 void SerialConnEcma48::RefineTheInput(std::string& raw)
 {
-	if (mUseS8C) {
-		raw = S8CToS7C(raw);
-	}
+    if (mUseS8C) {
+        raw = S8CToS7C(raw);
+    }
 }
 
 void SerialConnEcma48::Put(const std::string& s)
 {
-	SerialConnVT::Put(mUseS8C ? S7CToS8C(s) : s);
+    SerialConnVT::Put(mUseS8C ? S7CToS8C(s) : s);
 }
