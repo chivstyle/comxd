@@ -3,9 +3,9 @@
 
 #include "Conn.h"
 // c++11 thread
+#include <mutex>
 #include <thread>
 #include <vector>
-#include <mutex>
 
 class Proto;
 
@@ -46,6 +46,5 @@ private:
     Proto* mTxProto;
     void InstallUsrActions();
 };
-
 
 #endif

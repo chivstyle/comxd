@@ -10,8 +10,9 @@ SerialPort::SerialPort(std::shared_ptr<serial::Serial> serial)
 {
     WhenUsrBar = [=](Bar& bar) {
         bar.Add(t_("Settings"), comxd::settings(), [=]() {
-            SerialDevsDialog d;
-            d.ChangeSettings(this);
-        }).Help("open device settings dialog");
+               SerialDevsDialog d;
+               d.ChangeSettings(this);
+           })
+            .Help("open device settings dialog");
     };
 }

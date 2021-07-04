@@ -9,6 +9,7 @@
 class SerialConnVT420 : public SerialConnVT320 {
 public:
     SerialConnVT420(std::shared_ptr<SerialIo> io);
+
 protected:
     // level 4
     enum VT320_OperatingLevel {
@@ -30,7 +31,7 @@ protected:
     //
     void SetHostToS7C();
     void SetHostToS8C();
-    
+
     struct VT420Modes {
         enum DECKBUMValue {
             DECKPM_Character = 0,
@@ -43,6 +44,7 @@ protected:
         }
     };
     VT420Modes mModes;
+
 private:
     void InstallFunctions();
 };

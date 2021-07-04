@@ -6,14 +6,14 @@
 #ifndef _comxd_ConnVT_h_
 #define _comxd_ConnVT_h_
 
-#include "Conn.h"
 #include "ColorTable.h"
+#include "Conn.h"
 #include "VTTypes.h"
 #include <functional>
 #include <map>
+#include <mutex>
 #include <queue>
 #include <thread>
-#include <mutex>
 
 class ControlSeqFactory;
 class SerialConnVT : public SerialConn {
@@ -45,7 +45,7 @@ public:
     // public methods
     struct ScreenData {
         std::deque<VTLine> LinesBuffer;
-        std::deque<VTLine> Lines;       // virtual screen
+        std::deque<VTLine> Lines; // virtual screen
         VTStyle Style;
         int Vx, Vy;
         Upp::Font Font;
@@ -65,9 +65,10 @@ public:
     void SetShowCursor(bool b);
     //
     Upp::Event<Upp::Bar&> WhenBar;
+
 protected:
     ControlSeqFactory* mSeqsFactory;
-    std::map<int, std::function<void(const std::string_view&)> > mFunctions;
+    std::map<int, std::function<void(const std::string_view&)>> mFunctions;
     //
     void RunParserBenchmark();
     //
@@ -131,8 +132,8 @@ protected:
     virtual void Put(const std::string& s);
     //-------------------------------------------------------------------------------------
     /// Active position
-    int mVx, mVy;      //<! Active position of data component
-    int mPx, mPy;      //<! Active position of presentation component
+    int mVx, mVy; //<! Active position of data component
+    int mPx, mPy; //<! Active position of presentation component
     /// charset, pair [charset-index, charset-type]
     std::map<int, int> mCharsets; // supported charsets
     int mCharset;
@@ -171,7 +172,7 @@ protected:
     //        cN       cN+1   cN+2
     // lx     |____lx___|______|
     Upp::Point LogicToVirtual(const std::deque<VTLine>& lines, int lx, int ly, int& px, int& next_px,
-                                                                                int& py, int& next_py, bool ignore_tail_blanks = true);
+        int& py, int& next_py, bool ignore_tail_blanks = true);
     Upp::Point VirtualToLogic(const std::deque<VTLine>& lines, int vx, int vy, bool ignore_tail_blanks = true);
     //        cN       cN+1   cN+2
     // lx     |____lx___|______|
@@ -253,12 +254,12 @@ protected:
     virtual void DrawCursor(Upp::Draw& draw);
     // draw character
     virtual void DrawVTChar(Upp::Draw& draw, int x, int y, const VTChar& c,
-                            const Upp::Font& font, const Upp::Color& cr);
+        const Upp::Font& font, const Upp::Color& cr);
     //
     virtual void DrawVT(Upp::Draw& draw);
     virtual void DrawVTLine(Upp::Draw& draw, const VTLine& vline,
-                            int vx, int vy, /*! absolute position of data */
-                            int lxoff, int lyoff);
+        int vx, int vy, /*! absolute position of data */
+        int lxoff, int lyoff);
     //
     int GetVTLinesHeight(const std::vector<VTLine>& lines) const;
     int GetVTLinesHeight(const std::deque<VTLine>& lines) const;
@@ -285,8 +286,9 @@ protected:
     void CheckAndFix(ScrollingRegion& span);
     //------------------------------------------------------------------------------------------
     int mTabWidth;
+
 private:
-	bool mWrapLine;
+    bool mWrapLine;
     bool mScrollToEnd;
     bool mPressed;
     bool mShowCursor;

@@ -15,8 +15,8 @@ public:
     struct Options {
         Upp::Color PaperColor;
         Upp::Color TextsColor;
-        Upp::Font  Font;
-        int        LinesBufferSize;
+        Upp::Font Font;
+        int LinesBufferSize;
     };
     Options GetOptions() const;
     void SetOptions(const Options& options);
@@ -24,8 +24,8 @@ public:
     static Upp::Font DefaultFont();
     //
 protected:
-	bool Key(Upp::dword key, int count);
-	//
+    bool Key(Upp::dword key, int count);
+    //
     bool Accept();
     // Update font preview
     void PreviewFont();

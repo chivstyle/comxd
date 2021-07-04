@@ -3,9 +3,9 @@
 //
 */
 #include "SerialConnVT320.h"
-#include "VT320ControlSeq.h"
-#include "VT320Charset.h"
 #include "ConnFactory.h"
+#include "VT320Charset.h"
+#include "VT320ControlSeq.h"
 
 REGISTER_CONN_INSTANCE("vt320 by chiv", "vt320", SerialConnVT320);
 
@@ -27,8 +27,7 @@ SerialConnVT320::SerialConnVT320(std::shared_ptr<SerialIo> io)
 
 void SerialConnVT320::ProcessDECSCL(const std::string_view& p)
 {
-    if (p == "63" || p == "63;0" || p == "63;2" || p == "62" || \
-        p == "62;0" || p == "62;2") {
+    if (p == "63" || p == "63;0" || p == "63;2" || p == "62" || p == "62;0" || p == "62;2") {
         mOperatingLevel = VT300_S8C;
     } else if (p == "63;1" || p == "62;1") {
         mOperatingLevel = VT300_S7C;
@@ -39,28 +38,29 @@ void SerialConnVT320::ProcessDECSCL(const std::string_view& p)
 
 void SerialConnVT320::InstallFunctions()
 {
-    mFunctions[DECSASD]   = [=](const std::string_view& p) { ProcessDECSASD(p); };
-    mFunctions[DECSSDT]   = [=](const std::string_view& p) { ProcessDECSSDT(p); };
-    mFunctions[DECRQTSR]  = [=](const std::string_view& p) { ProcessDECRQTSR(p); };
-    mFunctions[DECRQPSR]  = [=](const std::string_view& p) { ProcessDECRQPSR(p); };
-    mFunctions[DECRQM]    = [=](const std::string_view& p) { ProcessDECRQM(p); };
-    mFunctions[ANSIRQM]   = [=](const std::string_view& p) { ProcessANSIRQM(p); };
-    mFunctions[DECRPM]    = [=](const std::string_view& p) { ProcessDECRPM(p); };
+    mFunctions[DECSASD] = [=](const std::string_view& p) { ProcessDECSASD(p); };
+    mFunctions[DECSSDT] = [=](const std::string_view& p) { ProcessDECSSDT(p); };
+    mFunctions[DECRQTSR] = [=](const std::string_view& p) { ProcessDECRQTSR(p); };
+    mFunctions[DECRQPSR] = [=](const std::string_view& p) { ProcessDECRQPSR(p); };
+    mFunctions[DECRQM] = [=](const std::string_view& p) { ProcessDECRQM(p); };
+    mFunctions[ANSIRQM] = [=](const std::string_view& p) { ProcessANSIRQM(p); };
+    mFunctions[DECRPM] = [=](const std::string_view& p) { ProcessDECRPM(p); };
     mFunctions[DECRQUPSS] = [=](const std::string_view& p) { ProcessDECRQUPSS(p); };
 }
 //
-#define DO_SET_CHARSET(g) do { \
-    if (p == "%5") { \
-        mCharsets[g] = CS_DEC_SUPPLEMENTAL_VT320; \
-    } else if (p == "`" || p == "E" || p == "6") { \
-        mCharsets[g] = CS_DANISH_VT320; \
-    } else if (p == "%6") { \
-        mCharsets[g] = CS_PORTUGUESE; \
-    } else if (p == "<") { \
-        mCharsets[g] = CS_USER_PREFERED_SUPPLEMENTAL; \
-    } else \
-        SerialConnVT220::ProcessG##g##_CS(p); \
-} while (0)
+#define DO_SET_CHARSET(g)                                 \
+    do {                                                  \
+        if (p == "%5") {                                  \
+            mCharsets[g] = CS_DEC_SUPPLEMENTAL_VT320;     \
+        } else if (p == "`" || p == "E" || p == "6") {    \
+            mCharsets[g] = CS_DANISH_VT320;               \
+        } else if (p == "%6") {                           \
+            mCharsets[g] = CS_PORTUGUESE;                 \
+        } else if (p == "<") {                            \
+            mCharsets[g] = CS_USER_PREFERED_SUPPLEMENTAL; \
+        } else                                            \
+            SerialConnVT220::ProcessG##g##_CS(p);         \
+    } while (0)
 //
 void SerialConnVT320::ProcessG0_CS(const std::string_view& p)
 {
@@ -131,79 +131,101 @@ void SerialConnVT320::ProcessDECSM(const std::string_view& p)
 {
     int ps = atoi(p.data());
     switch (ps) {
-    case 68: this->mModes.DECKBUM = 1; break;
-    default: SerialConnVT220::ProcessDECSM(p); break;
+    case 68:
+        this->mModes.DECKBUM = 1;
+        break;
+    default:
+        SerialConnVT220::ProcessDECSM(p);
+        break;
     }
 }
 void SerialConnVT320::ProcessDECRM(const std::string_view& p)
 {
     int ps = atoi(p.data());
     switch (ps) {
-    case 68: this->mModes.DECKBUM = 0; break;
-    default: SerialConnVT220::ProcessDECRM(p); break;
+    case 68:
+        this->mModes.DECKBUM = 0;
+        break;
+    default:
+        SerialConnVT220::ProcessDECRM(p);
+        break;
     }
 }
 
 void SerialConnVT320::ProcessDECSEL(const std::string_view& p)
 {
-    if (mCursorData.SelectiveErase) return;
+    if (mCursorData.SelectiveErase)
+        return;
     int ps = atoi(p.data());
     switch (ps) {
-    case 0: if (1) {
-        VTLine& vline = mLines[mVy];
-        for (int i = mVx; i < (int)vline.size(); ++i) {
-            vline[i] = ' ';
+    case 0:
+        if (1) {
+            VTLine& vline = mLines[mVy];
+            for (int i = mVx; i < (int)vline.size(); ++i) {
+                vline[i] = ' ';
+            }
         }
-    } break;
-    case 1: if (1) {
-        VTLine& vline = mLines[mVy];
-        for (int i = 0; i <= mVx && i < (int)vline.size(); ++i) {
-            vline[i] = ' ';
+        break;
+    case 1:
+        if (1) {
+            VTLine& vline = mLines[mVy];
+            for (int i = 0; i <= mVx && i < (int)vline.size(); ++i) {
+                vline[i] = ' ';
+            }
         }
-    } break;
-    case 2: if (1) {
-        VTLine& vline = mLines[mVy];
-        for (int i = 0; i < (int)vline.size(); ++i) {
-            vline[i] = ' ';
+        break;
+    case 2:
+        if (1) {
+            VTLine& vline = mLines[mVy];
+            for (int i = 0; i < (int)vline.size(); ++i) {
+                vline[i] = ' ';
+            }
         }
-    } break;
+        break;
     }
 }
 void SerialConnVT320::ProcessDECSED(const std::string_view& p)
 {
-    if (!mCursorData.SelectiveErase) return;
+    if (!mCursorData.SelectiveErase)
+        return;
     int ps = atoi(p.data());
     switch (ps) {
-    case 0: if (1) {
-        VTLine& vline = mLines[mVy];
-        for (int i = mVx; i < (int)vline.size(); ++i) {
-            vline[i] = ' ';
-        }
-        for (int y = mVy+1; y < (int)mLines.size(); ++y) {
-            for (int x = 0; x < (int)mLines[y].size(); ++x) {
-                mLines[y][x] = ' ';
-            }
-        }
-    } break;
-    case 1: if (1) {
-        VTLine& vline = mLines[mVy];
-        for (int i = 0; i <= mVx && i < (int)vline.size(); ++i) {
-            vline[i] = ' ';
-        }
-        for (int y = 0; y < mVy; ++y) {
-            VTLine& vline = mLines[y];
-            for (int i = 0; i < (int)vline.size(); ++i) {
+    case 0:
+        if (1) {
+            VTLine& vline = mLines[mVy];
+            for (int i = mVx; i < (int)vline.size(); ++i) {
                 vline[i] = ' ';
             }
-        }
-    } break;
-    case 2: if (1) {
-        for (int y = 0; y < (int)mLines.size(); ++y) {
-            VTLine& vline = mLines[y];
-            for (int i = 0; i < (int)vline.size(); ++i) {
-                vline[i] = ' ';
+            for (int y = mVy + 1; y < (int)mLines.size(); ++y) {
+                for (int x = 0; x < (int)mLines[y].size(); ++x) {
+                    mLines[y][x] = ' ';
+                }
             }
         }
-    } break;
+        break;
+    case 1:
+        if (1) {
+            VTLine& vline = mLines[mVy];
+            for (int i = 0; i <= mVx && i < (int)vline.size(); ++i) {
+                vline[i] = ' ';
+            }
+            for (int y = 0; y < mVy; ++y) {
+                VTLine& vline = mLines[y];
+                for (int i = 0; i < (int)vline.size(); ++i) {
+                    vline[i] = ' ';
+                }
+            }
+        }
+        break;
+    case 2:
+        if (1) {
+            for (int y = 0; y < (int)mLines.size(); ++y) {
+                VTLine& vline = mLines[y];
+                for (int i = 0; i < (int)vline.size(); ++i) {
+                    vline[i] = ' ';
+                }
+            }
+        }
+        break;
     }
 }

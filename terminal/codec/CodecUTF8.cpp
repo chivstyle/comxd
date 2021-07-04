@@ -1,8 +1,8 @@
 //
 // (c) 2020 chiv
 //
-#include "CodecFactory.h"
 #include "CodecUTF8.h"
+#include "CodecFactory.h"
 
 REGISTER_CODEC_INSTANCE("UTF-8", CodecUTF8);
 
@@ -13,14 +13,16 @@ std::vector<uint32_t> CodecUTF8::TranscodeToUTF32(const unsigned char* data, siz
 
 std::string CodecUTF8::TranscodeToUTF8(const unsigned char* data, size_t sz)
 {
-    std::string out; out.resize(sz);
+    std::string out;
+    out.resize(sz);
     std::copy(data, data + sz, out.begin());
     return std::move(out);
 }
 
 std::string CodecUTF8::TranscodeFromUTF8(const unsigned char* data, size_t sz)
 {
-    std::string out; out.resize(sz);
+    std::string out;
+    out.resize(sz);
     std::copy(data, data + sz, out.begin());
     return std::move(out);
 }

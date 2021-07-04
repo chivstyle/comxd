@@ -9,8 +9,9 @@
 #include <map>
 
 #ifndef DELETE_CA_FUNCTIONS
-#define DELETE_CA_FUNCTIONS(class_name) class_name(const class_name&) = delete; \
-    class_name(class_name&&) = delete; \
+#define DELETE_CA_FUNCTIONS(class_name)                \
+    class_name(const class_name&) = delete;            \
+    class_name(class_name&&) = delete;                 \
     class_name& operator=(const class_name&) = delete; \
     class_name& operator=(class_name&&) = delete
 #endif
@@ -24,7 +25,7 @@ public:
     //
     using CreateInstFunc = std::function<SerialConn*(std::shared_ptr<SerialIo>)>;
     bool RegisterCreateInstFunc(const Upp::String& name, const Upp::String& type,
-                                CreateInstFunc func);
+        CreateInstFunc func);
     //
     std::vector<Upp::String> GetSupportedConnNames() const;
     Upp::String GetConnType(const Upp::String& name) const;
@@ -32,25 +33,25 @@ public:
     //
 protected:
     // functions to create instance(s)
-    std::map<Upp::String, std::pair<Upp::String, CreateInstFunc> > mInsts;
-    
+    std::map<Upp::String, std::pair<Upp::String, CreateInstFunc>> mInsts;
+
     DELETE_CA_FUNCTIONS(ConnFactory);
     ConnFactory();
     virtual ~ConnFactory();
 };
 
 // Help macros
-#define REGISTER_CONN_INSTANCE(name, type, class_name) \
-class class_name##_ { \
-public: \
-    class_name##_() \
-    { \
-        ConnFactory::Inst()->RegisterCreateInstFunc(name, type, \
-        [=](std::shared_ptr<SerialIo> serial)->SerialConn* { \
-            return new class_name(serial); \
-        }); \
-    } \
-}; \
-static class_name##_ q##class_name##_
+#define REGISTER_CONN_INSTANCE(name, type, class_name)                 \
+    class class_name##_ {                                              \
+    public:                                                            \
+        class_name##_()                                                \
+        {                                                              \
+            ConnFactory::Inst()->RegisterCreateInstFunc(name, type,    \
+                [=](std::shared_ptr<SerialIo> serial) -> SerialConn* { \
+                    return new class_name(serial);                     \
+                });                                                    \
+        }                                                              \
+    };                                                                 \
+    static class_name##_ q##class_name##_
 
 #endif

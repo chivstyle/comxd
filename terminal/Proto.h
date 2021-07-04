@@ -5,8 +5,8 @@
 #define _proto_h
 
 #include <CtrlLib/CtrlLib.h>
-#include <vector>
 #include <list>
+#include <vector>
 
 class SerialConn;
 class Proto {

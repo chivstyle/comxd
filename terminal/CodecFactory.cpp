@@ -1,8 +1,8 @@
 //
 // (c) 2020 chiv
 //
-#include "terminal_rc.h"
 #include "CodecFactory.h"
+#include "terminal_rc.h"
 
 using namespace Upp;
 

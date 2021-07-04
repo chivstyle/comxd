@@ -9,6 +9,7 @@
 class SerialConnVT320 : public SerialConnVT220 {
 public:
     SerialConnVT320(std::shared_ptr<SerialIo> io);
+
 protected:
     // vt320
     virtual void ProcessDECSASD(const std::string_view&);

@@ -3,12 +3,12 @@
 //
 #include "resource.h"
 #include "SerialDevsDialog.h"
-#include "ConnFactory.h"
 #include "CodecFactory.h"
+#include "ConnFactory.h"
 
-static int kBaudrates[] = {921600, 460800, 256000, 230400, 153600,
-        128000, 115200, 38400, 76800, 57600, 28800, 19200, 14400,
-        9600, 7200, 4800, 2400, 1800, 1200};
+static int kBaudrates[] = { 921600, 460800, 256000, 230400, 153600,
+    128000, 115200, 38400, 76800, 57600, 28800, 19200, 14400,
+    9600, 7200, 4800, 2400, 1800, 1200 };
 
 SerialDevsDialog::SerialDevsDialog()
 {
@@ -73,7 +73,7 @@ SerialDevsDialog::SerialDevsDialog()
 
 bool SerialDevsDialog::Key(Upp::dword key, int count)
 {
-	dword flags = K_CTRL | K_ALT | K_SHIFT;
+    dword flags = K_CTRL | K_ALT | K_SHIFT;
     dword d_key = key & ~(flags | K_KEYUP); // key with delta
     flags = key & flags;
     if (key & Upp::K_KEYUP) {
@@ -82,7 +82,7 @@ bool SerialDevsDialog::Key(Upp::dword key, int count)
             return true;
         }
     }
-	return TopWindow::Key(key, count);
+    return TopWindow::Key(key, count);
 }
 
 void SerialDevsDialog::ChangeSettings(SerialPort* port)
@@ -103,8 +103,10 @@ void SerialDevsDialog::ChangeSettings(SerialPort* port)
     // flow control
     mFlowCtrl.SetData(serial->getFlowcontrol());
     // only change the settings of serial, type could not be modified on running time.
-    mTypesLabel.Hide(); mTypes.Hide();
-    mCodecsLabel.Hide(); mCodecs.Hide();
+    mTypesLabel.Hide();
+    mTypes.Hide();
+    mCodecsLabel.Hide();
+    mCodecs.Hide();
     //
     int ret = Run(true);
     if (ret == IDOK) {
@@ -126,33 +128,30 @@ SerialConn* SerialDevsDialog::RequestConn()
     int ret = Run(true);
     if (ret == IDOK) {
         try {
-	        auto serial = std::make_shared<serial::Serial>(
-	            mDevsList.GetData().ToString().ToStd(),
-	            mBaudrate.GetKey(mBaudrate.GetIndex()).To<int>(),
-	            serial::Timeout(),
-	            (serial::bytesize_t)mDataBits.GetKey(mDataBits.GetIndex()).To<int>(),
-	            (serial::parity_t)mParity.GetKey(mParity.GetIndex()).To<int>(),
-	            (serial::stopbits_t)mStopBits.GetKey(mStopBits.GetIndex()).To<int>(),
-	            (serial::flowcontrol_t)mFlowCtrl.GetKey(mFlowCtrl.GetIndex()).To<int>());
-	        if (serial) {
-	            auto port = std::make_shared<SerialPort>(serial);
-	            port->Start();
-	            auto conn = ConnFactory::Inst()->CreateInst(~mTypes, port);
-	            if (!conn) {
-	                Upp::PromptOK(DeQtf(t_("Dose not support:") + (String)~mTypes));
-	            } else {
-	                conn->SetCodec(mCodecs.Get().ToString());
-	                conn->Start();
-	                return conn;
-	            }
-	        }
+            auto serial = std::make_shared<serial::Serial>(
+                mDevsList.GetData().ToString().ToStd(),
+                mBaudrate.GetKey(mBaudrate.GetIndex()).To<int>(),
+                serial::Timeout(),
+                (serial::bytesize_t)mDataBits.GetKey(mDataBits.GetIndex()).To<int>(),
+                (serial::parity_t)mParity.GetKey(mParity.GetIndex()).To<int>(),
+                (serial::stopbits_t)mStopBits.GetKey(mStopBits.GetIndex()).To<int>(),
+                (serial::flowcontrol_t)mFlowCtrl.GetKey(mFlowCtrl.GetIndex()).To<int>());
+            if (serial) {
+                auto port = std::make_shared<SerialPort>(serial);
+                port->Start();
+                auto conn = ConnFactory::Inst()->CreateInst(~mTypes, port);
+                if (!conn) {
+                    Upp::PromptOK(DeQtf(t_("Dose not support:") + (String)~mTypes));
+                } else {
+                    conn->SetCodec(mCodecs.Get().ToString());
+                    conn->Start();
+                    return conn;
+                }
+            }
         } catch (const std::exception&) {
-            Upp::PromptOK(t_("Can't open, because:") + mDevsList.GetData().ToString() + "&"
-                      + t_("-|1. Not supported settings") + "&"
-                      + t_("-|2. Device was opened already"));
+            Upp::PromptOK(t_("Can't open, because:") + mDevsList.GetData().ToString() + "&" + t_("-|1. Not supported settings") + "&" + t_("-|2. Device was opened already"));
         }
     }
     //
     return nullptr;
 }
-

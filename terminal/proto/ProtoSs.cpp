@@ -1,14 +1,14 @@
 //
 // (c) 2020 chiv
 //
-#include "terminal_rc.h"
 #include "ProtoSs.h"
-#include "ss.h"
-#include "ProtoFactory.h"
 #include "Conn.h"
+#include "ProtoFactory.h"
+#include "ss.h"
+#include "terminal_rc.h"
 
 namespace proto {
-    
+
 REGISTER_PROTO_INSTANCE("Simple Stupid", ProtoSs);
 
 ProtoSs::ProtoSs(SerialConn* conn)
@@ -16,9 +16,10 @@ ProtoSs::ProtoSs(SerialConn* conn)
 {
     WhenUsrBar = [=](Bar& bar) {
         bar.Add(t_("Help"), terminal::help(), [=]() {
-            PromptOK(Upp::DeQtf(t_("Input your command in JSON, here is an example:\n"
-                "{\n    \"Part\":\"LED2\",\n    \"Action\":\"Blink\", \n    \"Parameters\":[\"10\"]\n}")));
-        }).Help(t_("Popup help dialog"));
+               PromptOK(Upp::DeQtf(t_("Input your command in JSON, here is an example:\n"
+                                      "{\n    \"Part\":\"LED2\",\n    \"Action\":\"Blink\", \n    \"Parameters\":[\"10\"]\n}")));
+           })
+            .Help(t_("Popup help dialog"));
     };
 }
 
@@ -32,7 +33,7 @@ std::string ProtoSs::GetDescription() const
 }
 //
 static inline std::vector<unsigned char> MakeCommand(const String& part,
-                                                     const String& action, const Value& params)
+    const String& action, const Value& params)
 {
     std::vector<unsigned char> command;
     command.push_back(ss::ENQ);
@@ -47,13 +48,14 @@ static inline std::vector<unsigned char> MakeCommand(const String& part,
     }
     if (params.GetType() == VALUEARRAY_V) {
         int count = params.GetCount();
-        if (count > 0) command.push_back(ss::US);
+        if (count > 0)
+            command.push_back(ss::US);
         for (int n = 0; n < count; ++n) {
             String pn = params[n].ToString();
             for (int i = 0; i < pn.GetLength(); ++i) {
                 command.push_back(pn[i]);
             }
-            if (n != count-1) {
+            if (n != count - 1) {
                 command.push_back(ss::US);
             }
         }
@@ -65,15 +67,16 @@ static inline std::vector<unsigned char> MakeCommand(const String& part,
     }
     command.push_back(ss::ETX);
     // calculate check sum of contents between STX and ETX
-    command.push_back(ss::ss_chksum((const char*)command.data()+2, (int)command.size()-3));
+    command.push_back(ss::ss_chksum((const char*)command.data() + 2, (int)command.size() - 3));
     command.push_back(ss::EOT);
     //
     return std::move(command);
 }
 //
-static inline void operator += (std::vector<unsigned char>& out, const std::vector<unsigned char>& in)
+static inline void operator+=(std::vector<unsigned char>& out, const std::vector<unsigned char>& in)
 {
-    for (size_t k = 0; k < in.size(); ++k) out.push_back(in[k]);
+    for (size_t k = 0; k < in.size(); ++k)
+        out.push_back(in[k]);
 }
 // use this proto to pack the data
 std::vector<unsigned char> ProtoSs::Pack(const void* input, size_t input_size, std::string& errmsg)
@@ -134,14 +137,20 @@ int ProtoSs::IsProto(const unsigned char* buf, size_t sz)
 {
     if (sz > 0) {
         if (buf[0] == ss::ENQ) {
-            if (buf[sz-1] == ss::EOT) return 2;
-            else return 1;
+            if (buf[sz - 1] == ss::EOT)
+                return 2;
+            else
+                return 1;
         } else if (buf[0] == ss::SOH) {
-            if (buf[sz-1] == ss::ETB) return 2;
-            else return 1;
+            if (buf[sz - 1] == ss::ETB)
+                return 2;
+            else
+                return 1;
         } else if (buf[0] == ss::ACK) {
-            if (buf[sz-1] == ss::EOT) return 2;
-            else return 1;
+            if (buf[sz - 1] == ss::EOT)
+                return 2;
+            else
+                return 1;
         }
     }
     return 0;
@@ -163,13 +172,21 @@ static inline std::string GenerateReport(const ss::ss_command_t& rslt, const std
     report += indent + "    ],\n";
     report += indent + "    \"Error\":";
     switch (rslt.error) {
-    case ss::ss_command_t::error_none:   report += "\"No error\"\n"; break;
-    case ss::ss_command_t::error_format: report += "\"format\"\n"; break;
-    case ss::ss_command_t::error_chksum: report += "\"chksum\"\n"; break;
-    default: report += "\"Unkown\""; break;
+    case ss::ss_command_t::error_none:
+        report += "\"No error\"\n";
+        break;
+    case ss::ss_command_t::error_format:
+        report += "\"format\"\n";
+        break;
+    case ss::ss_command_t::error_chksum:
+        report += "\"chksum\"\n";
+        break;
+    default:
+        report += "\"Unkown\"";
+        break;
     }
     report += indent + "}"; // End of JSON Object
-    
+
     return report;
 }
 // parse the proto message, generate report.
@@ -182,8 +199,10 @@ std::string ProtoSs::Unpack(const std::vector<unsigned char>& buf, std::string& 
         if (buf[0] == ss::ACK) { // ACK
             std::string json;
             int ret = ss::ss_parse_response((const char*)buf.data(), (int)buf.size(), json);
-            if (ret < 0) errmsg = t_("Ack:format error");
-            else if (ret == 0) errmsg = t_("Ack:chksum error");
+            if (ret < 0)
+                errmsg = t_("Ack:format error");
+            else if (ret == 0)
+                errmsg = t_("Ack:chksum error");
             report = std::move(json);
         } else if (buf[0] == ss::ENQ) {
             report = GenerateReport(ss::ss_parse_command((const char*)buf.data(), (int)buf.size()));
@@ -192,7 +211,7 @@ std::string ProtoSs::Unpack(const std::vector<unsigned char>& buf, std::string& 
             if (eqns.size() > 1) {
                 report += "[\n";
                 for (size_t k = 0; k < eqns.size(); ++k) {
-                    if (k+1 == eqns.size()) {
+                    if (k + 1 == eqns.size()) {
                         report += GenerateReport(eqns[k], "    ");
                     } else {
                         report += GenerateReport(eqns[k], "    ") + ",\n";
@@ -201,7 +220,7 @@ std::string ProtoSs::Unpack(const std::vector<unsigned char>& buf, std::string& 
                 report += "\n]";
             } else {
                 for (size_t k = 0; k < eqns.size(); ++k) {
-                    if (k+1 == eqns.size()) {
+                    if (k + 1 == eqns.size()) {
                         report += GenerateReport(eqns[k]);
                     } else {
                         report += GenerateReport(eqns[k]) + "\n";
@@ -216,8 +235,9 @@ std::string ProtoSs::Unpack(const std::vector<unsigned char>& buf, std::string& 
 int ProtoSs::Transmit(const void* input, size_t input_size, std::string& errmsg)
 {
     auto out = Pack(input, input_size, errmsg);
-    if (out.empty()) return -1;
+    if (out.empty())
+        return -1;
     return mConn->GetIo()->Write(out);
 }
-    
+
 }

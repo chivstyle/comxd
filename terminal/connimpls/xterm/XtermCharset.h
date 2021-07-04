@@ -4,8 +4,8 @@
 */
 #pragma once
 
-#include <stdint.h>
 #include "connimpls/Charset.h"
+#include <stdint.h>
 
 enum XtermCharset {
     XTERM_FOO = XTERM_CS_BEGIN,

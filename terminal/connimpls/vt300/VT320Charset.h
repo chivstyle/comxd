@@ -4,8 +4,8 @@
 */
 #pragma once
 
-#include <stdint.h>
 #include "connimpls/Charset.h"
+#include <stdint.h>
 
 enum VT320Charset {
     CS_DEC_SUPPLEMENTAL_VT320 = VT300_CS_BEGIN,

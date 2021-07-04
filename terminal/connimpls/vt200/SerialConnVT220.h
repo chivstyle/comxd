@@ -53,12 +53,12 @@ protected:
     virtual bool ProcessKeyDown(Upp::dword key, Upp::dword flags);
     // VT220 cursor data
     struct CursorDataVT220 : public CursorDataVT100 {
-        uint32_t   SelectiveErase : 1;
+        uint32_t SelectiveErase : 1;
     };
     void SaveCursorData(CursorDataVT220& cd);
     void LoadCursorData(const CursorDataVT220& cd);
     // stands for GR
-    int  mExtendedCharset;
+    int mExtendedCharset;
     //
     struct VT220Modes {
         enum DECNRCMValue {
@@ -69,6 +69,7 @@ protected:
     };
     VT220Modes mModes;
     CursorDataVT220 mCursorData;
+
 private:
     void InstallFunctions();
 };

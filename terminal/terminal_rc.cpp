@@ -4,5 +4,5 @@
 #include "terminal_rc.h"
 
 #define IMAGECLASS terminal
-#define IMAGEFILE  <terminal/terminal.iml>
+#define IMAGEFILE <terminal/terminal.iml>
 #include <Draw/iml_source.h>

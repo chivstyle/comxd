@@ -14,11 +14,11 @@ using namespace Upp;
 #include <Core/t.h>
 
 #define IMAGECLASS terminal
-#define IMAGEFILE  <terminal/terminal.iml>
+#define IMAGEFILE <terminal/terminal.iml>
 #include <Draw/iml_header.h>
 
 #ifndef ARRAYSIZE
-#define ARRAYSIZE(a)   (sizeof(a)/sizeof(a[0]))
+#define ARRAYSIZE(a) (sizeof(a) / sizeof(a[0]))
 #endif
 
 #endif

@@ -19,23 +19,29 @@
 static inline void SplitString(char* s, size_t s_len, char delim, std::function<void(const char*)> func)
 {
     size_t p = 0, q = 0; // [p, q) defines a result
-    for (; q < s_len && s[q] != delim; ++q);
+    for (; q < s_len && s[q] != delim; ++q)
+        ;
     while (q < s_len) {
         s[q] = '\0';
-        func(s+p);
-        p = q+1;
-        for (; q < s_len && s[q] != delim; ++q);
+        func(s + p);
+        p = q + 1;
+        for (; q < s_len && s[q] != delim; ++q)
+            ;
     }
     // process the left chars
     if (p < s_len) {
-        func(s+p);
+        func(s + p);
     }
 }
 static inline void SplitString(const char* cs, char delim, std::function<void(const char*)> func)
 {
-    static const size_t kCacheSize = 128; char _cache[kCacheSize];
+    static const size_t kCacheSize = 128;
+    char _cache[kCacheSize];
     size_t cs_len = strlen(cs);
-    if (cs_len == 0) { func(""); return; } // return "" for empty string
+    if (cs_len == 0) {
+        func("");
+        return;
+    } // return "" for empty string
     if (cs_len < kCacheSize) {
         strcpy(_cache, cs);
         SplitString(_cache, cs_len, delim, func);
@@ -50,14 +56,19 @@ static inline void SplitString(const char* cs, char delim, std::function<void(co
 static inline void SplitString(std::string&& s, char delim, std::function<void(const char*)> func)
 {
     size_t s_len = s.length();
-    if (s_len == 0) { func(""); return; } // return "" for empty string
+    if (s_len == 0) {
+        func("");
+        return;
+    } // return "" for empty string
     size_t p = 0, q = 0; // [p, q) defines a result
-    for (; q < s_len && s[q] != delim; ++q);
+    for (; q < s_len && s[q] != delim; ++q)
+        ;
     while (q < s_len) {
         s[q] = '\0';
         func(s.data() + p);
-        p = q+1;
-        for (; q < s_len && s[q] != delim; ++q);
+        p = q + 1;
+        for (; q < s_len && s[q] != delim; ++q)
+            ;
     }
     // process the left chars
     if (p < s_len) {
@@ -96,7 +107,7 @@ public:
         SetCode(c);
         SetStyle(style);
     }
-    
+
     operator const uint32_t()
     {
         return mBits.Code;
@@ -106,19 +117,19 @@ public:
         SetCode(c);
         return *this;
     }
-    
+
     void SetCode(const uint32_t& c)
     {
         mBits.Code = c & 0x1fffff;
     }
-    
+
     void SetStyle(const VTStyle& style)
     {
         mBits.FontStyle = style.FontStyle & 0x3ff;
         mBits.BgColorId = style.BgColorId;
         mBits.FgColorId = style.FgColorId;
     }
-    
+
     uint32_t Code() const { return mBits.Code; }
     uint16_t FontStyle() const { return mBits.FontStyle; }
     uint16_t FgColorId() const { return mBits.FgColorId; }
@@ -126,12 +137,30 @@ public:
     //
     void UseFontStyle(Upp::Font& font, bool& blink, bool& visible) const
     {
-        if (mBits.FontStyle & VTStyle::eBold) font.Bold(); else font.NoBold();
-        if (mBits.FontStyle & VTStyle::eItalic) font.Italic(); else font.NoItalic();
-        if (mBits.FontStyle & VTStyle::eStrikeout) font.Strikeout(); else font.NoStrikeout();
-        if (mBits.FontStyle & VTStyle::eUnderline) font.Underline(); else font.NoUnderline();
-        if (mBits.FontStyle & VTStyle::eBlink) blink = true; else blink = false;
-        if (mBits.FontStyle & VTStyle::eVisible) visible = true; else visible = false;
+        if (mBits.FontStyle & VTStyle::eBold)
+            font.Bold();
+        else
+            font.NoBold();
+        if (mBits.FontStyle & VTStyle::eItalic)
+            font.Italic();
+        else
+            font.NoItalic();
+        if (mBits.FontStyle & VTStyle::eStrikeout)
+            font.Strikeout();
+        else
+            font.NoStrikeout();
+        if (mBits.FontStyle & VTStyle::eUnderline)
+            font.Underline();
+        else
+            font.NoUnderline();
+        if (mBits.FontStyle & VTStyle::eBlink)
+            blink = true;
+        else
+            blink = false;
+        if (mBits.FontStyle & VTStyle::eVisible)
+            visible = true;
+        else
+            visible = false;
     }
     void UseStyle(Upp::Font& font, uint16_t& fgcolor_id, uint16_t& bgcolor_id,
         bool& blink, bool& visible) const
@@ -142,9 +171,10 @@ public:
     }
 
 private:
-    struct {
+    struct
+    {
         uint32_t Code : 21; // CODE POINT
-        uint32_t FontStyle: 10;
+        uint32_t FontStyle : 10;
         uint16_t BgColorId;
         uint16_t FgColorId;
     } mBits;
@@ -169,11 +199,15 @@ public:
         , mHasSuccesiveLines(false)
     {
     }
-    VTLine& SetHeight(int height) { mHeight = height; return *this; }
+    VTLine& SetHeight(int height)
+    {
+        mHeight = height;
+        return *this;
+    }
     int GetHeight() const { return mHeight; };
     bool HasSuccessiveLines() const { return mHasSuccesiveLines; }
     void HasSuccessiveLines(bool b) { mHasSuccesiveLines = b; }
-    
+
 private:
     int mHeight;
     bool mHasSuccesiveLines;

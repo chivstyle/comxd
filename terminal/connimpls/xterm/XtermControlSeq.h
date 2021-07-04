@@ -26,7 +26,7 @@ enum XtermSeqType {
     XTREPORTSGR,
     // xterm OSC, terminate with bell(0x07)
     XTOSC,
-    
+
     Xterm_SEQ_MAX
 };
 static_assert(Xterm_SEQ_MAX < XTERM_SEQ_END, "You should define XTERM_SEQ_MAX_COUNT big enough");

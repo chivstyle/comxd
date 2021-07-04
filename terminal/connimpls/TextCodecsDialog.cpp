@@ -5,6 +5,7 @@
 #include "TextCodecsDialog.h"
 #include "CodecFactory.h"
 
+
 TextCodecsDialog::TextCodecsDialog(const char* name)
 {
     CtrlLayout(*this);
@@ -23,7 +24,7 @@ TextCodecsDialog::TextCodecsDialog(const char* name)
 
 bool TextCodecsDialog::Key(Upp::dword key, int count)
 {
-	dword flags = K_CTRL | K_ALT | K_SHIFT;
+    dword flags = K_CTRL | K_ALT | K_SHIFT;
     dword d_key = key & ~(flags | K_KEYUP); // key with delta
     flags = key & flags;
     if (key & Upp::K_KEYUP) {
@@ -32,7 +33,7 @@ bool TextCodecsDialog::Key(Upp::dword key, int count)
             return true;
         }
     }
-	return TopWindow::Key(key, count);
+    return TopWindow::Key(key, count);
 }
 
 TextCodecsDialog::~TextCodecsDialog()

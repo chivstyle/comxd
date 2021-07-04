@@ -40,12 +40,21 @@ uint32_t VT100_RemapCharacter(uint32_t uc, int cs)
         0x000b7
     };
     switch (cs) {
-    case CS_UK: if (uc == 0x23) return 0x000a3; else break;
-    case CS_LINE_DRAWING: if (uc >= 0x60 && uc <= 0x7e) return cs_drawing[uc - 0x60]; else break;
+    case CS_UK:
+        if (uc == 0x23)
+            return 0x000a3;
+        else
+            break;
+    case CS_LINE_DRAWING:
+        if (uc >= 0x60 && uc <= 0x7e)
+            return cs_drawing[uc - 0x60];
+        else
+            break;
     case CS_US:
     case CS_ROM:
     case CS_ROM_SPECIAL:
-    default: break;
+    default:
+        break;
     }
     return uc;
 }

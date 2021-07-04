@@ -9,7 +9,7 @@
 class SerialConnXterm : public SerialConnVT520 {
 public:
     SerialConnXterm(std::shared_ptr<SerialIo> io);
-    
+
 protected:
     virtual void ProcessXTPUSHCOLORS(const std::string_view&);
     virtual void ProcessXTPOPCOLORS(const std::string_view&);
@@ -87,6 +87,7 @@ protected:
         }
     };
     XtermModes mModes;
+
 private:
     void InstallFunctions();
 };

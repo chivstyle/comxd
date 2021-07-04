@@ -2,8 +2,8 @@
 // (c) 2020 chiv
 //
 #include "Conn.h"
-#include "codec/CodecUTF8.h"
 #include "CodecFactory.h"
+#include "codec/CodecUTF8.h"
 
 SerialConn::SerialConn(std::shared_ptr<SerialIo> io)
     : mIo(io)
@@ -19,5 +19,5 @@ void SerialConn::SetCodec(const char* codec_name)
 
 void SerialConn::Stop()
 {
-	mIo->Stop();
+    mIo->Stop();
 }

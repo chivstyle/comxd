@@ -4,7 +4,7 @@
 #include "Proto.h"
 
 namespace proto {
-    
+
 class ProtoSs : public Proto {
 public:
     ProtoSs(SerialConn* conn);
@@ -24,5 +24,5 @@ public:
 private:
     std::string mName;
 };
-    
+
 }

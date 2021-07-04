@@ -46,12 +46,13 @@ ConnFactory::CreateInstFunc ConnFactory::GetConnInstFunc(const String& name) con
 }
 
 bool ConnFactory::RegisterCreateInstFunc(const String& name, const String& type,
-                            std::function<SerialConn*(std::shared_ptr<SerialIo>)> func)
+    std::function<SerialConn*(std::shared_ptr<SerialIo>)> func)
 {
     if (mInsts.find(name) == mInsts.end()) {
         mInsts[name] = std::make_pair(type, func);
         return true;
-    } else return false; // There's already a function in the map
+    } else
+        return false; // There's already a function in the map
 }
 
 SerialConn* ConnFactory::CreateInst(const String& name, std::shared_ptr<SerialIo> serial)

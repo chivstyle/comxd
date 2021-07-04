@@ -3,9 +3,9 @@
 //
 */
 #include "SerialConnXterm.h"
-#include "XtermControlSeq.h"
-#include "XtermCharset.h"
 #include "ConnFactory.h"
+#include "XtermCharset.h"
+#include "XtermControlSeq.h"
 
 REGISTER_CONN_INSTANCE("xterm by chiv", "xterm", SerialConnXterm);
 
@@ -91,7 +91,9 @@ void SerialConnXterm::ProcessXTCHECKSUM(const std::string_view&)
 void SerialConnXterm::Paste()
 {
     if (mModes.BracketedPaste) {
-        Put("\E[200~"); SerialConnVT520::Paste(); Put("\E[201~");
+        Put("\E[200~");
+        SerialConnVT520::Paste();
+        Put("\E[201~");
     } else {
         SerialConnVT520::Paste();
     }
@@ -101,13 +103,16 @@ void SerialConnXterm::ProcessSD(const std::string_view& p)
 {
     // If there are 5 parameters in p, it's a XTHIMOUSE, otherwise it's SD
     int idx = 0;
-    SplitString(p.data(), ';', [=, &idx](const char*) {
-        idx++;
-    });
+    SplitString(p.data(), ';', [=, &idx](const char*) { idx++; });
     switch (idx) {
-    case 1: SerialConnVT520::ProcessSD(p); break;
-    case 5: ProcessXTHIMOUSE(p); break;
-    default: break;
+    case 1:
+        SerialConnVT520::ProcessSD(p);
+        break;
+    case 5:
+        ProcessXTHIMOUSE(p);
+        break;
+    default:
+        break;
     }
 }
 

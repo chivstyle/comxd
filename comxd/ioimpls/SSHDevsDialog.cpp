@@ -3,19 +3,19 @@
 //
 #include "resource.h"
 #include "SSHDevsDialog.h"
-#include "SSHPort.h"
-#include "ConnFactory.h"
 #include "CodecFactory.h"
+#include "ConnFactory.h"
+#include "SSHPort.h"
 
 using namespace Upp;
 
 SSHDevsDialog::SSHDevsDialog()
 {
-	Icon(comxd::new_ssh()).Title("SSH");
-	//
-	mPort.SetData("22");
-	mPassword.Password();
-	// types
+    Icon(comxd::new_ssh()).Title("SSH");
+    //
+    mPort.SetData("22");
+    mPassword.Password();
+    // types
     auto conn_names = ConnFactory::Inst()->GetSupportedConnNames();
     for (size_t k = 0; k < conn_names.size(); ++k) {
         mTypes.Add(conn_names[k]);
@@ -31,14 +31,14 @@ SSHDevsDialog::SSHDevsDialog()
             mCodecs.SetIndex((int)k);
         }
     }
-	CtrlLayout(*this);
-	
-	this->Acceptor(mBtnOk, IDOK).Rejector(mBtnCancel, IDCANCEL);
+    CtrlLayout(*this);
+
+    this->Acceptor(mBtnOk, IDOK).Rejector(mBtnCancel, IDCANCEL);
 }
 
 bool SSHDevsDialog::Key(Upp::dword key, int count)
 {
-	dword flags = K_CTRL | K_ALT | K_SHIFT;
+    dword flags = K_CTRL | K_ALT | K_SHIFT;
     dword d_key = key & ~(flags | K_KEYUP); // key with delta
     flags = key & flags;
     if (key & Upp::K_KEYUP) {
@@ -47,34 +47,37 @@ bool SSHDevsDialog::Key(Upp::dword key, int count)
             return true;
         }
     }
-	return TopWindow::Key(key, count);
+    return TopWindow::Key(key, count);
 }
 
 SerialConn* SSHDevsDialog::RequestConn()
 {
-	SerialConn* conn = nullptr;
-	if (Run(true) == IDOK) {
-		this->Disable(); // disable the dialog.
-		std::shared_ptr<SshSession> session = std::make_shared<SshSession>();
-		this->Title(t_("Connecting..."));
-		session->WhenWait = [=]() { if (IsMainThread()) ProcessEvents(); };
-		if (session->Timeout(2000).Connect(~mHost, ~mPort, ~mUser, ~mPassword)) {
-			try {
-				auto port = std::make_shared<SSHPort>(session, ~mHost,
-					ConnFactory::Inst()->GetConnType(~mTypes));
-				conn = ConnFactory::Inst()->CreateInst(~mTypes, port);
-				port->Start();
-				conn->WhenSizeChanged = [=](const Size& csz) {
-					port->SetConsoleSize(csz);
-				};
-				conn->SetCodec(mCodecs.GetData().ToString());
-				conn->Start();
-			} catch (const String& desc) {
-				PromptOK(Upp::DeQtf(desc));
-			}
-		} else {
-			PromptOK(Upp::DeQtf(session->GetErrorDesc()));
-		}
-	}
-	return conn;
+    SerialConn* conn = nullptr;
+    if (Run(true) == IDOK) {
+        this->Disable(); // disable the dialog.
+        std::shared_ptr<SshSession> session = std::make_shared<SshSession>();
+        this->Title(t_("Connecting..."));
+        session->WhenWait = [=]() {
+            if (IsMainThread())
+                ProcessEvents();
+        };
+        if (session->Timeout(2000).Connect(~mHost, ~mPort, ~mUser, ~mPassword)) {
+            try {
+                auto port = std::make_shared<SSHPort>(session, ~mHost,
+                    ConnFactory::Inst()->GetConnType(~mTypes));
+                conn = ConnFactory::Inst()->CreateInst(~mTypes, port);
+                port->Start();
+                conn->WhenSizeChanged = [=](const Size& csz) {
+                    port->SetConsoleSize(csz);
+                };
+                conn->SetCodec(mCodecs.GetData().ToString());
+                conn->Start();
+            } catch (const String& desc) {
+                PromptOK(Upp::DeQtf(desc));
+            }
+        } else {
+            PromptOK(Upp::DeQtf(session->GetErrorDesc()));
+        }
+    }
+    return conn;
 }

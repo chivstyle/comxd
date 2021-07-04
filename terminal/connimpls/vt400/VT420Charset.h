@@ -4,8 +4,8 @@
 */
 #pragma once
 
-#include <stdint.h>
 #include "connimpls/Charset.h"
+#include <stdint.h>
 
 enum VT420Charset {
     // There's a ISO Latin-1 Supplemental in vt420, but we ignore it, why ?

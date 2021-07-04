@@ -23,7 +23,8 @@ std::string SerialIo::Read(size_t sz)
     char* buf = new char[sz + 1];
     Read((unsigned char*)buf, sz);
     buf[sz] = '\0';
-    std::string out(buf); delete[] buf;
+    std::string out(buf);
+    delete[] buf;
     return out;
 }
 

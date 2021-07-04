@@ -16,7 +16,8 @@ public:
         int sz = -1;
         try {
             sz = (int)mSerial->available();
-        } catch (...) {}
+        } catch (...) {
+        }
         return sz;
     }
     //
@@ -25,7 +26,8 @@ public:
         size_t sz_ = 0;
         try {
             sz_ = mSerial->read(buf, sz);
-        } catch (...) {}
+        } catch (...) {
+        }
         return sz_;
     }
     //
@@ -34,7 +36,8 @@ public:
         size_t sz_ = 0;
         try {
             sz_ = mSerial->write(buf, sz);
-        } catch (...) {}
+        } catch (...) {
+        }
         return sz_;
     }
     //
@@ -43,7 +46,8 @@ public:
         std::string name;
         try {
             name = mSerial->getPort();
-        } catch (...) {}
+        } catch (...) {
+        }
         return name;
     }
     //

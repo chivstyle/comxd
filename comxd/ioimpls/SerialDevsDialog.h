@@ -11,7 +11,7 @@
 class SerialDevsDialog : public WithSerialDevs<TopWindow> {
 public:
     typedef SerialDevsDialog CLASSNAME;
-    
+
     SerialDevsDialog();
     // create a serialconn from current settings.
     SerialConn* RequestConn();
@@ -19,5 +19,5 @@ public:
     void ChangeSettings(SerialPort* port);
     //
 protected:
-	bool Key(Upp::dword key, int count);
+    bool Key(Upp::dword key, int count);
 };

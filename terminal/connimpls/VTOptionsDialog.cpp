@@ -8,7 +8,7 @@ using namespace Upp;
 //
 struct FontFaceDisplay : Display {
     virtual void Paint(Draw& w, const Rect& r, const Value& q,
-                       Color ink, Color paper, dword style) const
+        Color ink, Color paper, dword style) const
     {
         Font fnt = Font(q, 14);
         String txt = Font::GetFaceName(q);
@@ -18,10 +18,10 @@ struct FontFaceDisplay : Display {
 };
 
 static const int kFontSizes[] = {
-    8,9,10,11,12,
-    14,16,18,20,22,
-    24,28,36,42,48,
-    64,72
+    8, 9, 10, 11, 12,
+    14, 16, 18, 20, 22,
+    24, 28, 36, 42, 48,
+    64, 72
 };
 
 VTOptionsDialog::VTOptionsDialog()
@@ -31,7 +31,7 @@ VTOptionsDialog::VTOptionsDialog()
     this->Icon(terminal::vt_options());
     // list fixed-width fonts
     mFontList.SetDisplay(Single<FontFaceDisplay>());
-    for(int i = 0; i < Font::GetFaceCount(); i++) {
+    for (int i = 0; i < Font::GetFaceCount(); i++) {
         // set a fixed-pitch font as default
         if (Font::GetFaceInfo(i) & Font::FIXEDPITCH) {
             mFontList.Add(i);
@@ -58,7 +58,7 @@ VTOptionsDialog::~VTOptionsDialog()
 
 bool VTOptionsDialog::Key(Upp::dword key, int count)
 {
-	dword flags = K_CTRL | K_ALT | K_SHIFT;
+    dword flags = K_CTRL | K_ALT | K_SHIFT;
     dword d_key = key & ~(flags | K_KEYUP); // key with delta
     flags = key & flags;
     if (key & Upp::K_KEYUP) {
@@ -67,7 +67,7 @@ bool VTOptionsDialog::Key(Upp::dword key, int count)
             return true;
         }
     }
-	return TopWindow::Key(key, count);
+    return TopWindow::Key(key, count);
 }
 
 void VTOptionsDialog::InstallActions()
@@ -97,13 +97,14 @@ void VTOptionsDialog::InstallActions()
 Font VTOptionsDialog::DefaultFont()
 {
     int sel = -1;
-    for(int i = 0; i < Font::GetFaceCount(); i++) {
+    for (int i = 0; i < Font::GetFaceCount(); i++) {
         // set a fixed-pitch font as default
         if (sel == -1 && (Font::GetFaceInfo(i) & Font::FIXEDPITCH)) {
             sel = i;
         }
     }
-    if (sel < 0) sel = 0;
+    if (sel < 0)
+        sel = 0;
     return Font(sel, 12);
 }
 

@@ -21,11 +21,10 @@ enum LineBreak_ {
 //
 static int _HexFilter(int c)
 {
-    if (c >= '0' && c <= '9' ||
-        c >= 'A' && c <= 'F' ||
-        c >= 'a' && c <= 'f' ||
-        c == ' ' || c == '\r' || c == '\n') return c;
-    else return 0;
+    if (c >= '0' && c <= '9' || c >= 'A' && c <= 'F' || c >= 'a' && c <= 'f' || c == ' ' || c == '\r' || c == '\n')
+        return c;
+    else
+        return 0;
 }
 //
 SerialConnRaw::SerialConnRaw(std::shared_ptr<SerialIo> io)
@@ -42,7 +41,8 @@ SerialConnRaw::SerialConnRaw(std::shared_ptr<SerialIo> io)
     // The total width of Vsp is 10000, we use 7000 as our default.
     this->mVsp.SetPos(7000);
     // default settings
-    this->mLineSz.SetData(16); this->mLineSz.SetEditable(false);
+    this->mLineSz.SetData(16);
+    this->mLineSz.SetEditable(false);
     this->mTxPeriod.SetData(100);
     this->mRxBufferSz.SetData(50000);
     this->mTxInterval.SetData(100);
@@ -51,7 +51,8 @@ SerialConnRaw::SerialConnRaw(std::shared_ptr<SerialIo> io)
     this->mLineBreaks.Add(LineBreak_::CRLF, "CRLF");
     this->mLineBreaks.SetIndex(1); //<! default: LF
     //------------------------------------------------------------------------
-    mProtos.Add(t_("None"));mProtos.SetIndex(0);
+    mProtos.Add(t_("None"));
+    mProtos.SetIndex(0);
     auto proto_names = ProtoFactory::Inst()->GetSupportedProtoNames();
     for (size_t k = 0; k < proto_names.size(); ++k) {
         this->mProtos.Add(proto_names[k]);
@@ -90,22 +91,29 @@ void SerialConnRaw::InstallUsrActions()
 {
     WhenUsrBar = [=](Bar& bar) {
         bar.Add(t_("Text Codec"), terminal::text_codec(), [=]() {
-            TextCodecsDialog d(GetCodec()->GetName().c_str());
-            int ret = d.Run();
-            if (ret == IDOK) {
-                this->SetCodec(d.GetCodecName());
-                // refresh rx.
-                if (!mRxHex.Get()) {
-                    UpdateAsTxt();
-                }
-            }
-        }).Help(t_("Select a text codec"));
+               TextCodecsDialog d(GetCodec()->GetName().c_str());
+               int ret = d.Run();
+               if (ret == IDOK) {
+                   this->SetCodec(d.GetCodecName());
+                   // refresh rx.
+                   if (!mRxHex.Get()) {
+                       UpdateAsTxt();
+                   }
+               }
+           })
+            .Help(t_("Select a text codec"));
     };
 }
 
 void SerialConnRaw::InstallActions()
 {
-    this->mLineSz.WhenAction = [=]() { if (this->mLineSz.Accept()) { if (mRxHex.Get()) { UpdateAsHex(); } } };
+    this->mLineSz.WhenAction = [=]() {
+        if (this->mLineSz.Accept()) {
+            if (mRxHex.Get()) {
+                UpdateAsHex();
+            }
+        }
+    };
     this->mRxBufferSz.WhenAction = [=]() { this->mRxBufferSz.Accept(); };
     this->mTxInterval.WhenAction = [=]() { this->mTxInterval.Accept(); };
     // OnSend
@@ -139,7 +147,9 @@ void SerialConnRaw::InstallActions()
     this->mTxPeriod.WhenAction = [=]() {
         if (mTxPeriod.Get()) {
             mTxInterval.SetReadOnly();
-            SetTimeCallback(-mTxInterval.GetData().To<int>(), [=]() { OnSend(); }, kPeriodicTimerId); // ID-0
+            SetTimeCallback(
+                -mTxInterval.GetData().To<int>(), [=]() { OnSend(); },
+                kPeriodicTimerId); // ID-0
         } else {
             mTxInterval.SetEditable(true);
             KillTimeCallback(kPeriodicTimerId);
@@ -158,9 +168,7 @@ void SerialConnRaw::InstallActions()
     this->mTx.WhenBar = [=](Bar& bar) {
         mTx.StdBar(bar);
         if (mTxProto) {
-            bar.Sub(t_("Proto actions"), [=](Bar& sub) {
-                mTxProto->WhenUsrBar(sub);
-            });
+            bar.Sub(t_("Proto actions"), [=](Bar& sub) { mTxProto->WhenUsrBar(sub); });
         }
     };
     this->mTxHex.WhenAction = [=]() {
@@ -211,7 +219,7 @@ static inline std::string ToHexString_(const std::vector<unsigned char>& b)
     std::string out;
     for (size_t k = 0; k < b.size(); ++k) {
         char hex_[8];
-        if (k+1 == b.size()) {
+        if (k + 1 == b.size()) {
             sprintf(hex_, "%02x", b[k]);
         } else {
             sprintf(hex_, "%02x ", b[k]);
@@ -225,7 +233,7 @@ static inline std::string ToHexString_(const std::string& b)
     std::string out;
     for (size_t k = 0; k < b.length(); ++k) {
         char hex_[8];
-        if (k+1 == b.size()) {
+        if (k + 1 == b.size()) {
             sprintf(hex_, "%02x", (unsigned char)b[k]);
         } else {
             sprintf(hex_, "%02x ", (unsigned char)b[k]);
@@ -241,24 +249,15 @@ static inline int UTF8SeqLen_(const unsigned char* seq, size_t sz)
     int flag = seq[p] & 0xf0;
     if (flag == 0xf0) { // 4 bytes
         // check and check
-        if (sz - p >= 4 &&
-            (seq[p+1] & 0xc0) == 0x80 &&
-            (seq[p+2] & 0xc0) == 0x80 &&
-            (seq[p+3] & 0xc0) == 0x80)
-        {
+        if (sz - p >= 4 && (seq[p + 1] & 0xc0) == 0x80 && (seq[p + 2] & 0xc0) == 0x80 && (seq[p + 3] & 0xc0) == 0x80) {
             seqsz = 4;
         }
     } else if ((flag & 0xe0) == 0xe0) { // 3 bytes, 4+6+6=16bits
-        if (sz - p >= 3 &&
-            (seq[p+1] & 0xc0) == 0x80 &&
-            (seq[p+2] & 0xc0) == 0x80)
-        {
+        if (sz - p >= 3 && (seq[p + 1] & 0xc0) == 0x80 && (seq[p + 2] & 0xc0) == 0x80) {
             seqsz = 3;
         }
     } else if ((flag & 0xc0) == 0xc0) { // 2 bytes, 5+6 = 11bits
-        if (sz - p >= 2 &&
-            (seq[p+1] & 0xc0) == 0x80)
-        {
+        if (sz - p >= 2 && (seq[p + 1] & 0xc0) == 0x80) {
             seqsz = 2;
         }
     } else if (flag & 0x80) {
@@ -274,7 +273,7 @@ static inline std::string FromHex_(const std::vector<byte>& b)
     std::string out;
     size_t p = 0;
     while (p < b.size()) {
-        int len = UTF8SeqLen_(&b[p], b.size()-p);
+        int len = UTF8SeqLen_(&b[p], b.size() - p);
         if (len == 0) { // It's a isolate byte
             char hex[8];
             sprintf(hex, "\\x%02x", b[p]);
@@ -307,21 +306,37 @@ static std::string TranslateEscapeChars(const std::string& text)
             } else {
                 switch (text[k]) {
                 case 'A':
-                case 'a': out.push_back(0x07); break;
+                case 'a':
+                    out.push_back(0x07);
+                    break;
                 case 'B':
-                case 'b': out.push_back(0x08); break;
+                case 'b':
+                    out.push_back(0x08);
+                    break;
                 case 'F':
-                case 'f': out.push_back(0x0c); break;
+                case 'f':
+                    out.push_back(0x0c);
+                    break;
                 case 'N':
-                case 'n': out.push_back(0x0a); break;
+                case 'n':
+                    out.push_back(0x0a);
+                    break;
                 case 'R':
-                case 'r': out.push_back(0x0d); break;
+                case 'r':
+                    out.push_back(0x0d);
+                    break;
                 case 'T':
-                case 't': out.push_back(0x09); break;
+                case 't':
+                    out.push_back(0x09);
+                    break;
                 case 'V':
-                case 'v': out.push_back(0x0b); break;
+                case 'v':
+                    out.push_back(0x0b);
+                    break;
                 case 'E':
-                case 'e': out.push_back(0x1b); break;
+                case 'e':
+                    out.push_back(0x1b);
+                    break;
                 case '0':
                 case '1':
                 case '2':
@@ -333,13 +348,9 @@ static std::string TranslateEscapeChars(const std::string& text)
                 case '8':
                 case '9': // this could be oct, try
                     if (text.size() - k >= 3) {
-                        if (text[k+1] >= '0' && text[k+1] <= '9' &&
-                            text[k+2] >= '0' && text[k+2] <= '9')
-                        {
+                        if (text[k + 1] >= '0' && text[k + 1] <= '9' && text[k + 2] >= '0' && text[k + 2] <= '9') {
                             // valid oct
-                            unsigned char oct = ((text[k] - '0') << 6) |
-                                                ((text[k+1] - '0') << 3) |
-                                                (text[k+2] - '0');
+                            unsigned char oct = ((text[k] - '0') << 6) | ((text[k + 1] - '0') << 3) | (text[k + 2] - '0');
                             out.push_back((char)oct);
                             k += 2;
                             break;
@@ -350,9 +361,9 @@ static std::string TranslateEscapeChars(const std::string& text)
                     break;
                 case 'x': // this could be hex, try
                     if (text.size() - k >= 3) {
-                        if (IsCharInHex(text[k+1]) && IsCharInHex(text[k+2])) {
+                        if (IsCharInHex(text[k + 1]) && IsCharInHex(text[k + 2])) {
                             // valid hex
-                            auto hex = ToHex_(text.substr(k+1, 2));
+                            auto hex = ToHex_(text.substr(k + 1, 2));
                             out.push_back((char)hex[0]);
                             k += 2;
                             break;
@@ -476,13 +487,13 @@ void SerialConnRaw::OnSend()
 }
 //
 static const char* kC0_Names[] = {
-    "<NUL>", "<SOH>",  "<STX>", "<ETX>", "<EOT>",
-    "<ENQ>", "<ACK>",  "<BEL>", "<BS>",  "<HT>",
-    "<LN>",  "<VT>",   "<FF>",  "<CR>",  "<SO>",
-    "<SI>",  "<DLE>",  "<DC1>", "<DC2>", "<DC3>",
-    "<DC4>", "<NAK>",  "<SYN>", "<ETB>", "<CAN>",
-    "<EM>",  "<SUB>",  "<ESC>", "<FS>",  "<GS>",
-    "<RS>",   "<US>"
+    "<NUL>", "<SOH>", "<STX>", "<ETX>", "<EOT>",
+    "<ENQ>", "<ACK>", "<BEL>", "<BS>", "<HT>",
+    "<LN>", "<VT>", "<FF>", "<CR>", "<SO>",
+    "<SI>", "<DLE>", "<DC1>", "<DC2>", "<DC3>",
+    "<DC4>", "<NAK>", "<SYN>", "<ETB>", "<CAN>",
+    "<EM>", "<SUB>", "<ESC>", "<FS>", "<GS>",
+    "<RS>", "<US>"
 };
 
 void SerialConnRaw::UpdateAsTxt()
@@ -499,7 +510,8 @@ void SerialConnRaw::UpdateAsTxt()
                 case 0x0a:
                 case 0x0d:
                     text << (char)buf[k];
-                default:break;
+                default:
+                    break;
                 }
                 k += 1;
             } else if (buf[k] >= 0x80) {
@@ -561,9 +573,7 @@ void SerialConnRaw::RxProc()
     while (!mRxShouldStop) {
         int sz = GetIo()->Available();
         if (sz < 0) {
-            PostCallback([=]() {
-                PromptOK(DeQtf(this->ConnName()  + ":" + t_("I/O device was disconnected")));
-            });
+            PostCallback([=]() { PromptOK(DeQtf(this->ConnName() + ":" + t_("I/O device was disconnected"))); });
             break;
         } else if (sz == 0) {
             std::this_thread::sleep_for(std::chrono::duration<double>(0.01));
@@ -581,9 +591,7 @@ void SerialConnRaw::RxProc()
             }
             mRxBufferLock.unlock();
             //
-            PostCallback([=]() {
-                Update();
-            });
+            PostCallback([=]() { Update(); });
         }
     }
 }

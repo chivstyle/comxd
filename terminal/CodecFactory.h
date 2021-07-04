@@ -6,12 +6,13 @@
 
 #include "Codec.h"
 #include <CtrlLib/CtrlLib.h>
-#include <map>
 #include <functional>
+#include <map>
 
 #ifndef DELETE_CA_FUNCTIONS
-#define DELETE_CA_FUNCTIONS(class_name) class_name(const class_name&) = delete; \
-    class_name(class_name&&) = delete; \
+#define DELETE_CA_FUNCTIONS(class_name)                \
+    class_name(const class_name&) = delete;            \
+    class_name(class_name&&) = delete;                 \
     class_name& operator=(const class_name&) = delete; \
     class_name& operator=(class_name&&) = delete
 #endif
@@ -24,12 +25,13 @@ public:
     Codec* CreateInst(const Upp::String& codec_name);
     //
     bool RegisterCreateInstFunc(const Upp::String& codec_name,
-                                std::function<Codec*()> func)
+        std::function<Codec*()> func)
     {
         if (mInsts.find(codec_name) == mInsts.end()) {
             mInsts[codec_name] = func;
             return true;
-        } else return false; // There's already a function in the map
+        } else
+            return false; // There's already a function in the map
     }
     //
     std::vector<Upp::String> GetSupportedCodecNames() const
@@ -43,28 +45,27 @@ public:
     //
 protected:
     // functions to create instance(s)
-    std::map<Upp::String, std::function<Codec*()> > mInsts;
-    
+    std::map<Upp::String, std::function<Codec*()>> mInsts;
+
     DELETE_CA_FUNCTIONS(CodecFactory);
     CodecFactory();
     virtual ~CodecFactory();
 };
 
 // Help macros
-#define REGISTER_CODEC_INSTANCE(codec_name, class_name) \
-class class_name##_ { \
-public: \
-    class_name##_() \
-    { \
-        CodecFactory::Inst()->RegisterCreateInstFunc(codec_name, \
-        [=]()->Codec* { \
-            auto inst_ = new class_name(); \
-            inst_->SetName(codec_name); \
-            return inst_; \
-        }); \
-    } \
-}; \
-static class_name##_ q##class_name##_
-
+#define REGISTER_CODEC_INSTANCE(codec_name, class_name)              \
+    class class_name##_ {                                            \
+    public:                                                          \
+        class_name##_()                                              \
+        {                                                            \
+            CodecFactory::Inst()->RegisterCreateInstFunc(codec_name, \
+                [=]() -> Codec* {                                    \
+                    auto inst_ = new class_name();                   \
+                    inst_->SetName(codec_name);                      \
+                    return inst_;                                    \
+                });                                                  \
+        }                                                            \
+    };                                                               \
+    static class_name##_ q##class_name##_
 
 #endif

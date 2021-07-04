@@ -13,4 +13,3 @@ END_TOPIC
 TOPIC("welcome_zh-cn")
 #include "welcome_zh-cn.tppi"
 END_TOPIC
-

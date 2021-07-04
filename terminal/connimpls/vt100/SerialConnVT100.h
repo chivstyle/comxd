@@ -46,46 +46,46 @@ public:
             DECCKM_Cursor = 0,
             DECCKM_Application
         };
-        uint32_t DECCKM: 1;
+        uint32_t DECCKM : 1;
         enum DECANM_Value {
             DECANM_VT52 = 0,
             DECANM_ANSI
         };
-        uint32_t DECANM: 1;
+        uint32_t DECANM : 1;
         enum DECCOLM_Value {
             DECCOLM_80 = 0,
             DECCOLM_132
         };
-        uint32_t DECCOLM: 1;
+        uint32_t DECCOLM : 1;
         enum DECSCLM_Value {
             DECSCLM_Jump = 0,
             DECSCLM_Smooth
         };
-        uint32_t DECSCLM: 1;
+        uint32_t DECSCLM : 1;
         enum DECSCNM_Value {
             DECSCNM_Normal = 0,
             DECSCNM_Reverse
         };
-        uint32_t DECSCNM: 1;
+        uint32_t DECSCNM : 1;
         enum DECOM_Value {
             DECOM_Absolute = 0,
             DECOM_Relative
         };
-        uint32_t DECOM: 1;
+        uint32_t DECOM : 1;
         enum BOOL_Value {
             OFF,
             ON
         };
-        uint32_t DECAWM: 1;
-        uint32_t DECARM: 1;
-        uint32_t DECPFF: 1;
+        uint32_t DECAWM : 1;
+        uint32_t DECARM : 1;
+        uint32_t DECPFF : 1;
         enum DECPEX_Value {
             DECPEX_ScrollingRegion = 0,
             DECPEX_FullScreen
         };
-        uint32_t DECPEX: 1;
+        uint32_t DECPEX : 1;
         // This is not a VT100 mode, but it's proper to place it here.
-        uint32_t DECKPM: 1;
+        uint32_t DECKPM : 1;
         enum {
             DECKPM_PAM = 0,
             DECKPM_PNM
@@ -119,6 +119,7 @@ public:
     //
     void SaveCursorData(CursorDataVT100& cd);
     void LoadCursorData(const CursorDataVT100& cd);
+
 private:
     void InstallFunctions();
 };

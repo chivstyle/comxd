@@ -6,6 +6,7 @@
 class Ecma48ControlSeqFactory;
 class SerialConnEcma48 : public virtual SerialConnVT {
     using Superclass = SerialConnVT;
+
 public:
     SerialConnEcma48(std::shared_ptr<SerialIo> io);
     ~SerialConnEcma48();
@@ -179,11 +180,11 @@ protected:
     int IsControlSeq(const std::string_view& seq, size_t& p_begin, size_t& p_sz, size_t& s_end);
     void RefineTheInput(std::string& raw);
     void Put(const std::string& s);
-	//
+    //
     struct EcmaDAQ {
         Upp::Point From;
         Upp::Point To;
-        int        Idx;
+        int Idx;
         EcmaDAQ()
             : Idx(0)
         {
@@ -200,47 +201,104 @@ protected:
     int mLineHome;
     // ANSI MODES
     struct Ecma48Modes {
-        enum BDSMValue { BDSM_Explicit = 0, BDSM_Implicit };
-        uint32_t BDSM: 1;
-        enum CRMValue { CRM_Control = 0, CRM_Graphic };
-        uint32_t CRM: 1;
-        enum DCSMValue { DCSM_Presentation = 0, DCSM_Data };
-        uint32_t DCSM: 1;
-        enum ERMValue { ERM_Protect = 0, ERM_All };
-        uint32_t ERM: 1;
-        enum FEAMValue { FEAM_Execute = 0, FEAM_Store };
-        uint32_t FEAM: 1;
-        enum FETMValue { FETM_Insert = 0, FETM_Exclude };
-        uint32_t FETM: 1;
-        enum GATMValue { GATM_Guad = 0, GATM_All };
-        uint32_t GATM: 1;
-        enum GRCMValue { GRCM_Replacing = 0, GRCM_Cumulative };
-        uint32_t GRCM: 1;
-        enum HEMValue { HEM_Following = 0, HEM_Preceding };
-        uint32_t HEM: 1;
-        enum IRMValue { IRM_Replace = 0, IRM_Insert };
-        uint32_t IRM: 1;
-        enum KAMValue { KAM_Enabled = 0, KAM_Disabled };
-        uint32_t KAM: 1;
-        enum MATMValue { MATM_Single = 0, MATM_Multiple };
-        uint32_t MATM: 1;
-        uint32_t PUM: 1; // PUM was deprecated
-        enum SATMValue { SATM_Select = 0, SATM_All };
-        uint32_t SATM: 1;
-        enum SRMValue { SRM_Monitor = 0, SRM_Simultaneous };
-        uint32_t SRM: 1;
-        enum SRTMValue { SRTM_Normal = 0, SRTM_Diagnostic };
-        uint32_t SRTM: 1;
-        enum TSMValue { TSM_Multiple = 0, TSM_Single };
-        uint32_t TSM: 1;
-        enum TTMValue { TTM_Cursor = 0, TTM_All };
-        uint32_t TTM: 1;
-        enum VEMValue { VEM_Following = 0, VEM_Preceding };
-        uint32_t VEM: 1;
-        uint32_t ZDM: 1; // ZDM was deprecated
-        uint32_t EBM: 1; // Elimited mode
-        enum LMNValue { LMN_NewLine = 0, LMN_LineFeed };
-        uint32_t LMN: 1; // Elimited mode, but VT102 will use it.
+        enum BDSMValue {
+            BDSM_Explicit = 0,
+            BDSM_Implicit
+        };
+        uint32_t BDSM : 1;
+        enum CRMValue {
+            CRM_Control = 0,
+            CRM_Graphic
+        };
+        uint32_t CRM : 1;
+        enum DCSMValue {
+            DCSM_Presentation = 0,
+            DCSM_Data
+        };
+        uint32_t DCSM : 1;
+        enum ERMValue {
+            ERM_Protect = 0,
+            ERM_All
+        };
+        uint32_t ERM : 1;
+        enum FEAMValue {
+            FEAM_Execute = 0,
+            FEAM_Store
+        };
+        uint32_t FEAM : 1;
+        enum FETMValue {
+            FETM_Insert = 0,
+            FETM_Exclude
+        };
+        uint32_t FETM : 1;
+        enum GATMValue {
+            GATM_Guad = 0,
+            GATM_All
+        };
+        uint32_t GATM : 1;
+        enum GRCMValue {
+            GRCM_Replacing = 0,
+            GRCM_Cumulative
+        };
+        uint32_t GRCM : 1;
+        enum HEMValue {
+            HEM_Following = 0,
+            HEM_Preceding
+        };
+        uint32_t HEM : 1;
+        enum IRMValue {
+            IRM_Replace = 0,
+            IRM_Insert
+        };
+        uint32_t IRM : 1;
+        enum KAMValue {
+            KAM_Enabled = 0,
+            KAM_Disabled
+        };
+        uint32_t KAM : 1;
+        enum MATMValue {
+            MATM_Single = 0,
+            MATM_Multiple
+        };
+        uint32_t MATM : 1;
+        uint32_t PUM : 1; // PUM was deprecated
+        enum SATMValue {
+            SATM_Select = 0,
+            SATM_All
+        };
+        uint32_t SATM : 1;
+        enum SRMValue {
+            SRM_Monitor = 0,
+            SRM_Simultaneous
+        };
+        uint32_t SRM : 1;
+        enum SRTMValue {
+            SRTM_Normal = 0,
+            SRTM_Diagnostic
+        };
+        uint32_t SRTM : 1;
+        enum TSMValue {
+            TSM_Multiple = 0,
+            TSM_Single
+        };
+        uint32_t TSM : 1;
+        enum TTMValue {
+            TTM_Cursor = 0,
+            TTM_All
+        };
+        uint32_t TTM : 1;
+        enum VEMValue {
+            VEM_Following = 0,
+            VEM_Preceding
+        };
+        uint32_t VEM : 1;
+        uint32_t ZDM : 1; // ZDM was deprecated
+        uint32_t EBM : 1; // Elimited mode
+        enum LMNValue {
+            LMN_NewLine = 0,
+            LMN_LineFeed
+        };
+        uint32_t LMN : 1; // Elimited mode, but VT102 will use it.
         Ecma48Modes()
             : BDSM(BDSM_Implicit)
             , CRM(CRM_Control)
@@ -267,7 +325,8 @@ protected:
     struct Ecma48Modes mModes;
     // fill region with c
     void Fill(int X0, int Y0, int X1, int Y1, const VTChar& c);
+
 private:
-	bool mUseS8C; // 8-bit control seq
+    bool mUseS8C; // 8-bit control seq
     void InstallFunctions();
 };

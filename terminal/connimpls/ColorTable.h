@@ -37,7 +37,7 @@ public:
     //
     const Upp::Color& GetColor(int color_id);
     const Upp::Color& GetIndexColor(int index);
-    
+
     void SetColor(int color_id, const Upp::Color& color)
     {
         mTbl[color_id] = color;
@@ -48,6 +48,5 @@ private:
     //
     Upp::Color mFallbackColor;
 };
-
 
 #endif

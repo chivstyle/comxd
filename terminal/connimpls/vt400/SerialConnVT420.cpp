@@ -3,9 +3,9 @@
 //
 */
 #include "SerialConnVT420.h"
-#include "VT420ControlSeq.h"
-#include "VT420Charset.h"
 #include "ConnFactory.h"
+#include "VT420Charset.h"
+#include "VT420ControlSeq.h"
 
 REGISTER_CONN_INSTANCE("vt420 by chiv", "vt420", SerialConnVT420);
 
@@ -38,9 +38,7 @@ void SerialConnVT420::ProcessDECBI(const std::string_view& p)
 
 void SerialConnVT420::ProcessDECSCL(const std::string_view& p)
 {
-    if (p == "64" || p == "64;0" || p == "64;2" || \
-        p == "63" || p == "63;0" || p == "63;2" || \
-        p == "62" || p == "62;0" || p == "62;2") {
+    if (p == "64" || p == "64;0" || p == "64;2" || p == "63" || p == "63;0" || p == "63;2" || p == "62" || p == "62;0" || p == "62;2") {
         mOperatingLevel = VT400_S8C;
     } else if (p == "64;1" || p == "63;1" || p == "62;1") {
         mOperatingLevel = VT400_S7C;
@@ -66,7 +64,8 @@ void SerialConnVT420::ProcessDECSM(const std::string_view& p)
     case 81:
         mModes.DECKPM = 1;
         break;
-    default: SerialConnVT320::ProcessDECSM(p);
+    default:
+        SerialConnVT320::ProcessDECSM(p);
     }
 }
 void SerialConnVT420::ProcessDECRM(const std::string_view& p)
@@ -76,7 +75,8 @@ void SerialConnVT420::ProcessDECRM(const std::string_view& p)
     case 81:
         mModes.DECKPM = 0;
         break;
-    default: SerialConnVT320::ProcessDECRM(p);
+    default:
+        SerialConnVT320::ProcessDECRM(p);
     }
 }
 
@@ -95,7 +95,8 @@ void SerialConnVT420::ProcessDA(const std::string_view& p)
         // 21 - horizontal scrolling
         GetIo()->Write("\E[?62,63,64;6;9;15;18c");
         break;
-    default:SerialConnVT320::ProcessDA(p);
+    default:
+        SerialConnVT320::ProcessDA(p);
     }
 }
 
@@ -108,7 +109,8 @@ void SerialConnVT420::ProcessSecondaryDA(const std::string_view& p)
         // Pv - firmware version.
         GetIo()->Write("\E[>41;20;1c");
         break;
-    default:SerialConnVT320::ProcessSecondaryDA(p);
+    default:
+        SerialConnVT320::ProcessSecondaryDA(p);
     }
 }
 
@@ -120,7 +122,8 @@ void SerialConnVT420::ProcessTertiaryDA(const std::string_view& p)
         // DCS!|D...D ST
         GetIo()->Write("\E\x50!|0\E\x5c");
         break;
-    default:break;
+    default:
+        break;
     }
 }
 // TODO: https://vt100.net/docs/vt420-uu/chapter9.html, 12 VT420 Reports
@@ -128,12 +131,13 @@ void SerialConnVT420::ProcessDECDSR(const std::string_view& p)
 {
     int pn = atoi(p.data());
     switch (pn) {
-    case 6: if (1) {
-        std::string rsp = std::string("\E[?") + \
-            std::to_string(mVy) + ";" + \
-            std::to_string(mVx) + ";0R";
-        GetIo()->Write(rsp);
-    } break;
-    default: SerialConnVT320::ProcessDECDSR(p);
+    case 6:
+        if (1) {
+            std::string rsp = std::string("\E[?") + std::to_string(mVy) + ";" + std::to_string(mVx) + ";0R";
+            GetIo()->Write(rsp);
+        }
+        break;
+    default:
+        SerialConnVT320::ProcessDECDSR(p);
     }
 }

@@ -3,9 +3,9 @@
 //
 */
 #include "SerialConnVT100.h"
-#include "VT100ControlSeq.h"
-#include "VT100Charset.h"
 #include "ConnFactory.h"
+#include "VT100Charset.h"
+#include "VT100ControlSeq.h"
 
 using namespace Upp;
 
@@ -57,11 +57,11 @@ void SerialConnVT100::InstallFunctions()
 //
 void SerialConnVT100::ProcessDECKPNM(const std::string_view&)
 {
-	mModes.DECKPM = VT100Modes::DECKPM_PNM;
+    mModes.DECKPM = VT100Modes::DECKPM_PNM;
 }
 void SerialConnVT100::ProcessDECKPAM(const std::string_view&)
 {
-	mModes.DECKPM = VT100Modes::DECKPM_PAM;
+    mModes.DECKPM = VT100Modes::DECKPM_PAM;
 }
 //
 void SerialConnVT100::ProcessDA(const std::string_view& p)
@@ -75,26 +75,27 @@ void SerialConnVT100::ProcessDA(const std::string_view& p)
     }
 }
 //
-#define DO_SET_CHARSET(g) do { \
-	if (p == "A") { \
-        mCharsets[g] = CS_UK; \
-	} else if (p == "B") { \
-		mCharsets[g] = CS_US; \
-	} else if (p == "0") { \
-		mCharsets[g] = CS_LINE_DRAWING; \
-	} else if (p == "1") { \
-		mCharsets[g] = CS_ROM; \
-	} else if (p == "2") { \
-		mCharsets[g] = CS_ROM_SPECIAL; \
-	} else { \
-		mCharsets[g] = CS_DEFAULT; \
-	} \
-	mCharset = mCharsets[g]; \
-} while (0)
+#define DO_SET_CHARSET(g)                   \
+    do {                                    \
+        if (p == "A") {                     \
+            mCharsets[g] = CS_UK;           \
+        } else if (p == "B") {              \
+            mCharsets[g] = CS_US;           \
+        } else if (p == "0") {              \
+            mCharsets[g] = CS_LINE_DRAWING; \
+        } else if (p == "1") {              \
+            mCharsets[g] = CS_ROM;          \
+        } else if (p == "2") {              \
+            mCharsets[g] = CS_ROM_SPECIAL;  \
+        } else {                            \
+            mCharsets[g] = CS_DEFAULT;      \
+        }                                   \
+        mCharset = mCharsets[g];            \
+    } while (0)
 //
 void SerialConnVT100::ProcessG0_CS(const std::string_view& p)
 {
-	DO_SET_CHARSET(0);
+    DO_SET_CHARSET(0);
 }
 void SerialConnVT100::ProcessG1_CS(const std::string_view& p)
 {
@@ -180,13 +181,27 @@ bool SerialConnVT100::ProcessKeyDown(Upp::dword key, Upp::dword flags)
             }
             break;
         /*! keys below, I'm not sure, from libncurse */
-        case K_F5:  Put("\EOt"); break;
-        case K_F6:  Put("\EOu"); break;
-        case K_F7:  Put("\EOv"); break;
-        case K_F8:  Put("\EOl"); break;
-        case K_F9:  Put("\EOw"); break;
-        case K_F10: Put("\EOx"); break;
-        case K_HOME: Put("\E[H"); break;
+        case K_F5:
+            Put("\EOt");
+            break;
+        case K_F6:
+            Put("\EOu");
+            break;
+        case K_F7:
+            Put("\EOv");
+            break;
+        case K_F8:
+            Put("\EOl");
+            break;
+        case K_F9:
+            Put("\EOw");
+            break;
+        case K_F10:
+            Put("\EOx");
+            break;
+        case K_HOME:
+            Put("\E[H");
+            break;
         default:
             processed = false;
             break;
@@ -199,41 +214,79 @@ void SerialConnVT100::ProcessDECSM(const std::string_view& p)
 {
     int ps = atoi(p.data());
     switch (ps) {
-    case 1:  mModes.DECCKM  = 1; break;
-    case 3:  mModes.DECCOLM = 1; break;
-    case 4:  mModes.DECSCLM = 1; break;
+    case 1:
+        mModes.DECCKM = 1;
+        break;
+    case 3:
+        mModes.DECCOLM = 1;
+        break;
+    case 4:
+        mModes.DECSCLM = 1;
+        break;
     case 5:
         if (!mModes.DECSCNM) {
             mModes.DECSCNM = 1;
             mColorTbl.Swap(VTColorTable::kColorId_Paper, VTColorTable::kColorId_Texts);
         }
         break;
-    case 6:  mModes.DECOM   = 1; ProcessCUP(""); /*! home */ break;
-    case 7:  mModes.DECAWM  = 1; SetWrapLine(true); break;
-    case 8:  mModes.DECARM  = 1; break;
-    case 18: mModes.DECPFF  = 1; break;
-    case 19: mModes.DECPEX  = 1; break;
+    case 6:
+        mModes.DECOM = 1;
+        ProcessCUP(""); /*! home */
+        break;
+    case 7:
+        mModes.DECAWM = 1;
+        SetWrapLine(true);
+        break;
+    case 8:
+        mModes.DECARM = 1;
+        break;
+    case 18:
+        mModes.DECPFF = 1;
+        break;
+    case 19:
+        mModes.DECPEX = 1;
+        break;
     }
 }
 void SerialConnVT100::ProcessDECRM(const std::string_view& p)
 {
     int ps = atoi(p.data());
     switch (ps) {
-    case 1:  mModes.DECCKM  = 0; break;
-    case 2:  mModes.DECANM  = 0; break;
-    case 3:  mModes.DECCOLM = 0; break;
-    case 4:  mModes.DECSCLM = 0; break;
+    case 1:
+        mModes.DECCKM = 0;
+        break;
+    case 2:
+        mModes.DECANM = 0;
+        break;
+    case 3:
+        mModes.DECCOLM = 0;
+        break;
+    case 4:
+        mModes.DECSCLM = 0;
+        break;
     case 5:
         if (mModes.DECSCNM) {
-	        mModes.DECSCNM = 0;
-	        mColorTbl.Swap(VTColorTable::kColorId_Paper, VTColorTable::kColorId_Texts);
+            mModes.DECSCNM = 0;
+            mColorTbl.Swap(VTColorTable::kColorId_Paper, VTColorTable::kColorId_Texts);
         }
         break;
-    case 6:  mModes.DECOM   = 0; ProcessCUP(""); /*! home */ break;
-    case 7:  mModes.DECAWM  = 0; SetWrapLine(false); break;
-    case 8:  mModes.DECARM  = 0; break;
-    case 18: mModes.DECPFF  = 0; break;
-    case 19: mModes.DECPEX  = 0; break;
+    case 6:
+        mModes.DECOM = 0;
+        ProcessCUP(""); /*! home */
+        break;
+    case 7:
+        mModes.DECAWM = 0;
+        SetWrapLine(false);
+        break;
+    case 8:
+        mModes.DECARM = 0;
+        break;
+    case 18:
+        mModes.DECPFF = 0;
+        break;
+    case 19:
+        mModes.DECPEX = 0;
+        break;
     }
 }
 //
@@ -249,23 +302,26 @@ void SerialConnVT100::ProcessDECDSR(const std::string_view& p)
 //
 void SerialConnVT100::ProcessCUP(const std::string_view& p)
 {
-    int idx = 0, pn[2] = {1, 1};
+    int idx = 0, pn[2] = { 1, 1 };
     SplitString(p.data(), ';', [&](const char* token) {
         if (idx < 2)
             pn[idx++] = atoi(token);
     });
-    if (pn[0] <= 0) pn[0] = 1;
-    if (pn[1] <= 0) pn[1] = 1;
+    if (pn[0] <= 0)
+        pn[0] = 1;
+    if (pn[1] <= 0)
+        pn[1] = 1;
     if (mModes.DECOM == VT100Modes::DECOM_Absolute) {
-        mPx = mFontW*(pn[1]-1);
-        mVy = pn[0]-1;
+        mPx = mFontW * (pn[1] - 1);
+        mVy = pn[0] - 1;
     } else {
         int top = mScrollingRegion.Top;
         int bot = mScrollingRegion.Bottom;
-        if (bot < 0) bot = (int)mLines.size()-1;
-        if (pn[0]-1 >= top && pn[0]-1 <= bot) {
-            mPx = mFontW*(pn[1]-1);
-            mVy = pn[0]-1;
+        if (bot < 0)
+            bot = (int)mLines.size() - 1;
+        if (pn[0] - 1 >= top && pn[0] - 1 <= bot) {
+            mPx = mFontW * (pn[1] - 1);
+            mVy = pn[0] - 1;
         }
     }
 }
@@ -278,12 +334,14 @@ void SerialConnVT100::ProcessHVP(const std::string_view& p)
 void SerialConnVT100::ProcessDECIND(const std::string_view&)
 {
     int bot = mScrollingRegion.Bottom;
-    if (bot < 0) bot = (int)mLines.size()-1;
+    if (bot < 0)
+        bot = (int)mLines.size() - 1;
     if (mVy < bot) {
         mVy++;
     } else { // scroll up
         int top = mScrollingRegion.Top;
-        if (bot < 0) bot = (int)mLines.size()-1;
+        if (bot < 0)
+            bot = (int)mLines.size() - 1;
         Size csz = GetConsoleSize();
         auto it_end = mLines.begin() + bot + 1;
         // insert new line
@@ -296,19 +354,21 @@ void SerialConnVT100::ProcessDECIND(const std::string_view&)
 void SerialConnVT100::ProcessDECSTBM(const std::string_view& p)
 {
     Size csz = GetConsoleSize();
-    int idx = 0, pn[2] = {1, 1};
+    int idx = 0, pn[2] = { 1, 1 };
     SplitString(p.data(), ';', [=, &idx, &pn](const char* token) {
         if (idx < 2)
             pn[idx++] = atoi(token);
     });
-    if (pn[0] <= 0) pn[0] = 1; //
-    if (pn[1] <= 0) pn[1] = 1; //
+    if (pn[0] <= 0)
+        pn[0] = 1; //
+    if (pn[1] <= 0)
+        pn[1] = 1; //
     if (pn[0] < pn[1] && pn[1] <= csz.cy) {
-        mScrollingRegion.Top = pn[0]-1;
-        mScrollingRegion.Bottom = pn[1]-1;
+        mScrollingRegion.Top = pn[0] - 1;
+        mScrollingRegion.Bottom = pn[1] - 1;
         // To the home position
         mVx = 0;
-        mVy = pn[0]-1;
+        mVy = pn[0] - 1;
     }
 }
 void SerialConnVT100::SaveCursorData(CursorDataVT100& cd)

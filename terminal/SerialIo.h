@@ -4,10 +4,10 @@
 #ifndef _comxd_SerialIo_h_
 #define _comxd_SerialIo_h_
 
+#include <CtrlLib/CtrlLib.h>
+#include <list>
 #include <string>
 #include <vector>
-#include <list>
-#include <CtrlLib/CtrlLib.h>
 // interface class
 class SerialIo {
 public:
@@ -15,7 +15,7 @@ public:
     virtual ~SerialIo();
     //
     virtual bool Start() { return true; }
-    virtual void Stop() {}
+    virtual void Stop() { }
     /// Was data available?
     /// @return
     ///  - <0 Error, device was corrupted

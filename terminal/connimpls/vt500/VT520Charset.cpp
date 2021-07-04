@@ -7,5 +7,5 @@
 
 uint32_t VT520_RemapCharacter(uint32_t uc, int cs, int extended_cs)
 {
-	return VT420_RemapCharacter(uc, cs, extended_cs);
+    return VT420_RemapCharacter(uc, cs, extended_cs);
 }

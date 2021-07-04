@@ -4,59 +4,59 @@
 #ifndef _comxd_ControlSeq_h_
 #define _comxd_ControlSeq_h_
 
-#include <vector>
 #include <string>
+#include <vector>
 //----------------------------------------------------------------------------------------------
 // CONTROl SEQ
-#define SEQ_NONE                      0
-#define SEQ_PENDING                   1
-#define SEQ_CORRUPTED                 2
+#define SEQ_NONE 0
+#define SEQ_PENDING 1
+#define SEQ_CORRUPTED 2
 // ECMA-048
-#define ECMA48_SEQ_BEGIN              3
-#define ECMA48_SEQ_MAX_COUNT          200
-#define ECMA48_SEQ_END                ECMA48_SEQ_BEGIN+ECMA48_SEQ_MAX_COUNT // 203
+#define ECMA48_SEQ_BEGIN 3
+#define ECMA48_SEQ_MAX_COUNT 200
+#define ECMA48_SEQ_END ECMA48_SEQ_BEGIN + ECMA48_SEQ_MAX_COUNT // 203
 // vt100
-#define VT100_SEQ_BEGIN               ECMA48_SEQ_END+1 // 204
-#define VT100_SEQ_MAX_COUNT           100
-#define VT100_SEQ_END                 VT100_SEQ_BEGIN+VT100_SEQ_MAX_COUNT // 304
+#define VT100_SEQ_BEGIN ECMA48_SEQ_END + 1 // 204
+#define VT100_SEQ_MAX_COUNT 100
+#define VT100_SEQ_END VT100_SEQ_BEGIN + VT100_SEQ_MAX_COUNT // 304
 // ansi
-#define ANSI_SEQ_BEGIN                VT100_SEQ_END+1 // 305
-#define ANSI_SEQ_MAX_COUNT            100
-#define ANSI_SEQ_END                  ANSI_SEQ_BEGIN+ANSI_SEQ_MAX_COUNT // 405
+#define ANSI_SEQ_BEGIN VT100_SEQ_END + 1 // 305
+#define ANSI_SEQ_MAX_COUNT 100
+#define ANSI_SEQ_END ANSI_SEQ_BEGIN + ANSI_SEQ_MAX_COUNT // 405
 // vt200
-#define VT200_SEQ_BEGIN               ANSI_SEQ_END+1 // 406
-#define VT200_SEQ_MAX_COUNT           100
-#define VT200_SEQ_END                 VT200_SEQ_BEGIN+VT200_SEQ_MAX_COUNT // 506
+#define VT200_SEQ_BEGIN ANSI_SEQ_END + 1 // 406
+#define VT200_SEQ_MAX_COUNT 100
+#define VT200_SEQ_END VT200_SEQ_BEGIN + VT200_SEQ_MAX_COUNT // 506
 // vt300
-#define VT300_SEQ_BEGIN               VT200_SEQ_END+1 // 507
-#define VT300_SEQ_MAX_COUNT           100
-#define VT300_SEQ_END                 VT300_SEQ_BEGIN+VT300_SEQ_MAX_COUNT // 607
+#define VT300_SEQ_BEGIN VT200_SEQ_END + 1 // 507
+#define VT300_SEQ_MAX_COUNT 100
+#define VT300_SEQ_END VT300_SEQ_BEGIN + VT300_SEQ_MAX_COUNT // 607
 // vt400
-#define VT400_SEQ_BEGIN               VT300_SEQ_END+1 // 608
-#define VT400_SEQ_MAX_COUNT           100
-#define VT400_SEQ_END                 VT400_SEQ_BEGIN+VT400_SEQ_MAX_COUNT // 708
+#define VT400_SEQ_BEGIN VT300_SEQ_END + 1 // 608
+#define VT400_SEQ_MAX_COUNT 100
+#define VT400_SEQ_END VT400_SEQ_BEGIN + VT400_SEQ_MAX_COUNT // 708
 // vt500
-#define VT500_SEQ_BEGIN               VT400_SEQ_END+1 // 809
-#define VT500_SEQ_MAX_COUNT           100
-#define VT500_SEQ_END                 VT500_SEQ_BEGIN+VT500_SEQ_MAX_COUNT // 909
+#define VT500_SEQ_BEGIN VT400_SEQ_END + 1 // 809
+#define VT500_SEQ_MAX_COUNT 100
+#define VT500_SEQ_END VT500_SEQ_BEGIN + VT500_SEQ_MAX_COUNT // 909
 // xterm
-#define XTERM_SEQ_BEGIN               VT500_SEQ_END+1 // 1010
-#define XTERM_SEQ_MAX_COUNT           100
-#define XTERM_SEQ_END                 XTERM_SEQ_BEGIN+XTERM_SEQ_MAX_COUNT // 1110
+#define XTERM_SEQ_BEGIN VT500_SEQ_END + 1 // 1010
+#define XTERM_SEQ_MAX_COUNT 100
+#define XTERM_SEQ_END XTERM_SEQ_BEGIN + XTERM_SEQ_MAX_COUNT // 1110
 //
 struct ControlSeq {
-    int         Type;
+    int Type;
     std::string Head; // Begin with this string.
     std::string Tail; // End
-    short       Pnum;   // Number of parameters
+    short Pnum; // Number of parameters
     enum ParaType {
-        No,            // Withoud parameter
-        Ps,            // With Ps
-        Pn,            // With Pn
-        Gs,            // With string
-        Gn             // parameter is a string with length = n
+        No, // Withoud parameter
+        Ps, // With Ps
+        Pn, // With Pn
+        Gs, // With string
+        Gn // parameter is a string with length = n
     };
-    short       Ptyp;   // Type of parameters
+    short Ptyp; // Type of parameters
     //
     ControlSeq()
         : Type(SEQ_NONE)
@@ -76,8 +76,8 @@ struct ControlSeq {
 
 class ControlSeqFactory {
 public:
-    ControlSeqFactory() {}
-    virtual ~ControlSeqFactory() {}
+    ControlSeqFactory() { }
+    virtual ~ControlSeqFactory() { }
     /// @return
     ///     SEQ_NONE
     ///     SEQ_PENDING
@@ -88,6 +88,7 @@ public:
     {
         mSeqs.emplace_back(type, head, ptyp, pnum, tail);
     }
+
 protected:
     std::vector<ControlSeq> mSeqs;
 };
