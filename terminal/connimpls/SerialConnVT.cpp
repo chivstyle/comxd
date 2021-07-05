@@ -731,9 +731,9 @@ Point SerialConnVT::LogicToVirtual(int lx, int ly, int& px, int& next_px,
         }
     }
 #else
+	vy = ly / mFontH;
     py = mFontH * vy;
     next_py = py + mFontH;
-    vy = ly / mFontH;
     if (vy >= (int)(mLinesBuffer.size() + mLines.size()))
         vy = (int)(mLinesBuffer.size() + mLines.size()) - 1;
 #endif
@@ -1493,15 +1493,9 @@ void SerialConnVT::DrawCursor(Draw& draw)
 {
     if (!mShowCursor)
         return;
-
+	//
     int px = mPx - mSbH.Get();
     int py = mPy + (mSbV.GetTotal() - mSbV.Get() - mSbV.GetPage());
-#if ENABLE_FIXED_LINE_HEIGHT == 0
-    // do nothing here
-#else
-    // align
-    py = py / mFontH * mFontH;
-#endif
     Size usz = GetSize();
     if (px >= 0 && py < usz.cx && py >= 0 && py < usz.cy) {
         // a visible char.
@@ -1717,11 +1711,7 @@ void SerialConnVT::DrawVT(Draw& draw)
     Point vpos = LogicToVirtual(lx, ly, px, next_px, py, next_py);
     if (vpos.x < 0 || vpos.y < 0)
         return;
-#if ENABLE_FIXED_LINE_HEIGHT == 0
     int lyoff = py - ly;
-#else
-    int lyoff = 0;
-#endif
     //--------------------------------------------------------------
     // draw lines, and calculate the presentation information
     Size usz = GetSize();
@@ -1731,14 +1721,22 @@ void SerialConnVT::DrawVT(Draw& draw)
         int vx = this->LogicToVirtual(vline, lx, px, next_px);
         int lxoff = px - lx;
         DrawVTLine(draw, vline, vx, vy++, lxoff, lyoff);
+#if ENABLE_FIXED_LINE_HEIGHT
+		lyoff += mFontH;
+#else
         lyoff += vline.GetHeight();
+#endif
     }
     for (int i = std::max(0, vpos.y - (int)mLinesBuffer.size()); i < (int)mLines.size() && lyoff < usz.cy; ++i) {
         const VTLine& vline = mLines[i];
         int vx = this->LogicToVirtual(vline, lx, px, next_px);
         int lxoff = px - lx;
         DrawVTLine(draw, vline, vx, vy++, lxoff, lyoff);
+#if ENABLE_FIXED_LINE_HEIGHT
+		lyoff += mFontH;
+#else
         lyoff += vline.GetHeight();
+#endif
     }
 }
 
