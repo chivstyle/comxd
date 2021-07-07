@@ -303,7 +303,7 @@ void SerialConnVT100::ProcessDECDSR(const std::string_view& p)
 void SerialConnVT100::ProcessCUP(const std::string_view& p)
 {
     int idx = 0, pn[2] = { 1, 1 };
-    SplitString(p.data(), ';', [&](const char* token) {
+    SplitString(p.data(), ";", [&](const char* token) {
         if (idx < 2)
             pn[idx++] = atoi(token);
     });
@@ -355,7 +355,7 @@ void SerialConnVT100::ProcessDECSTBM(const std::string_view& p)
 {
     Size csz = GetConsoleSize();
     int idx = 0, pn[2] = { 1, 1 };
-    SplitString(p.data(), ';', [=, &idx, &pn](const char* token) {
+    SplitString(p.data(), ";", [=, &idx, &pn](const char* token) {
         if (idx < 2)
             pn[idx++] = atoi(token);
     });

@@ -247,6 +247,7 @@ void SerialConnVT::LoadScr(const ScreenData& sd)
 void SerialConnVT::SetDefaultStyle()
 {
     mStyle = VTStyle(); // default.
+    mColorTbl.SetToDefault();
 }
 //
 void SerialConnVT::Clear()

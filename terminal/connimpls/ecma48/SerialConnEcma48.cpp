@@ -447,7 +447,7 @@ void SerialConnEcma48::ProcessCPR(const std::string_view& p)
 // TODO: it's not correct, maybe. I have no idea how to implement this
 void SerialConnEcma48::ProcessCTC(const std::string_view& p)
 {
-    SplitString(p.data(), ';', [=](const char* token) {
+    SplitString(p.data(), ";", [=](const char* token) {
         int ps = atoi(token);
         switch (ps) {
         case 0:
@@ -551,7 +551,7 @@ void SerialConnEcma48::ProcessCUF(const std::string_view& p)
 void SerialConnEcma48::ProcessCUP(const std::string_view& p)
 {
     int idx = 0, pn[2] = { 1, 1 };
-    SplitString(p.data(), ';', [=, &idx, &pn](const char* token) {
+    SplitString(p.data(), ";", [=, &idx, &pn](const char* token) {
         if (idx < 2)
             pn[idx++] = atoi(token);
     });
@@ -645,7 +645,7 @@ void SerialConnEcma48::ProcessDTA(const std::string_view& p)
 {
     Size csz = GetConsoleSize();
     int idx = 0, pn[2] = { 1, 1 };
-    SplitString(p.data(), ';', [=, &idx, &pn](const char* token) {
+    SplitString(p.data(), ";", [=, &idx, &pn](const char* token) {
         if (idx < 2)
             pn[idx++] = atoi(token);
     });
@@ -1008,7 +1008,7 @@ void SerialConnEcma48::ProcessRIS(const std::string_view& p)
 }
 void SerialConnEcma48::ProcessRM(const std::string_view& p)
 {
-    SplitString(p.data(), ';', [=](const char* token) {
+    SplitString(p.data(), ";", [=](const char* token) {
         int ps = atoi(token);
         switch (ps) {
         case 1:
@@ -1131,7 +1131,7 @@ void SerialConnEcma48::ProcessSEF(const std::string_view& p)
 }
 void SerialConnEcma48::ProcessSGR(const std::string_view& p)
 {
-    SplitString(p.data(), ';', [=](const char* token) {
+    SplitString(p.data(), ";", [=](const char* token) {
         int ps = atoi(token);
         switch (ps) {
         case 0:
@@ -1305,7 +1305,7 @@ void SerialConnEcma48::ProcessSLS(const std::string_view& p)
 }
 void SerialConnEcma48::ProcessSM(const std::string_view& p)
 {
-    SplitString(p.data(), ';', [=](const char* token) {
+    SplitString(p.data(), ";", [=](const char* token) {
         int ps = atoi(token);
         switch (ps) {
         case 1:

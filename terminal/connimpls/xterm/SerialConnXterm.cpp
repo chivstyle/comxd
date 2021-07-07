@@ -41,6 +41,53 @@ void SerialConnXterm::InstallFunctions()
     mFunctions[XTCHECKSUM] = [=](const std::string_view& p) { ProcessXTCHECKSUM(p); };
 }
 
+void SerialConnXterm::ProcessSGR(const std::string_view& p)
+{
+    std::vector<int> ps;
+    SplitString(p.data(), ":;", [=, &ps](const char* token) {
+        ps.push_back(atoi(token));
+    });
+    if (ps.size() <= 2) {
+        SerialConnVT520::ProcessSGR(p);
+    } else if (ps.size() > 2) {
+        switch (ps[0]) {
+        case 38:
+            if (ps[1] == 2) { // RGB Color
+                switch (ps.size()) {
+                case 6:
+                    // ps[2] is color space, we ignore it.
+                    mStyle.FgColorId = this->mColorTbl.FindNearestColorId(Color(ps[3], ps[4], ps[5]));
+                    break;
+                case 5:
+                    mStyle.FgColorId = this->mColorTbl.FindNearestColorId(Color(ps[2], ps[3], ps[4]));
+                    break;
+                default:break;
+                }
+            } else if (ps[1] == 5) { // Indexed Color
+                mStyle.FgColorId = this->mColorTbl.FindNearestColorId(ps[2]);
+            }
+            break;
+        case 48:
+            if (ps[1] == 2) { // RGB Color
+                switch (ps.size()) {
+                case 6:
+                    // ps[2] is color space, we ignore it.
+                    mStyle.BgColorId = this->mColorTbl.FindNearestColorId(Color(ps[3], ps[4], ps[5]));
+                    break;
+                case 5:
+                    mStyle.BgColorId = this->mColorTbl.FindNearestColorId(Color(ps[2], ps[3], ps[4]));
+                    break;
+                default:break;
+                }
+            } else if (ps[1] == 5) { // Indexed Color
+                mStyle.BgColorId = this->mColorTbl.FindNearestColorId(ps[2]);
+            }
+            break;
+        default: break;
+        }
+    }
+}
+
 void SerialConnXterm::ProcessXTPUSHCOLORS(const std::string_view&)
 {
 }
@@ -103,7 +150,7 @@ void SerialConnXterm::ProcessSD(const std::string_view& p)
 {
     // If there are 5 parameters in p, it's a XTHIMOUSE, otherwise it's SD
     int idx = 0;
-    SplitString(p.data(), ';', [=, &idx](const char*) { idx++; });
+    SplitString(p.data(), ";", [=, &idx](const char*) { idx++; });
     switch (idx) {
     case 1:
         SerialConnVT520::ProcessSD(p);

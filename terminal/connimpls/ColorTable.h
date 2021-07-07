@@ -13,8 +13,10 @@ public:
     virtual ~VTColorTable();
     //
     void SetFallbackColor(const Upp::Color& color);
-    //
+    // ID layout, [0 ~ kColorId_Max ] VT colors, [ kColorId_Max, kColorId_Max+255] indexed
+    // colors
     enum ColorId {
+        // basic colors
         kColorId_None,
         kColorId_Texts,
         kColorId_Paper,
@@ -26,9 +28,14 @@ public:
         kColorId_Magenta,
         kColorId_Cyan,
         kColorId_Yellow,
-        //
         kColorId_Max
     };
+    //
+    void SetToDefault();
+    //
+    int FindNearestColorId(const Upp::Color& color);
+    // this routine will return a valid color_id, the index should be in [0,255]
+    int FindNearestColorId(int index);
     //
     void Swap(const ColorId& color_id1, const ColorId& color_id2)
     {

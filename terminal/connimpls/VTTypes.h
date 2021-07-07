@@ -16,16 +16,17 @@
 // Warning: s should be valid
 // Warning: this routine will modify the string s, like strtok
 // NOTE: Use Upp::Split, if you want to split string to words.
-static inline void SplitString(char* s, size_t s_len, char delim, std::function<void(const char*)> func)
+static inline void SplitString(char* s, size_t s_len, const char* delim, std::function<void(const char*)> func)
 {
     size_t p = 0, q = 0; // [p, q) defines a result
-    for (; q < s_len && s[q] != delim; ++q)
+    for (; q < s_len && !strchr(delim, s[q]); ++q)
         ;
     while (q < s_len) {
         s[q] = '\0';
         func(s + p);
-        p = q + 1;
-        for (; q < s_len && s[q] != delim; ++q)
+        p = ++q; // p is the position of next parameter
+        // find next separator
+        for (; q < s_len && !strchr(delim, s[q]); ++q)
             ;
     }
     // process the left chars
@@ -33,9 +34,9 @@ static inline void SplitString(char* s, size_t s_len, char delim, std::function<
         func(s + p);
     }
 }
-static inline void SplitString(const char* cs, char delim, std::function<void(const char*)> func)
+static inline void SplitString(const char* cs, const char* delim, std::function<void(const char*)> func)
 {
-    static const size_t kCacheSize = 128;
+    static const size_t kCacheSize = 512;
     char _cache[kCacheSize];
     size_t cs_len = strlen(cs);
     if (cs_len == 0) {
@@ -53,7 +54,7 @@ static inline void SplitString(const char* cs, char delim, std::function<void(co
         }
     }
 }
-static inline void SplitString(std::string&& s, char delim, std::function<void(const char*)> func)
+static inline void SplitString(std::string&& s, const char* delim, std::function<void(const char*)> func)
 {
     size_t s_len = s.length();
     if (s_len == 0) {
@@ -61,13 +62,13 @@ static inline void SplitString(std::string&& s, char delim, std::function<void(c
         return;
     } // return "" for empty string
     size_t p = 0, q = 0; // [p, q) defines a result
-    for (; q < s_len && s[q] != delim; ++q)
+    for (; q < s_len && !strchr(delim, s[q]); ++q)
         ;
     while (q < s_len) {
         s[q] = '\0';
         func(s.data() + p);
-        p = q + 1;
-        for (; q < s_len && s[q] != delim; ++q)
+        p = ++q;
+        for (; q < s_len && !strchr(delim, s[q]); ++q)
             ;
     }
     // process the left chars
