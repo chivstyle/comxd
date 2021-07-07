@@ -24,6 +24,10 @@ enum VT420SeqType {
     DECCARA,
     DECRARA,
     //
+    DECELF,
+    DECLFKC,
+    DECSMKR,
+    //
     DECBI,
     DECFI,
     //
