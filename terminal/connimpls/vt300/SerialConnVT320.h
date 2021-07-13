@@ -20,12 +20,6 @@ protected:
     virtual void ProcessANSIRQM(const std::string_view&);
     virtual void ProcessDECRPM(const std::string_view&);
     virtual void ProcessDECRQUPSS(const std::string_view&);
-    // level 3
-    enum VT320_OperatingLevel {
-        VT300_S7C = VT220_CL_MAX,
-        VT300_S8C,
-        VT320_CL_MAX
-    };
     // override vt220
     void ProcessDECSCL(const std::string_view&);
     void ProcessDECSEL(const std::string_view&);

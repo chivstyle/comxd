@@ -15,7 +15,7 @@ SerialConnVT420::SerialConnVT420(std::shared_ptr<SerialIo> io)
     : SerialConnVT320(io)
     , SerialConnVT(io)
 {
-    this->mOperatingLevel = VT400_S7C; // default
+    SetOperatingLevel(VT400_S7C); // default
     //
     AddVT420ControlSeqs(this->mSeqsFactory);
     //
@@ -38,23 +38,31 @@ void SerialConnVT420::ProcessDECBI(const std::string_view& p)
 
 void SerialConnVT420::ProcessDECSCL(const std::string_view& p)
 {
-    if (p == "64" || p == "64;0" || p == "64;2" || p == "63" || p == "63;0" || p == "63;2" || p == "62" || p == "62;0" || p == "62;2") {
-        mOperatingLevel = VT400_S8C;
-    } else if (p == "64;1" || p == "63;1" || p == "62;1") {
-        mOperatingLevel = VT400_S7C;
-    } else {
+    int idx = 0;
+    int ps[2] = {0, 0};
+    SplitString(p.data(), ";", [=, &idx, &ps](const char* token) {
+        if (idx < 2)
+            ps[idx] = atoi(token);
+    });
+    int level = 0;
+    if (ps[0] == 65) {
+        level = VT400_S7C;
+        if (ps[1] == 0 || ps[1] == 2)
+            level |= VTFLG_S8C;
+        //
+        SetOperatingLevel(level);
+    } else
         SerialConnVT320::ProcessDECSCL(p);
-    }
 }
 
 void SerialConnVT420::SetHostToS7C()
 {
-    GetIo()->Write("\E F");
+    Put("\E F");
 }
 
 void SerialConnVT420::SetHostToS8C()
 {
-    GetIo()->Write("\E G");
+    Put("\E G");
 }
 
 void SerialConnVT420::ProcessDECSM(const std::string_view& p)

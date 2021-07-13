@@ -11,12 +11,6 @@ public:
     SerialConnVT420(std::shared_ptr<SerialIo> io);
 
 protected:
-    // level 4
-    enum VT320_OperatingLevel {
-        VT400_S7C = VT320_CL_MAX,
-        VT400_S8C,
-        VT420_CL_MAX
-    };
     // override vt320
     void ProcessDECSCL(const std::string_view& p);
     void ProcessDECSM(const std::string_view& p);

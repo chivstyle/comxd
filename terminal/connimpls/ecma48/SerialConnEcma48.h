@@ -181,6 +181,8 @@ protected:
     void RefineTheInput(std::string& raw);
     void Put(const std::string& s);
     //
+    virtual void SetCursorToHome();
+    //
     struct EcmaDAQ {
         Upp::Point From;
         Upp::Point To;

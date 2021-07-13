@@ -231,7 +231,7 @@ void SerialConnVT100::ProcessDECSM(const std::string_view& p)
         break;
     case 6:
         mModes.DECOM = 1;
-        ProcessCUP(""); /*! home */
+        SetCursorToHome();
         break;
     case 7:
         mModes.DECAWM = 1;
@@ -272,7 +272,7 @@ void SerialConnVT100::ProcessDECRM(const std::string_view& p)
         break;
     case 6:
         mModes.DECOM = 0;
-        ProcessCUP(""); /*! home */
+        SetCursorToHome();
         break;
     case 7:
         mModes.DECAWM = 0;
@@ -297,6 +297,19 @@ void SerialConnVT100::ProcessDECDSR(const std::string_view& p)
     case 15:
         Put("\E[?13n"); // No printer
         break;
+    }
+}
+void SerialConnVT100::SetCursorToHome()
+{
+    if (mModes.DECOM == VT100Modes::DECOM_Absolute) {
+        mVx = 0; mVy = 0;
+    } else {
+        int top = mScrollingRegion.Top;
+        int bot = mScrollingRegion.Bottom;
+        if (bot < 0)
+            bot = (int)mLines.size() - 1;
+        mVx = 0;
+        mVy = top;
     }
 }
 //
@@ -400,6 +413,7 @@ void SerialConnVT100::ProcessDECRC(const std::string_view&)
 //
 void SerialConnVT100::ProcessDECALN(const std::string_view&)
 {
+    SetCursorToHome();
     for (size_t vy = 0; vy < mLines.size(); ++vy) {
         VTLine& vline = mLines[vy];
         for (size_t vx = 0; vx < vline.size(); ++vx) {

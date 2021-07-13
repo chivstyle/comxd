@@ -33,6 +33,7 @@ protected:
     void ProcessSGR(const std::string_view& p);
     // override Paste to support bracketed paste.
     void Paste();
+    void LeftDown(Upp::Point p, Upp::dword keyflags);
     // Xterm provides a alternate screen
     ScreenData mAlternateScr;
     //
@@ -86,6 +87,11 @@ protected:
             , SendXyOnPressAndRelease(1)
         {
         }
+        //
+        struct XtermResources {
+            // use xterm name, so it's little camel format
+        };
+        XtermResources mRcs;
     };
     XtermModes mModes;
     //

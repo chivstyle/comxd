@@ -7,7 +7,9 @@
 #include <string>
 //
 enum VT520SeqType {
-    VT520_SEQ_BEGIN = VT500_SEQ_BEGIN,
+    DECSWBV = VT500_SEQ_BEGIN,
+    DECSZS,
+    DECAC,
     VT520_SEQ_MAX
 };
 static_assert(VT520_SEQ_MAX < VT500_SEQ_END, "You should define VT500_SEQ_MAX_COUNT big enough");

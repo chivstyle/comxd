@@ -661,6 +661,12 @@ void SerialConnEcma48::ProcessDTA(const std::string_view& p)
         mVy = pn[0] - 1;
     }
 }
+//
+void SerialConnEcma48::SetCursorToHome()
+{
+    mVx = 0;
+    mVy = 0;
+}
 // Erase in area, we ignore it.
 void SerialConnEcma48::ProcessEA(const std::string_view& p)
 {

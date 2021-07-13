@@ -41,6 +41,8 @@ public:
     //
     virtual bool ProcessKeyDown(Upp::dword key, Upp::dword flags);
     //
+    virtual void SetCursorToHome();
+    //
     struct VT100Modes {
         enum DECCKM_Value {
             DECCKM_Cursor = 0,

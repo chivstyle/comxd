@@ -41,14 +41,6 @@ protected:
     virtual void ProcessSecondaryDA(const std::string_view&);
     // override
     uint32_t RemapCharacter(uint32_t uc, int charset);
-    //
-    enum VT220_OperatingLevel {
-        VT100,
-        VT200_S7C,
-        VT200_S8C,
-        VT220_CL_MAX
-    };
-    int mOperatingLevel;
     // key
     virtual bool ProcessKeyDown(Upp::dword key, Upp::dword flags);
     // VT220 cursor data
@@ -70,6 +62,11 @@ protected:
     VT220Modes mModes;
     CursorDataVT220 mCursorData;
 
+    void SetOperatingLevel(int level);
+    int GetOperatingLevel() const;
+
 private:
+    int mOperatingLevel;
+    
     void InstallFunctions();
 };

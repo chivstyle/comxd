@@ -19,12 +19,6 @@ protected:
     void ProcessSM(const std::string_view& p);
     void ProcessRM(const std::string_view& p);
     void ProcessDA(const std::string_view& p);
-    // level 5
-    enum VT520_OperatingLevel {
-        VT500_S7C = VT420_CL_MAX,
-        VT500_S8C,
-        VT520_CL_MAX
-    };
     //
     struct VT520Modes {
         uint32_t DECNCSM : 1; // no clear screen on column change

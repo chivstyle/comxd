@@ -41,6 +41,12 @@ void SerialConnXterm::InstallFunctions()
     mFunctions[XTCHECKSUM] = [=](const std::string_view& p) { ProcessXTCHECKSUM(p); };
 }
 
+void SerialConnXterm::LeftDown(Point p, dword keyflags)
+{
+    
+    SerialConnVT520::LeftDown(p, keyflags);
+}
+
 void SerialConnXterm::ProcessSGR(const std::string_view& p)
 {
     std::vector<int> ps;
@@ -103,11 +109,12 @@ void SerialConnXterm::ProcessXTHIMOUSE(const std::string_view&)
 void SerialConnXterm::ProcessXTRMTITLE(const std::string_view&)
 {
 }
-void SerialConnXterm::ProcessXTMODKEYS(const std::string_view&)
+void SerialConnXterm::ProcessXTMODKEYS(const std::string_view& p)
 {
 }
 void SerialConnXterm::ProcessXTSMPOINTER(const std::string_view&)
 {
+    // Ignore this Seq.
 }
 void SerialConnXterm::ProcessXTPUSHSGR(const std::string_view&)
 {
@@ -125,8 +132,55 @@ void SerialConnXterm::ProcessXTRESTORE(const std::string_view&)
 void SerialConnXterm::ProcessXTSAVE(const std::string_view&)
 {
 }
-void SerialConnXterm::ProcessXTWINOPS(const std::string_view&)
+void SerialConnXterm::ProcessXTWINOPS(const std::string_view& p)
 {
+    int ps[3] = {-1, -1, -1};
+    int idx = 0;
+    SplitString(p.data(), ";", [&idx, &ps](const char* token) {
+        if (idx < 3)
+            ps[idx++] = atoi(token);
+    });
+    switch (ps[0]) {
+    case 13: if (1) { // report xterm window position, in pixels
+        Put("\E[3;0;0t");
+    } break;
+    case 14: if (1) {
+        std::string rsp = "\E[4;" + std::to_string(GetSize().cy) + ";" +
+            std::to_string(GetSize().cx) + "t";
+        Put(rsp);
+    } break;
+    case 15: if (1) { // report size of the screen in pixels
+        std::string rsp = "\E[5;" + std::to_string(GetSize().cy) + ";" +
+            std::to_string(GetSize().cx) + "t";
+        Put(rsp);
+    } break;
+    case 16: if (1) { // report xterm character cell size in pixels
+        std::string rsp = "\E[6;" + std::to_string(mFontH) + ";" +
+            std::to_string(mFontW) + "t";
+        Put(rsp);
+    } break;
+    case 18: if (1) { // Report the size of the text area in characters
+        Size csz = GetConsoleSize();
+        std::string rsp = "\E[8;" + std::to_string(csz.cy) + ";" +
+            std::to_string(csz.cx) + "t";
+        Put(rsp);
+    } break;
+    case 19: if (1) { // Report the size of the screen in characters.
+        Size csz = GetConsoleSize();
+        std::string rsp = "\E[9;" + std::to_string(csz.cy) + ";" +
+            std::to_string(csz.cx) + "t";
+        Put(rsp);
+    } break;
+    case 20: if (1) { // Report xterm window’s icon label
+        std::string rsp = "\E]L" + this->Name().ToStd() + "\E\\";
+        Put(rsp);
+    } break;
+    case 21: if (1) { // Report xterm window’s title
+        std::string rsp = "\E]L" + this->Name().ToStd() + "\E\\";
+        Put(rsp);
+    } break;
+    // Ignore others, such as "save xterm title", "restore xterm title", .etc
+    }
 }
 void SerialConnXterm::ProcessXTSMTITLE(const std::string_view&)
 {

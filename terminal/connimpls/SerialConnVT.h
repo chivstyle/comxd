@@ -3,6 +3,9 @@
 //
 // 2020/9/4 - From now on, CursorX, CursorY is the data position, not presentation position
 //            anymore.
+//
+// This is the base class of virtual terminals
+//
 #ifndef _comxd_ConnVT_h_
 #define _comxd_ConnVT_h_
 
@@ -286,7 +289,7 @@ protected:
     void CheckAndFix(ScrollingRegion& span);
     //------------------------------------------------------------------------------------------
     int mTabWidth;
-
+    //
 private:
     bool mWrapLine;
     bool mScrollToEnd;

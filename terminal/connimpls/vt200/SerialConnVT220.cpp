@@ -14,8 +14,8 @@ using namespace Upp;
 SerialConnVT220::SerialConnVT220(std::shared_ptr<SerialIo> io)
     : SerialConnVT100(io)
     , SerialConnVT(io)
-    , mOperatingLevel(VT200_S7C)
 {
+    SetOperatingLevel(VT200_S7C);
     // vt100 supports G0,G1, vt200 supports G2,G3
     mCharsets[2] = CS_DEC_SUPPLEMENTAL;
     mCharsets[3] = CS_DEC_SUPPLEMENTAL;
@@ -44,12 +44,19 @@ void SerialConnVT220::InstallFunctions()
 // compatible level
 void SerialConnVT220::ProcessDECSCL(const std::string_view& p)
 {
-    if (p == "61") { // level1, vt100
-        mOperatingLevel = VT200_S7C;
-    } else if (p == "62" || p == "62;2" || p == "62;0") { // level2, vt200, 8-bit controls
-        mOperatingLevel = VT200_S8C;
-    } else if (p == "62;1") { // vt200, 7-bit controls
-        mOperatingLevel = VT200_S7C;
+    int idx = 0;
+    int ps[2] = {0, 0};
+    SplitString(p.data(), ";", [=, &idx, &ps](const char* token) {
+        if (idx < 2)
+            ps[idx] = atoi(token);
+    });
+    int level = 0;
+    if (ps[0] <= 62) { // map to VT200
+        level = VT200_S7C;
+        if (ps[1] == 0 || ps[1] == 2)
+            level |= VTFLG_S8C;
+        //
+        SetOperatingLevel(level);
     }
 }
 #define DO_SET_CHARSET(g)                           \
@@ -275,11 +282,21 @@ uint32_t SerialConnVT220::RemapCharacter(uint32_t uc, int charset)
 {
     return VT220_RemapCharacter(uc, charset, mExtendedCharset);
 }
+//
+void SerialConnVT220::SetOperatingLevel(int level)
+{
+    mOperatingLevel = level;
+    SetUseS8C((level & (0x1 << 16)) > 0);
+}
+int SerialConnVT220::GetOperatingLevel() const
+{
+    return mOperatingLevel;
+}
 
 bool SerialConnVT220::ProcessKeyDown(Upp::dword key, Upp::dword flags)
 {
     bool processed = false;
-    if (flags == 0 && mOperatingLevel > VT100) {
+    if (flags == 0 && GetOperatingLevel() > VT100_S7C) {
         processed = true;
         switch (key) {
         case K_F6:

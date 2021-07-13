@@ -44,6 +44,24 @@
 #define XTERM_SEQ_MAX_COUNT 100
 #define XTERM_SEQ_END XTERM_SEQ_BEGIN + XTERM_SEQ_MAX_COUNT // 1110
 //
+#define VTFLG_S8C  (0x1 << 16)
+#define VTFLG_VTx  0xffff
+enum VTOperatingLevel {
+    VT100_S7C = 0x100,
+    VT200_S7C = 0x200,
+    VT200_S8C = VTFLG_S8C | VT200_S7C,
+    VT300_S7C = 0x300,
+    VT300_S8C = VTFLG_S8C | VT300_S7C,
+    VT400_S7C = 0x400,
+    VT400_S8C = VTFLG_S8C | VT400_S7C,
+    VT500_S7C = 0x500,
+    VT500_S8C = VTFLG_S8C | VT500_S7C
+};
+static inline int LevelToVTx(int level)
+{
+    return level & VTFLG_VTx;
+}
+//
 struct ControlSeq {
     int Type;
     std::string Head; // Begin with this string.

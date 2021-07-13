@@ -15,7 +15,7 @@ SerialConnVT520::SerialConnVT520(std::shared_ptr<SerialIo> io)
     : SerialConnVT420(io)
     , SerialConnVT(io)
 {
-    this->mOperatingLevel = VT500_S7C; // default
+    SetOperatingLevel(VT500_S7C); // default
     //
     AddVT520ControlSeqs(this->mSeqsFactory);
     //
@@ -223,13 +223,21 @@ void SerialConnVT520::ProcessRM(const std::string_view& p)
 
 void SerialConnVT520::ProcessDECSCL(const std::string_view& p)
 {
-    if (p == "65" || p == "65;0" || p == "65;2" || p == "64" || p == "64;0" || p == "64;2" || p == "63" || p == "63;0" || p == "63;2" || p == "62" || p == "62;0" || p == "62;2") {
-        mOperatingLevel = VT500_S8C;
-    } else if (p == "64;1" || p == "63;1" || p == "62;1") {
-        mOperatingLevel = VT500_S7C;
-    } else {
+    int idx = 0;
+    int ps[2] = {0, 0};
+    SplitString(p.data(), ";", [=, &idx, &ps](const char* token) {
+        if (idx < 2)
+            ps[idx] = atoi(token);
+    });
+    int level = 0;
+    if (ps[0] == 65) {
+        level = VT500_S7C;
+        if (ps[1] == 0 || ps[1] == 2)
+            level |= VTFLG_S8C;
+        //
+        SetOperatingLevel(level);
+    } else
         SerialConnVT420::ProcessDECSCL(p);
-    }
 }
 
 void SerialConnVT520::ProcessSecondaryDA(const std::string_view& p)

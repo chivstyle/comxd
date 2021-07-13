@@ -18,7 +18,8 @@ SerialConnVT320::SerialConnVT320(std::shared_ptr<SerialIo> io)
     // vt100 supports G0,G1, vt200 supports G2,G3
     mCharsets[2] = CS_DEFAULT;
     mCharsets[3] = CS_DEFAULT;
-    mOperatingLevel = VT300_S7C;
+    //
+    SetOperatingLevel(VT300_S7C);
     //
     AddVT320ControlSeqs(this->mSeqsFactory);
     //
@@ -27,13 +28,21 @@ SerialConnVT320::SerialConnVT320(std::shared_ptr<SerialIo> io)
 
 void SerialConnVT320::ProcessDECSCL(const std::string_view& p)
 {
-    if (p == "63" || p == "63;0" || p == "63;2" || p == "62" || p == "62;0" || p == "62;2") {
-        mOperatingLevel = VT300_S8C;
-    } else if (p == "63;1" || p == "62;1") {
-        mOperatingLevel = VT300_S7C;
-    } else {
+    int idx = 0;
+    int ps[2] = {0, 0};
+    SplitString(p.data(), ";", [=, &idx, &ps](const char* token) {
+        if (idx < 2)
+            ps[idx] = atoi(token);
+    });
+    int level = 0;
+    if (ps[0] == 65) {
+        level = VT300_S7C;
+        if (ps[1] == 0 || ps[1] == 2)
+            level |= VTFLG_S8C;
+        //
+        SetOperatingLevel(level);
+    } else
         SerialConnVT220::ProcessDECSCL(p);
-    }
 }
 
 void SerialConnVT320::InstallFunctions()
