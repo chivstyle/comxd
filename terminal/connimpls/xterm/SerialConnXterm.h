@@ -5,6 +5,7 @@
 #pragma once
 
 #include "connimpls/vt500/SerialConnVT520.h"
+#include <map>
 
 class SerialConnXterm : public SerialConnVT520 {
 public:
@@ -31,6 +32,7 @@ protected:
     void ProcessDECRM(const std::string_view& p);
     void ProcessSD(const std::string_view& p);
     void ProcessSGR(const std::string_view& p);
+    void ProcessOSC(const std::string_view& p);
     // override Paste to support bracketed paste.
     void Paste();
     void LeftDown(Upp::Point p, Upp::dword keyflags);
@@ -87,13 +89,10 @@ protected:
             , SendXyOnPressAndRelease(1)
         {
         }
-        //
-        struct XtermResources {
-            // use xterm name, so it's little camel format
-        };
-        XtermResources mRcs;
     };
     XtermModes mModes;
+    // Xterm resources
+    std::map<std::string, std::string> mRcs;
     //
 private:
     void InstallFunctions();

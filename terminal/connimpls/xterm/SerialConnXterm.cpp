@@ -172,11 +172,11 @@ void SerialConnXterm::ProcessXTWINOPS(const std::string_view& p)
         Put(rsp);
     } break;
     case 20: if (1) { // Report xterm window’s icon label
-        std::string rsp = "\E]L" + this->Name().ToStd() + "\E\\";
+        std::string rsp = "\E]L" + this->ConnName().ToStd() + "\E\\";
         Put(rsp);
     } break;
     case 21: if (1) { // Report xterm window’s title
-        std::string rsp = "\E]L" + this->Name().ToStd() + "\E\\";
+        std::string rsp = "\E]L" + this->GetTitle().ToString().ToStd() + "\E\\";
         Put(rsp);
     } break;
     // Ignore others, such as "save xterm title", "restore xterm title", .etc

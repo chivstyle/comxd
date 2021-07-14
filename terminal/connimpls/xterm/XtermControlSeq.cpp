@@ -38,4 +38,8 @@ void AddXtermControlSeqs(ControlSeqFactory* factory)
     REGISTER_SEQ(factory, XTPOPSGR, "\E[", Ps, 0, "q");
     REGISTER_SEQ(factory, XTPOPSGR, "\E[", No, 0, "#}");
     REGISTER_SEQ(factory, XTCHECKSUM, "\E[", Ps, 0, "#y");
+    //
+    REGISTER_SEQ(factory, ANSI_CONFORMANCE_LEVEL1, "\E L", No, 0, "");
+    REGISTER_SEQ(factory, ANSI_CONFORMANCE_LEVEL2, "\E M", No, 0, "");
+    REGISTER_SEQ(factory, ANSI_CONFORMANCE_LEVEL3, "\E N", No, 0, "");
 }

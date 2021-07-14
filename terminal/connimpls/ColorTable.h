@@ -13,29 +13,28 @@ public:
     virtual ~VTColorTable();
     //
     void SetFallbackColor(const Upp::Color& color);
-    // ID layout, [0 ~ kColorId_Max ] VT colors, [ kColorId_Max, kColorId_Max+255] indexed
     // colors
+    // Layout [0-16] ANSI Colors, others were remainder of 88 or 256 colors
     enum ColorId {
         // basic colors
-        kColorId_None,
-        kColorId_Texts,
-        kColorId_Paper,
-        kColorId_Red,
-        kColorId_Green,
-        kColorId_Blue,
-        kColorId_Black,
-        kColorId_White,
-        kColorId_Magenta,
-        kColorId_Cyan,
-        kColorId_Yellow,
+        kColorId_None = 1024,
+        kColorId_Texts = 1025,
+        kColorId_Paper = 1026,
+        kColorId_Red = 0,
+        kColorId_Green = 1,
+        kColorId_Blue = 2,
+        kColorId_Black = 3,
+        kColorId_White = 4,
+        kColorId_Magenta = 5,
+        kColorId_Cyan = 6,
+        kColorId_Yellow = 7,
         kColorId_Max
     };
     //
     void SetToDefault();
     //
     int FindNearestColorId(const Upp::Color& color);
-    // this routine will return a valid color_id, the index should be in [0,255]
-    int FindNearestColorId(int index);
+    int FindNearestColorId(int idx);
     //
     void Swap(const ColorId& color_id1, const ColorId& color_id2)
     {
@@ -43,12 +42,12 @@ public:
     }
     //
     const Upp::Color& GetColor(int color_id);
-    const Upp::Color& GetIndexColor(int index);
 
     void SetColor(int color_id, const Upp::Color& color)
     {
         mTbl[color_id] = color;
     }
+    void ResetColor(int color_id);
 
 private:
     std::unordered_map<int, Upp::Color> mTbl;

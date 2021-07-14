@@ -68,6 +68,7 @@ file
 	connimpls\ansi\AnsiCharset.cpp,
 	connimpls\ansi\AnsiControlSeq.cpp,
 	connimpls\ansi\AnsiControlSeq.h,
+	connimpls\xterm\XtermOsc.cpp,
 	connimpls\xterm\SerialConnXterm.cpp,
 	connimpls\xterm\SerialConnXterm.h,
 	connimpls\xterm\XtermCharset.cpp,
