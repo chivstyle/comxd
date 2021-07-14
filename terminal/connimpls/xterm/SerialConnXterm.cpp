@@ -53,9 +53,7 @@ void SerialConnXterm::ProcessSGR(const std::string_view& p)
     SplitString(p.data(), ":;", [=, &ps](const char* token) {
         ps.push_back(atoi(token));
     });
-    if (ps.size() <= 2) {
-        SerialConnVT520::ProcessSGR(p);
-    } else if (ps.size() > 2) {
+    if (ps.size() > 2) {
         switch (ps[0]) {
         case 38:
             if (ps[1] == 2) { // RGB Color
@@ -67,10 +65,14 @@ void SerialConnXterm::ProcessSGR(const std::string_view& p)
                 case 5:
                     mStyle.FgColorId = this->mColorTbl.FindNearestColorId(Color(ps[2], ps[3], ps[4]));
                     break;
-                default:break;
+                default:
+                    SerialConnVT520::ProcessSGR(p);
+                    break;
                 }
             } else if (ps[1] == 5) { // Indexed Color
                 mStyle.FgColorId = this->mColorTbl.FindNearestColorId(ps[2]);
+            } else {
+                SerialConnVT520::ProcessSGR(p);
             }
             break;
         case 48:
@@ -83,14 +85,22 @@ void SerialConnXterm::ProcessSGR(const std::string_view& p)
                 case 5:
                     mStyle.BgColorId = this->mColorTbl.FindNearestColorId(Color(ps[2], ps[3], ps[4]));
                     break;
-                default:break;
+                default:
+                    SerialConnVT520::ProcessSGR(p);
+                    break;
                 }
             } else if (ps[1] == 5) { // Indexed Color
                 mStyle.BgColorId = this->mColorTbl.FindNearestColorId(ps[2]);
+            } else {
+                SerialConnVT520::ProcessSGR(p);
             }
             break;
-        default: break;
+        default:
+            SerialConnVT520::ProcessSGR(p);
+            break;
         }
+    } else {
+        SerialConnVT520::ProcessSGR(p);
     }
 }
 
