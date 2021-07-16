@@ -862,10 +862,12 @@ bool SerialConnVT::ProcessOverflowLines()
         for (size_t k = top + 1; k <= bot; ++k) {
             std::swap(mLines[k - 1], mLines[k]);
         }
+        // This line is a new line absolutely, so we should clear it carefully.
         VTLine& vline = mLines[bot];
         for (size_t k = 0; k < vline.size(); ++k) {
             vline[k] = mBlankChar;
         }
+        vline.HasSuccessiveLines(false);
         // fix
         mVy = bot;
         //
