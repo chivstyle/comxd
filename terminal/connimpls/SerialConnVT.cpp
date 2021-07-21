@@ -173,7 +173,7 @@ void SerialConnVT::InstallUserActions()
         bar.Add(t_("Benchmark"), terminal::benchmark(), [=]() { RunParserBenchmark(); })
             .Help(t_("Test the performance of the parser"));
     };
-
+    // Context menu bar
     WhenBar = [=](Bar& bar) {
         bool has_sel = mSelectionSpan.Valid;
         bar.Add(has_sel, t_("Copy"), [=] {

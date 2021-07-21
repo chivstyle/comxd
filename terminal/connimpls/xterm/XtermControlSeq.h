@@ -24,12 +24,15 @@ enum XtermSeqType {
     XTCHECKSUM,
     XTREPORTCOLORS,
     XTREPORTSGR,
+    XTDISABLEMODOPTS,
     // xterm OSC, terminate with bell(0x07)
     XTOSC,
     // ECMA-43
     ANSI_CONFORMANCE_LEVEL1,
     ANSI_CONFORMANCE_LEVEL2,
     ANSI_CONFORMANCE_LEVEL3,
+    // ignore all those seqs
+    XTIGNORE,
 
     Xterm_SEQ_MAX
 };

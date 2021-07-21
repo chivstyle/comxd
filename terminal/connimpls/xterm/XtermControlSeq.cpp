@@ -15,6 +15,7 @@ void AddXtermControlSeqs(ControlSeqFactory* factory)
     REGISTER_SEQ(factory, XTRMTITLE, "\E[>", Ps, 0, "T");
     REGISTER_SEQ(factory, XTSMTITLE, "\E[>", Ps, 0, "t");
     REGISTER_SEQ(factory, XTMODKEYS, "\E[>", Ps, 0, "m");
+    REGISTER_SEQ(factory, XTDISABLEMODOPTS, "\E[>", Ps, 0, "n");
     REGISTER_SEQ(factory, XTSMPOINTER, "\E[>", Ps, 0, "p");
     REGISTER_SEQ(factory, XTVERSION, "\E[>", Ps, 0, "q");
     REGISTER_SEQ(factory, XTPUSHCOLORS, "\E[", Ps, 0, "#P");
@@ -42,4 +43,13 @@ void AddXtermControlSeqs(ControlSeqFactory* factory)
     REGISTER_SEQ(factory, ANSI_CONFORMANCE_LEVEL1, "\E L", No, 0, "");
     REGISTER_SEQ(factory, ANSI_CONFORMANCE_LEVEL2, "\E M", No, 0, "");
     REGISTER_SEQ(factory, ANSI_CONFORMANCE_LEVEL3, "\E N", No, 0, "");
+    // Ignore all these seqs
+    // These seqs were responsed to shell, we still list them here to prevent the user
+    // send them to me. If we do not add them to factory, the VT will enter undefined state.
+    // Don't worry, it's okay to use the VT normally.
+    REGISTER_SEQ(factory, XTIGNORE, "\E[I", Gn, 0, "");
+    REGISTER_SEQ(factory, XTIGNORE, "\E[O", Gn, 0, "");
+    REGISTER_SEQ(factory, XTIGNORE, "\E[<", Ps, 0, "M");
+    REGISTER_SEQ(factory, XTIGNORE, "\E[<", Ps, 0, "m");
+    REGISTER_SEQ(factory, XTIGNORE, "\E[M", Gn, 3, "");
 }

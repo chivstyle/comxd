@@ -39,12 +39,219 @@ void SerialConnXterm::InstallFunctions()
     mFunctions[XTWINOPS] = [=](const std::string_view& p) { ProcessXTWINOPS(p); };
     mFunctions[XTSMTITLE] = [=](const std::string_view& p) { ProcessXTSMTITLE(p); };
     mFunctions[XTCHECKSUM] = [=](const std::string_view& p) { ProcessXTCHECKSUM(p); };
+    mFunctions[XTDISABLEMODOPTS] = [=](const std::string_view& p) { ProcessXTDISABLEMODOPTS(p); };
 }
 
 void SerialConnXterm::LeftDown(Point p, dword keyflags)
 {
-    
+    int px = p.x / mFontW + 1, py = p.y / mFontH + 1;
+    int cb = 0;
+    if (mModes.SendXyOnPress || mModes.SendXyOnPressAndRelease) {
+        if (keyflags & K_SHIFT) {
+            cb |= 0x04;
+        }
+        if (keyflags & K_ALT) {
+            cb |= 0x08;
+        }
+        if (keyflags & K_CTRL) {
+            cb |= 0x10;
+        }
+        if (mModes.SgrMouse) {
+            Put(std::string("\E[<") + std::to_string(cb) + ";" +
+                std::to_string(px) + ";" + std::to_string(py) +
+                "M");
+        } else if (px <= 223 && py <= 223) {
+            std::string rsp("\E[M");
+            rsp.push_back(32 + cb);
+            rsp.push_back(32 + px);
+            rsp.push_back(32 + py);
+            Put(rsp);
+        }
+    }
     SerialConnVT520::LeftDown(p, keyflags);
+}
+void SerialConnXterm::RightDown(Point p, dword keyflags)
+{
+    int px = p.x / mFontW + 1, py = p.y / mFontH + 1;
+    int cb = 1;
+    if (mModes.SendXyOnPress || mModes.SendXyOnPressAndRelease) {
+        if (keyflags & K_SHIFT) {
+            cb |= 0x04;
+        }
+        if (keyflags & K_ALT) {
+            cb |= 0x08;
+        }
+        if (keyflags & K_CTRL) {
+            cb |= 0x10;
+        }
+        if (mModes.SgrMouse) {
+            Put(std::string("\E[<") + std::to_string(cb) + ";" +
+                std::to_string(px) + ";" + std::to_string(py) +
+                "M");
+        } else if (px <= 223 && py <= 223) {
+            std::string rsp("\E[M");
+            rsp.push_back(32 + cb);
+            rsp.push_back(32 + px);
+            rsp.push_back(32 + py);
+            Put(rsp);
+        }
+    }
+    SerialConnVT520::RightDown(p, keyflags);
+}
+void SerialConnXterm::MiddleDown(Point p, dword keyflags)
+{
+    int px = p.x / mFontW + 1, py = p.y / mFontH + 1;
+    int cb = 2;
+    if (mModes.SendXyOnPress || mModes.SendXyOnPressAndRelease) {
+        if (keyflags & K_SHIFT) {
+            cb |= 0x04;
+        }
+        if (keyflags & K_ALT) {
+            cb |= 0x08;
+        }
+        if (keyflags & K_CTRL) {
+            cb |= 0x10;
+        }
+        if (mModes.SgrMouse) {
+            Put(std::string("\E[<") + std::to_string(cb) + ";" +
+                std::to_string(px) + ";" + std::to_string(py) +
+                "M");
+        } else if (px <= 223 && py <= 223) {
+            std::string rsp("\E[M");
+            rsp.push_back(32 + cb);
+            rsp.push_back(32 + px);
+            rsp.push_back(32 + py);
+            Put(rsp);
+        }
+    }
+    SerialConnVT520::MiddleDown(p, keyflags);
+}
+void SerialConnXterm::LeftUp(Point p, dword keyflags)
+{
+    int px = p.x / mFontW + 1, py = p.y / mFontH + 1;
+    int cb = 3;
+    if (mModes.SendXyOnPressAndRelease) { // X11 mouse tracking
+        if (keyflags & K_SHIFT) {
+            cb |= 0x04;
+        }
+        if (keyflags & K_ALT) {
+            cb |= 0x08;
+        }
+        if (keyflags & K_CTRL) {
+            cb |= 0x10;
+        }
+        if (mModes.SgrMouse) {
+            Put(std::string("\E[<") + std::to_string(cb) + ";" +
+                std::to_string(px) + ";" + std::to_string(py) +
+                "m");
+        } else if (px <= 223 && py <= 223) {
+            std::string rsp("\E[M");
+            rsp.push_back(32 + cb);
+            rsp.push_back(32 + px);
+            rsp.push_back(32 + py);
+            Put(rsp);
+        }
+    }
+    SerialConnVT520::LeftUp(p, keyflags);
+}
+void SerialConnXterm::RightUp(Point p, dword keyflags)
+{
+    int px = p.x / mFontW + 1, py = p.y / mFontH + 1;
+    int cb = 3;
+    if (mModes.SendXyOnPressAndRelease) { // X11 mouse tracking
+        if (keyflags & K_SHIFT) {
+            cb |= 0x04;
+        }
+        if (keyflags & K_ALT) {
+            cb |= 0x08;
+        }
+        if (keyflags & K_CTRL) {
+            cb |= 0x10;
+        }
+        if (mModes.SgrMouse) {
+            Put(std::string("\E[<") + std::to_string(cb) + ";" +
+                std::to_string(px) + ";" + std::to_string(py) +
+                "m");
+        } else if (px <= 223 && py <= 223) {
+            std::string rsp("\E[M");
+            rsp.push_back(32 + cb);
+            rsp.push_back(32 + px);
+            rsp.push_back(32 + py);
+            Put(rsp);
+        }
+    }
+    SerialConnVT520::RightUp(p, keyflags);
+}
+void SerialConnXterm::MiddleUp(Point p, dword keyflags)
+{
+    int px = p.x / mFontW + 1, py = p.y / mFontH + 1;
+    int cb = 3;
+    if (mModes.SendXyOnPressAndRelease) { // X11 mouse tracking
+        if (keyflags & K_SHIFT) {
+            cb |= 0x04;
+        }
+        if (keyflags & K_ALT) {
+            cb |= 0x08;
+        }
+        if (keyflags & K_CTRL) {
+            cb |= 0x10;
+        }
+        if (mModes.SgrMouse) {
+            Put(std::string("\E[<") + std::to_string(cb) + ";" +
+                std::to_string(px) + ";" + std::to_string(py) +
+                "m");
+        } else if (px <= 223 && py <= 223) {
+            std::string rsp("\E[M");
+            rsp.push_back(32 + cb);
+            rsp.push_back(32 + px);
+            rsp.push_back(32 + py);
+            Put(rsp);
+        }
+    }
+    SerialConnVT520::MiddleUp(p, keyflags);
+}
+void SerialConnXterm::MouseWheel(Upp::Point p, int zdelta, Upp::dword keyflags)
+{
+    int px = p.x / mFontW + 1, py = p.y / mFontH + 1;
+    int cb = zdelta > 0 ? 5 : 4;
+    if (mModes.SendXyOnPress || mModes.SendXyOnPressAndRelease) { // X10 mouse
+        if (keyflags & K_SHIFT) {
+            cb |= 0x04;
+        }
+        if (keyflags & K_ALT) {
+            cb |= 0x08;
+        }
+        if (keyflags & K_CTRL) {
+            cb |= 0x10;
+        }
+        if (mModes.SgrMouse) {
+            Put(std::string("\E[<") + std::to_string(cb) + ";" +
+                std::to_string(px) + ";" + std::to_string(py) +
+                "M");
+        } else if (px <= 191 && py <= 191) {
+            std::string rsp("\E[M");
+            rsp.push_back(64 + cb);
+            rsp.push_back(64 + px);
+            rsp.push_back(64 + py);
+            Put(rsp);
+        }
+    }
+    SerialConnVT520::MouseWheel(p, zdelta, keyflags);
+}
+
+void SerialConnXterm::GotFocus()
+{
+    if (mModes.SendFocusInAndOut) {
+        Put("\E[I");
+    }
+    SerialConnVT520::GotFocus();
+}
+void SerialConnXterm::LostFocus()
+{
+    if (mModes.SendFocusInAndOut) {
+        Put("\E[O");
+    }
+    SerialConnVT520::LostFocus();
 }
 
 void SerialConnXterm::ProcessSGR(const std::string_view& p)
@@ -119,8 +326,32 @@ void SerialConnXterm::ProcessXTHIMOUSE(const std::string_view&)
 void SerialConnXterm::ProcessXTRMTITLE(const std::string_view&)
 {
 }
+void SerialConnXterm::ProcessXTDISABLEMODOPTS(const std::string_view& p)
+{
+    SplitString(p.data(), ";", [=](const char* token) {
+        switch (atoi(token)) {
+        case 0: mRcs["modifyKeyboard"] = "0"; break;
+        case 1: mRcs["modifyCursorKeys"] = "0"; break;
+        case 2: mRcs["modifyFunctionKeys"] = "0"; break;
+        case 4: mRcs["modifyOtherKeys"] = "0"; break;
+        }
+    });
+}
 void SerialConnXterm::ProcessXTMODKEYS(const std::string_view& p)
 {
+    std::string ps[2] = {"", ""};
+    int idx = 0;
+    SplitString(p.data(), ";", [=, &idx, &ps](const char* token) {
+        if (idx < 2)
+            ps[idx] = token;
+        idx++;
+    });
+    switch (atoi(ps[0].c_str())) {
+    case 0: mRcs["modifyKeyboard"] = ps[1]; break;
+    case 1: mRcs["modifyCursorKeys"] = ps[1]; break;
+    case 2: mRcs["modifyFunctionKeys"] = ps[1]; break;
+    case 4: mRcs["modifyOtherKeys"] = ps[1]; break;
+    }
 }
 void SerialConnXterm::ProcessXTSMPOINTER(const std::string_view&)
 {

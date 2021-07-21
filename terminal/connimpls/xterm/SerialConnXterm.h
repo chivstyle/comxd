@@ -27,6 +27,7 @@ protected:
     virtual void ProcessXTWINOPS(const std::string_view&);
     virtual void ProcessXTSMTITLE(const std::string_view&);
     virtual void ProcessXTCHECKSUM(const std::string_view&);
+    virtual void ProcessXTDISABLEMODOPTS(const std::string_view&);
     // override vt520
     void ProcessDECSM(const std::string_view& p);
     void ProcessDECRM(const std::string_view& p);
@@ -36,6 +37,14 @@ protected:
     // override Paste to support bracketed paste.
     void Paste();
     void LeftDown(Upp::Point p, Upp::dword keyflags);
+    void RightDown(Upp::Point p, Upp::dword keyflags);
+    void MiddleDown(Upp::Point p, Upp::dword keyflags);
+    void MouseWheel(Upp::Point, int zdelta, Upp::dword);
+    void LeftUp(Upp::Point p, Upp::dword keyflags);
+    void RightUp(Upp::Point p, Upp::dword keyflags);
+    void MiddleUp(Upp::Point p, Upp::dword keyflags);
+    void GotFocus();
+    void LostFocus();
     // Xterm provides a alternate screen
     ScreenData mAlternateScr;
     //
@@ -85,8 +94,10 @@ protected:
         XtermModes()
             : UseAlternateScr(0)
             , EnableAlternateScr(1)
-            , SendFocusInAndOut(1)
-            , SendXyOnPressAndRelease(1)
+            , SendFocusInAndOut(0)
+            , SendXyOnPress(0)
+            , SendXyOnPressAndRelease(0)
+            , SgrMouse(0)
         {
         }
     };
