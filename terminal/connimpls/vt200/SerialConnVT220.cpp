@@ -221,6 +221,7 @@ void SerialConnVT220::ProcessDECSM(const std::string_view& p)
     int ps = atoi(p.data());
     switch (ps) {
     case 25:
+        mModes.DECTCEM = 1;
         SetShowCursor(true);
         break;
     case 42:
@@ -236,6 +237,7 @@ void SerialConnVT220::ProcessDECRM(const std::string_view& p)
     int ps = atoi(p.data());
     switch (ps) {
     case 25:
+        mModes.DECTCEM = 0;
         SetShowCursor(false);
         break;
     case 42:

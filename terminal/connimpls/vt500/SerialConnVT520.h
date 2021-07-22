@@ -11,6 +11,10 @@ public:
     SerialConnVT520(std::shared_ptr<SerialIo> io);
 
 protected:
+    //
+    virtual void ProcessDECAC(const std::string_view& p);
+    virtual void ProcessDECRQM_ANSI(const std::string_view& p);
+    virtual void ProcessDECRQM_DECP(const std::string_view& p);
     // override vt420
     void ProcessDECSCL(const std::string_view& p);
     void ProcessSecondaryDA(const std::string_view& p);

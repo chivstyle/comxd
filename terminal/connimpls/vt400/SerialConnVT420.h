@@ -22,6 +22,8 @@ protected:
     virtual void ProcessTertiaryDA(const std::string_view&);
     virtual void ProcessDECBI(const std::string_view&);
     virtual void ProcessDECFI(const std::string_view&);
+    virtual void ProcessDECDC(const std::string_view&);
+    virtual void ProcessDECIC(const std::string_view&);
     //
     void SetHostToS7C();
     void SetHostToS8C();

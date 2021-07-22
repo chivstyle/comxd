@@ -25,6 +25,7 @@ SerialConnVT420::SerialConnVT420(std::shared_ptr<SerialIo> io)
 void SerialConnVT420::InstallFunctions()
 {
     mFunctions[TertiaryDA] = [=](const std::string_view& p) { ProcessTertiaryDA(p); };
+    mFunctions[DECDC] = [=](const std::string_view& p) { ProcessDECDC(p); };
 }
 
 void SerialConnVT420::ProcessDECFI(const std::string_view& p)
@@ -34,6 +35,36 @@ void SerialConnVT420::ProcessDECFI(const std::string_view& p)
 void SerialConnVT420::ProcessDECBI(const std::string_view& p)
 {
     mPx += mFontW;
+}
+
+void SerialConnVT420::ProcessDECDC(const std::string_view& p)
+{
+    int pn = atoi(p.data());
+    if (pn <= 0) pn = 1;
+    int top = mScrollingRegion.Top;
+    int bot = mScrollingRegion.Bottom;
+    if (bot < 0)
+        bot = mLines.size() - 1;
+    for (int k = top; k <= bot; ++k) {
+        if (pn <= mLines[k].size()) {
+            mLines[k].erase(mLines[k].begin() + pn - 1);
+            mLines[k].push_back(mBlankChar);
+        }
+    }
+}
+void SerialConnVT420::ProcessDECIC(const std::string_view& p)
+{
+    int pn = atoi(p.data());
+    if (pn <= 0) pn = 1;
+    int top = mScrollingRegion.Top;
+    int bot = mScrollingRegion.Bottom;
+    if (bot < 0)
+        bot = mLines.size() - 1;
+    for (int k = top; k <= bot; ++k) {
+        if (pn <= mLines[k].size()) {
+            mLines[k].insert(mLines[k].begin() + pn - 1, mBlankChar);
+        }
+    }
 }
 
 void SerialConnVT420::ProcessDECSCL(const std::string_view& p)

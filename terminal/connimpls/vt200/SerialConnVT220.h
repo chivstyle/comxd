@@ -58,6 +58,12 @@ protected:
             DECNRCM_National
         };
         uint32_t DECNRCM : 1;
+        uint32_t DECTCEM : 1;
+        VT220Modes()
+            : DECNRCM(DECNRCM_Multinational)
+            , DECTCEM(1)
+        {
+        }
     };
     VT220Modes mModes;
     CursorDataVT220 mCursorData;

@@ -289,7 +289,8 @@ protected:
     void CheckAndFix(ScrollingRegion& span);
     //------------------------------------------------------------------------------------------
     int mTabWidth;
-    //
+    //------------------------------------------------------------------------------------------
+    bool IsCharInSelectionSpan(int vx, int vy, const SelectionSpan& selection_span) const;
 private:
     bool mWrapLine;
     bool mScrollToEnd;

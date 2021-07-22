@@ -280,7 +280,7 @@ void SerialConnEcma48::ProcessHT(const std::string_view&)
 void SerialConnEcma48::ProcessLF(const std::string_view&)
 {
     mVy += 1;
-    if (mModes.LMN == Ecma48Modes::LMN_LineFeed) {
+    if (mModes.LNM == Ecma48Modes::LNM_LineFeed) {
         mVx = mLineHome;
     }
 }
@@ -1075,7 +1075,7 @@ void SerialConnEcma48::ProcessRM(const std::string_view& p)
             mModes.EBM = 0;
             break;
         case 20:
-            mModes.LMN = 0;
+            mModes.LNM = 0;
             break;
         case 21:
             mModes.GRCM = 0;
@@ -1372,7 +1372,7 @@ void SerialConnEcma48::ProcessSM(const std::string_view& p)
             mModes.EBM = 1;
             break;
         case 20:
-            mModes.LMN = 1;
+            mModes.LNM = 1;
             break;
         case 21:
             mModes.GRCM = 1;

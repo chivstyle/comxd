@@ -3,17 +3,17 @@
 */
 #include "VT420ControlSeq.h"
 
-#define kESC "\x1b"
-#define kCSI "\x1b["
-#define kDEC "\x1b[?"
-#define kSS3 "\x1bO"
+#define kESC "\E"
+#define kCSI "\E["
+#define kDEC "\E[?"
+#define kSS3 "\EO"
 
 void AddVT420ControlSeqs(ControlSeqFactory* factory)
 {
     REGISTER_SEQ(factory, DECINVM, kCSI, Ps, 0, "z");
-    REGISTER_SEQ(factory, ANSI_CONFORMANCE_LEVEL_1, "\x1b ", No, 0, "L");
-    REGISTER_SEQ(factory, ANSI_CONFORMANCE_LEVEL_2, "\x1b ", No, 0, "M");
-    REGISTER_SEQ(factory, ANSI_CONFORMANCE_LEVEL_3, "\x1b ", No, 0, "N");
+    REGISTER_SEQ(factory, ANSI_CONFORMANCE_LEVEL_1, "\E ", No, 0, "L");
+    REGISTER_SEQ(factory, ANSI_CONFORMANCE_LEVEL_2, "\E ", No, 0, "M");
+    REGISTER_SEQ(factory, ANSI_CONFORMANCE_LEVEL_3, "\E ", No, 0, "N");
     //
     REGISTER_SEQ(factory, DECSLPP, kCSI, Pn, 1, "t");
     REGISTER_SEQ(factory, DECSLRM, kCSI, Pn, 2, "s");
@@ -29,6 +29,9 @@ void AddVT420ControlSeqs(ControlSeqFactory* factory)
     REGISTER_SEQ(factory, DECLFKC, kCSI, Ps, 0, "*}");
     REGISTER_SEQ(factory, DECSMKR, kCSI, Ps, 0, "+r");
     //
+    REGISTER_SEQ(factory, DECDC, kCSI, Pn, 1, ",~");
+    REGISTER_SEQ(factory, DECIC, kCSI, Pn, 1, ",}");
+    //
     REGISTER_SEQ(factory, DECBI, "\E6", No, 0, "");
     REGISTER_SEQ(factory, DECFI, "\E9", No, 0, "");
     //
@@ -39,5 +42,6 @@ void AddVT420ControlSeqs(ControlSeqFactory* factory)
     REGISTER_SEQ(factory, DECRQCRA, kCSI, Ps, 0, "*y");
     REGISTER_SEQ(factory, DECRQDE, kCSI, No, 0, "\"v");
     //
-    REGISTER_SEQ(factory, ENABLE_SESSION, kCSI, No, 0, "&x");
+    REGISTER_SEQ(factory, DECES, kCSI, No, 0, "&x");
+    REGISTER_SEQ(factory, DECINVM, kCSI, Pn, 1, "*z");
 }

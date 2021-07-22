@@ -28,6 +28,9 @@ enum VT420SeqType {
     DECLFKC,
     DECSMKR,
     //
+    DECDC, // delete column
+    DECIC, // insert column
+    //
     DECBI,
     DECFI,
     //
@@ -38,7 +41,8 @@ enum VT420SeqType {
     DECRQCRA, // response is DECCKSR
     DECRQDE,
     //
-    ENABLE_SESSION,
+    DECES,
+    DECINVM,
     //
     VT420_SEQ_MAX
 };

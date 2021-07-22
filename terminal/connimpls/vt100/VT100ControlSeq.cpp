@@ -4,7 +4,7 @@
 #include "VT100ControlSeq.h"
 
 #define kESC "\E"
-#define kCSI "\E\x5b"
+#define kCSI "\E["
 
 void AddVT100ControlSeqs(ControlSeqFactory* factory)
 {

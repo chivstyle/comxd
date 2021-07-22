@@ -2,6 +2,7 @@
 // (c) 2020 chiv
 //
 #include "ControlSeq.h"
+///
 /// return - <0 Failed
 ///        - =0 Need more
 ///        - >0 End of pn

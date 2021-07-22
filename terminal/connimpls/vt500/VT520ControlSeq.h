@@ -7,9 +7,34 @@
 #include <string>
 //
 enum VT520SeqType {
-    DECSWBV = VT500_SEQ_BEGIN,
-    DECSZS,
+    // Ignore these please
+    DDD1,
+    DDD2,
+    DDD3,
+    //
     DECAC,
+    DECARR, // select auto repeat rate
+    DECATC, // alternate text color
+    DECCKSR, // memory checksum report
+    DECCRTST, // CRT saver timing
+    DECDHLT, // double width, double height, TOP
+    DECDHLB, // double width, double height, BOTTOM
+    DECDLDA, // down line load allocation
+    DECELF,  // enable local functions
+    DECKBD, // keyboard language selection
+    DECLFKC, // local function key control
+    DECLTOD, // load time of day
+    DECMSR, // macro space report
+    DECPCTERM, // enter/exit PCTerm or Scancode mode
+    DECPKA, // program key action
+    DECPS, // play sound
+    DECRQCRA, // request checksum of rectangular area
+    DECRQDE, // request displayed extent
+    DECRQKD, // request key definition
+    DECRQKT, // request key type
+    DECRQM_ANSI, // request ansi mode
+    DECRQM_DECP, // request dec private mode
+    
     VT520_SEQ_MAX
 };
 static_assert(VT520_SEQ_MAX < VT500_SEQ_END, "You should define VT500_SEQ_MAX_COUNT big enough");

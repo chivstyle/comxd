@@ -24,6 +24,95 @@ SerialConnVT520::SerialConnVT520(std::shared_ptr<SerialIo> io)
 
 void SerialConnVT520::InstallFunctions()
 {
+    mFunctions[DECAC] = [=](const std::string_view& p) { ProcessDECAC(p); };
+    mFunctions[DECRQM_ANSI] = [=](const std::string_view& p) { ProcessDECRQM_ANSI(p); };
+    mFunctions[DECRQM_DECP] = [=](const std::string_view& p) { ProcessDECRQM_DECP(p); };
+}
+
+void SerialConnVT520::ProcessDECRQM_ANSI(const std::string_view& p)
+{
+    int ps = atoi(p.data());
+    std::string rsp = std::string("\E[") + std::to_string(ps) + ";";
+    switch (ps) {
+    case 1:
+    case 5:
+    case 7:
+    case 10:
+    case 11:
+    case 13:
+    case 14:
+    case 15:
+    case 16:
+    case 17:
+    case 18:
+    case 19:
+        // These modes were permanently reset
+        Put(rsp + ";4$y");
+        break;
+    case 2: Put(rsp + (SerialConnEcma48::mModes.KAM ? "1" : "2")
+                + "$y"); break;
+    case 3: Put(rsp + (SerialConnEcma48::mModes.CRM ? "1" : "2")
+                + "$y"); break;
+    case 4: Put(rsp + (SerialConnEcma48::mModes.IRM ? "1" : "2")
+                + "$y"); break;
+    case 12: Put(rsp + (SerialConnEcma48::mModes.SRM ? "1" : "2")
+                + "$y"); break;
+    case 20: Put(rsp + (SerialConnEcma48::mModes.LNM ? "1" : "2")
+                + "$y"); break;
+    }
+}
+void SerialConnVT520::ProcessDECRQM_DECP(const std::string_view& p)
+{
+    int ps = atoi(p.data());
+    std::string rsp = std::string("\E[?") + std::to_string(ps) + ";";
+    switch (ps) {
+    // vt100 modes
+    case 1: Put(rsp + (SerialConnVT100::mModes.DECCKM ? "1" : "2")
+                + "$y"); break;
+    case 2: Put(rsp + (SerialConnVT100::mModes.DECANM ? "1" : "2")
+                + "$y"); break;
+    case 3: Put(rsp + (SerialConnVT100::mModes.DECCOLM ? "1" : "2")
+                + "$y"); break;
+    case 4: Put(rsp + (SerialConnVT100::mModes.DECSCLM ? "1" : "2")
+                + "$y"); break;
+    case 5: Put(rsp + (SerialConnVT100::mModes.DECSCNM ? "1" : "2")
+                + "$y"); break;
+    case 6: Put(rsp + (SerialConnVT100::mModes.DECOM ? "1" : "2")
+                + "$y"); break;
+    case 7: Put(rsp + (SerialConnVT100::mModes.DECAWM ? "1" : "2")
+                + "$y"); break;
+    case 8: Put(rsp + (SerialConnVT100::mModes.DECARM ? "1" : "2")
+                + "$y"); break;
+    case 18: Put(rsp + (SerialConnVT100::mModes.DECPFF ? "1" : "2")
+                + "$y"); break;
+    case 19: Put(rsp + (SerialConnVT100::mModes.DECPEX ? "1" : "2")
+                + "$y"); break;
+    // vt220 modes
+    case 25: Put(rsp + (SerialConnVT100::mModes.DECTCEM ? "1" : "2")
+                + "$y"); break;
+    // permanently reset
+    case 34: Put(rsp + "4$y"); break;
+    }
+}
+
+void SerialConnVT520::ProcessDECAC(const std::string_view& p)
+{
+    int ps[3] = {0}, idx = 0;
+    SplitString(p.data(), ";", [=, &ps, &idx](const char* token) {
+        if (idx < 3)
+            ps[idx] = atoi(token);
+        idx++;
+    });
+    if (idx == 3) {
+        switch (ps[0]) {
+        case 1: // normal text
+            this->mColorTbl.SetColor(VTColorTable::kColorId_Texts, this->mColorTbl.GetColor(ps[1]));
+            this->mColorTbl.SetColor(VTColorTable::kColorId_Paper, this->mColorTbl.GetColor(ps[2]));
+            break;
+        case 2: // window frame
+            break;
+        }
+    }
 }
 
 void SerialConnVT520::ProcessDECSM(const std::string_view& p)

@@ -1463,9 +1463,9 @@ String SerialConnVT::GetSelectedText() const
     return out;
 }
 //
-bool SerialConnVT::IsCharInSelectionSpan(int vx, int vy) const
+bool SerialConnVT::IsCharInSelectionSpan(int vx, int vy, const SelectionSpan& selection_span) const
 {
-    auto span = mSelectionSpan;
+    auto span = selection_span;
     if (!span.Valid)
         return false;
     if (span.Y0 > span.Y1) { // top left
@@ -1490,6 +1490,11 @@ bool SerialConnVT::IsCharInSelectionSpan(int vx, int vy) const
         }
     }
     return false;
+}
+//
+bool SerialConnVT::IsCharInSelectionSpan(int vx, int vy) const
+{
+    return IsCharInSelectionSpan(vx, vy, this->mSelectionSpan);
 }
 
 void SerialConnVT::DrawCursor(Draw& draw)
