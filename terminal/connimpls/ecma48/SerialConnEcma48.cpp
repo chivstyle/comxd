@@ -14,6 +14,8 @@ SerialConnEcma48::SerialConnEcma48(std::shared_ptr<SerialIo> io)
     , mLineHome(0)
     , mUseS8C(false)
 {
+    LoadDefaultModes();
+    //
     InstallFunctions();
     //
     AddEcma48ControlSeqs(this->mSeqsFactory);
@@ -21,6 +23,28 @@ SerialConnEcma48::SerialConnEcma48(std::shared_ptr<SerialIo> io)
 
 SerialConnEcma48::~SerialConnEcma48()
 {
+}
+
+void SerialConnEcma48::LoadDefaultModes()
+{
+    mAnsiModes[GATM] = 0;
+    mAnsiModes[KAM] = 0;
+    mAnsiModes[CRM] = 0;
+    mAnsiModes[IRM] = 0;
+    mAnsiModes[SRTM] = 0;
+    mAnsiModes[ERM] = 1;
+    mAnsiModes[VEM] = 0;
+    mAnsiModes[HEM] = 0;
+    mAnsiModes[PUM] = 0;
+    mAnsiModes[SRM] = 0;
+    mAnsiModes[FEAM] = 0;
+    mAnsiModes[FETM] = 0;
+    mAnsiModes[MATM] = 0;
+    mAnsiModes[TTM] = 0;
+    mAnsiModes[SATM] = 0;
+    mAnsiModes[TSM] = 0;
+    mAnsiModes[EBM] = 0;
+    mAnsiModes[LNM] = 0;
 }
 
 void SerialConnEcma48::InstallFunctions()
@@ -187,6 +211,19 @@ void SerialConnEcma48::InstallFunctions()
     mFunctions[ECMA48_VTS] = [=](const std::string_view& p) { ProcessVTS(p); };
 }
 //
+int SerialConnEcma48::GetAnsiMode(int mode, int def)
+{
+    auto it = mAnsiModes.find(mode);
+    if (it != mAnsiModes.end())
+        return it->second;
+    //
+    return def;
+}
+void SerialConnEcma48::SetAnsiMode(int mode, int val)
+{
+    mAnsiModes[mode] = val;
+}
+//
 void SerialConnEcma48::Fill(int X0, int Y0, int X1, int Y1, const VTChar& c)
 {
     if (Y0 > Y1) { // top left
@@ -280,7 +317,7 @@ void SerialConnEcma48::ProcessHT(const std::string_view&)
 void SerialConnEcma48::ProcessLF(const std::string_view&)
 {
     mVy += 1;
-    if (mModes.LNM == Ecma48Modes::LNM_LineFeed) {
+    if (GetAnsiMode(LNM) == 1) {
         mVx = mLineHome;
     }
 }
@@ -1016,74 +1053,7 @@ void SerialConnEcma48::ProcessRM(const std::string_view& p)
 {
     SplitString(p.data(), ";", [=](const char* token) {
         int ps = atoi(token);
-        switch (ps) {
-        case 1:
-            mModes.GATM = 0;
-            break;
-        case 2:
-            mModes.KAM = 0;
-            break;
-        case 3:
-            mModes.CRM = 0;
-            break;
-        case 4:
-            mModes.IRM = 0;
-            break;
-        case 5:
-            mModes.SRTM = 0;
-            break;
-        case 6:
-            mModes.ERM = 0;
-            break;
-        case 7:
-            mModes.BDSM = 0;
-            break;
-        case 8:
-            mModes.BDSM = 0;
-            break;
-        case 9:
-            mModes.DCSM = 0;
-            break;
-        case 10:
-            mModes.HEM = 0;
-            break;
-        case 11:
-            mModes.PUM = 0;
-            break;
-        case 12:
-            mModes.SRM = 0;
-            break;
-        case 13:
-            mModes.FEAM = 0;
-            break;
-        case 14:
-            mModes.FETM = 0;
-            break;
-        case 15:
-            mModes.MATM = 0;
-            break;
-        case 16:
-            mModes.TTM = 0;
-            break;
-        case 17:
-            mModes.SATM = 0;
-            break;
-        case 18:
-            mModes.TSM = 0;
-            break;
-        case 19:
-            mModes.EBM = 0;
-            break;
-        case 20:
-            mModes.LNM = 0;
-            break;
-        case 21:
-            mModes.GRCM = 0;
-            break;
-        case 22:
-            mModes.ZDM = 0;
-            break;
-        }
+        SetAnsiMode(ps, 0);
     });
 }
 // set additional character separation
@@ -1313,74 +1283,7 @@ void SerialConnEcma48::ProcessSM(const std::string_view& p)
 {
     SplitString(p.data(), ";", [=](const char* token) {
         int ps = atoi(token);
-        switch (ps) {
-        case 1:
-            mModes.GATM = 1;
-            break;
-        case 2:
-            mModes.KAM = 1;
-            break;
-        case 3:
-            mModes.CRM = 1;
-            break;
-        case 4:
-            mModes.IRM = 1;
-            break;
-        case 5:
-            mModes.SRTM = 1;
-            break;
-        case 6:
-            mModes.ERM = 1;
-            break;
-        case 7:
-            mModes.BDSM = 1;
-            break;
-        case 8:
-            mModes.BDSM = 1;
-            break;
-        case 9:
-            mModes.DCSM = 1;
-            break;
-        case 10:
-            mModes.HEM = 1;
-            break;
-        case 11:
-            mModes.PUM = 1;
-            break;
-        case 12:
-            mModes.SRM = 1;
-            break;
-        case 13:
-            mModes.FEAM = 1;
-            break;
-        case 14:
-            mModes.FETM = 1;
-            break;
-        case 15:
-            mModes.MATM = 1;
-            break;
-        case 16:
-            mModes.TTM = 1;
-            break;
-        case 17:
-            mModes.SATM = 1;
-            break;
-        case 18:
-            mModes.TSM = 1;
-            break;
-        case 19:
-            mModes.EBM = 1;
-            break;
-        case 20:
-            mModes.LNM = 1;
-            break;
-        case 21:
-            mModes.GRCM = 1;
-            break;
-        case 22:
-            mModes.ZDM = 1;
-            break;
-        }
+        SetAnsiMode(ps, 1);
     });
 }
 // start of string
@@ -1545,7 +1448,7 @@ void SerialConnEcma48::ProcessVTS(const std::string_view& p)
 bool SerialConnEcma48::ProcessChar(Upp::dword cc)
 {
     std::vector<uint32_t> ss(1, cc);
-    if (mModes.SRM == Ecma48Modes::SRM_Monitor) {
+    if (GetAnsiMode(SRM) == 1) {
         RenderText(ss);
     }
     return SerialConnVT::ProcessChar(cc);

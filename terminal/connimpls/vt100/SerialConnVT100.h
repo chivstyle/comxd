@@ -11,6 +11,24 @@
 class SerialConnVT100 : public SerialConnEcma48 {
 public:
     SerialConnVT100(std::shared_ptr<SerialIo> io);
+    
+    enum VT100Modes {
+        DECCKM = 1, // Set - Application, Reset - Normal
+        DECANM = 2, // Set - ANSI, Reset - VT52
+        DECCOLM = 3, // Set - 132 columns, Reset - 80 columns
+        DECSCLM = 4, // Set - Smooth, Reset - Jump
+        DECSCNM = 5, // Set - Reverse, Reset - Normal
+        DECOM = 6, // Set - Relative, Reset - Absolute
+        DECAWM = 7, // Set - On, Reset - Off
+        DECARM = 8, // Set - On, Reset - Off
+        DECPFF = 18, // Set - On, Reset Off
+        DECPEX = 19, // Set - Full screen, Reset - Scrolling region
+    };
+    void SetDecMode(int mode, int val);
+    // return -1 if there's no mode found.
+    int GetDecMode(int mode, int def = -1);
+    
+protected:
     // override ECMA48
     void ProcessDA(const std::string_view& p);
     void ProcessCUP(const std::string_view& p);
@@ -42,73 +60,6 @@ public:
     virtual bool ProcessKeyDown(Upp::dword key, Upp::dword flags);
     //
     virtual void SetCursorToHome();
-    //
-    struct VT100Modes {
-        enum DECCKM_Value {
-            DECCKM_Cursor = 0,
-            DECCKM_Application
-        };
-        uint32_t DECCKM : 1;
-        enum DECANM_Value {
-            DECANM_VT52 = 0,
-            DECANM_ANSI
-        };
-        uint32_t DECANM : 1;
-        enum DECCOLM_Value {
-            DECCOLM_80 = 0,
-            DECCOLM_132
-        };
-        uint32_t DECCOLM : 1;
-        enum DECSCLM_Value {
-            DECSCLM_Jump = 0,
-            DECSCLM_Smooth
-        };
-        uint32_t DECSCLM : 1;
-        enum DECSCNM_Value {
-            DECSCNM_Normal = 0,
-            DECSCNM_Reverse
-        };
-        uint32_t DECSCNM : 1;
-        enum DECOM_Value {
-            DECOM_Absolute = 0,
-            DECOM_Relative
-        };
-        uint32_t DECOM : 1;
-        enum BOOL_Value {
-            OFF,
-            ON
-        };
-        uint32_t DECAWM : 1;
-        uint32_t DECARM : 1;
-        uint32_t DECPFF : 1;
-        enum DECPEX_Value {
-            DECPEX_ScrollingRegion = 0,
-            DECPEX_FullScreen
-        };
-        uint32_t DECPEX : 1;
-        // This is not a VT100 mode, but it's proper to place it here.
-        uint32_t DECKPM : 1;
-        enum {
-            DECKPM_PAM = 0,
-            DECKPM_PNM
-        };
-        //
-        VT100Modes()
-            : DECCKM(DECCKM_Cursor)
-            , DECANM(DECANM_ANSI)
-            , DECCOLM(DECCOLM_80)
-            , DECSCLM(DECSCLM_Smooth)
-            , DECSCNM(DECSCNM_Normal)
-            , DECOM(DECOM_Absolute)
-            , DECAWM(ON)
-            , DECARM(OFF) // We ignore auto-repeat mode
-            , DECPFF(OFF)
-            , DECPEX(DECPEX_FullScreen)
-            , DECKPM(DECKPM_PNM)
-        {
-        }
-    };
-    VT100Modes mModes;
     // cursor position, graphics rendition, character set
     struct CursorDataVT100 {
         int Vx, Vy;
@@ -121,7 +72,15 @@ public:
     //
     void SaveCursorData(CursorDataVT100& cd);
     void LoadCursorData(const CursorDataVT100& cd);
+    // Dec keypad mode
+    enum KeypadMode {
+        KM_Normal = 0,
+        KM_Application
+    };
+    int mKeypadMode;
 
 private:
+    std::map<int, int> mDecModes;
+    void LoadDefaultModes();
     void InstallFunctions();
 };
