@@ -47,6 +47,8 @@ file
 	connimpls/ControlSeq.h,
 	connimpls/ControlSeq.cpp,
 	connimpls/VTTypes.cpp,
+	connimpls\VTModes.cpp,
+	connimpls\VTModes.h,
 	connimpls/VTTypes.h,
 	connimpls/TextCodecsDialog.h,
 	connimpls/TextCodecsDialog.cpp,

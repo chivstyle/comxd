@@ -23,9 +23,16 @@ SerialConnVT220::SerialConnVT220(std::shared_ptr<SerialIo> io)
     //
     AddVT220ControlSeqs(this->mSeqsFactory);
     //
+    LoadDefaultModes();
+    //
     SaveCursorData(mCursorData);
     //
     InstallFunctions();
+}
+
+void SerialConnVT220::LoadDefaultModes()
+{
+	mModes.SetDecpMode(DECTCEM, 1);
 }
 
 void SerialConnVT220::InstallFunctions()
@@ -49,6 +56,7 @@ void SerialConnVT220::ProcessDECSCL(const std::string_view& p)
     SplitString(p.data(), ";", [=, &idx, &ps](const char* token) {
         if (idx < 2)
             ps[idx] = atoi(token);
+        idx++;
     });
     int level = 0;
     if (ps[0] <= 62) { // map to VT200
@@ -175,7 +183,7 @@ void SerialConnVT220::ProcessDECSTR(const std::string_view&)
 {
     // default state
     SetShowCursor(true);
-    SerialConnVT100::mModes.DECAWM = VT100Modes::OFF;
+    mModes.SetDecpMode(DECAWM, 0);
     SetWrapLine(false);
     this->mScrollingRegion.Top = 0;
     this->mScrollingRegion.Bottom = 23;
@@ -221,11 +229,8 @@ void SerialConnVT220::ProcessDECSM(const std::string_view& p)
     int ps = atoi(p.data());
     switch (ps) {
     case 25:
-        mModes.DECTCEM = 1;
         SetShowCursor(true);
-        break;
-    case 42:
-        mModes.DECNRCM = 1;
+        mModes.SetDecpMode(ps, 1);
         break;
     default:
         SerialConnVT100::ProcessDECSM(p);
@@ -237,11 +242,8 @@ void SerialConnVT220::ProcessDECRM(const std::string_view& p)
     int ps = atoi(p.data());
     switch (ps) {
     case 25:
-        mModes.DECTCEM = 0;
         SetShowCursor(false);
-        break;
-    case 42:
-        mModes.DECNRCM = 0;
+        mModes.SetDecpMode(ps, 0);
         break;
     default:
         SerialConnVT100::ProcessDECRM(p);

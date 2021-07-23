@@ -23,7 +23,13 @@ SerialConnVT320::SerialConnVT320(std::shared_ptr<SerialIo> io)
     //
     AddVT320ControlSeqs(this->mSeqsFactory);
     //
+    LoadDefaultModes();
+    //
     InstallFunctions();
+}
+
+void SerialConnVT320::LoadDefaultModes()
+{
 }
 
 void SerialConnVT320::ProcessDECSCL(const std::string_view& p)
@@ -33,6 +39,7 @@ void SerialConnVT320::ProcessDECSCL(const std::string_view& p)
     SplitString(p.data(), ";", [=, &idx, &ps](const char* token) {
         if (idx < 2)
             ps[idx] = atoi(token);
+        idx++;
     });
     int level = 0;
     if (ps[0] == 65) {
@@ -133,31 +140,6 @@ void SerialConnVT320::ProcessSecondaryDA(const std::string_view& p)
         break;
     default:
         SerialConnVT220::ProcessSecondaryDA(p);
-    }
-}
-
-void SerialConnVT320::ProcessDECSM(const std::string_view& p)
-{
-    int ps = atoi(p.data());
-    switch (ps) {
-    case 68:
-        this->mModes.DECKBUM = 1;
-        break;
-    default:
-        SerialConnVT220::ProcessDECSM(p);
-        break;
-    }
-}
-void SerialConnVT320::ProcessDECRM(const std::string_view& p)
-{
-    int ps = atoi(p.data());
-    switch (ps) {
-    case 68:
-        this->mModes.DECKBUM = 0;
-        break;
-    default:
-        SerialConnVT220::ProcessDECRM(p);
-        break;
     }
 }
 

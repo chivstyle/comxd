@@ -19,7 +19,13 @@ SerialConnVT420::SerialConnVT420(std::shared_ptr<SerialIo> io)
     //
     AddVT420ControlSeqs(this->mSeqsFactory);
     //
+    LoadDefaultModes();
+    //
     InstallFunctions();
+}
+
+void SerialConnVT420::LoadDefaultModes()
+{
 }
 
 void SerialConnVT420::InstallFunctions()
@@ -74,6 +80,7 @@ void SerialConnVT420::ProcessDECSCL(const std::string_view& p)
     SplitString(p.data(), ";", [=, &idx, &ps](const char* token) {
         if (idx < 2)
             ps[idx] = atoi(token);
+        idx++;
     });
     int level = 0;
     if (ps[0] == 65) {
@@ -94,29 +101,6 @@ void SerialConnVT420::SetHostToS7C()
 void SerialConnVT420::SetHostToS8C()
 {
     Put("\E G");
-}
-
-void SerialConnVT420::ProcessDECSM(const std::string_view& p)
-{
-    int ps = atoi(p.data());
-    switch (ps) {
-    case 81:
-        mModes.DECKPM = 1;
-        break;
-    default:
-        SerialConnVT320::ProcessDECSM(p);
-    }
-}
-void SerialConnVT420::ProcessDECRM(const std::string_view& p)
-{
-    int ps = atoi(p.data());
-    switch (ps) {
-    case 81:
-        mModes.DECKPM = 0;
-        break;
-    default:
-        SerialConnVT320::ProcessDECRM(p);
-    }
 }
 
 void SerialConnVT420::ProcessDA(const std::string_view& p)

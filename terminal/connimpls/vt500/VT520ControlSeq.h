@@ -20,16 +20,12 @@ enum VT520SeqType {
     DECDHLT, // double width, double height, TOP
     DECDHLB, // double width, double height, BOTTOM
     DECDLDA, // down line load allocation
-    DECELF,  // enable local functions
     DECKBD, // keyboard language selection
-    DECLFKC, // local function key control
     DECLTOD, // load time of day
     DECMSR, // macro space report
     DECPCTERM, // enter/exit PCTerm or Scancode mode
     DECPKA, // program key action
     DECPS, // play sound
-    DECRQCRA, // request checksum of rectangular area
-    DECRQDE, // request displayed extent
     DECRQKD, // request key definition
     DECRQKT, // request key type
     DECRQM_ANSI, // request ansi mode

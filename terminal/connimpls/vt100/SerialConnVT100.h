@@ -11,23 +11,6 @@
 class SerialConnVT100 : public SerialConnEcma48 {
 public:
     SerialConnVT100(std::shared_ptr<SerialIo> io);
-    
-    enum VT100Modes {
-        DECCKM = 1, // Set - Application, Reset - Normal
-        DECANM = 2, // Set - ANSI, Reset - VT52
-        DECCOLM = 3, // Set - 132 columns, Reset - 80 columns
-        DECSCLM = 4, // Set - Smooth, Reset - Jump
-        DECSCNM = 5, // Set - Reverse, Reset - Normal
-        DECOM = 6, // Set - Relative, Reset - Absolute
-        DECAWM = 7, // Set - On, Reset - Off
-        DECARM = 8, // Set - On, Reset - Off
-        DECPFF = 18, // Set - On, Reset Off
-        DECPEX = 19, // Set - Full screen, Reset - Scrolling region
-    };
-    void SetDecMode(int mode, int val);
-    // return -1 if there's no mode found.
-    int GetDecMode(int mode, int def = -1);
-    
 protected:
     // override ECMA48
     void ProcessDA(const std::string_view& p);
@@ -80,7 +63,6 @@ protected:
     int mKeypadMode;
 
 private:
-    std::map<int, int> mDecModes;
     void LoadDefaultModes();
     void InstallFunctions();
 };

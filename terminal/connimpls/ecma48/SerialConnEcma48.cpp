@@ -27,24 +27,7 @@ SerialConnEcma48::~SerialConnEcma48()
 
 void SerialConnEcma48::LoadDefaultModes()
 {
-    mAnsiModes[GATM] = 0;
-    mAnsiModes[KAM] = 0;
-    mAnsiModes[CRM] = 0;
-    mAnsiModes[IRM] = 0;
-    mAnsiModes[SRTM] = 0;
-    mAnsiModes[ERM] = 1;
-    mAnsiModes[VEM] = 0;
-    mAnsiModes[HEM] = 0;
-    mAnsiModes[PUM] = 0;
-    mAnsiModes[SRM] = 0;
-    mAnsiModes[FEAM] = 0;
-    mAnsiModes[FETM] = 0;
-    mAnsiModes[MATM] = 0;
-    mAnsiModes[TTM] = 0;
-    mAnsiModes[SATM] = 0;
-    mAnsiModes[TSM] = 0;
-    mAnsiModes[EBM] = 0;
-    mAnsiModes[LNM] = 0;
+    mModes.SetAnsiMode(ERM, 1);
 }
 
 void SerialConnEcma48::InstallFunctions()
@@ -211,19 +194,6 @@ void SerialConnEcma48::InstallFunctions()
     mFunctions[ECMA48_VTS] = [=](const std::string_view& p) { ProcessVTS(p); };
 }
 //
-int SerialConnEcma48::GetAnsiMode(int mode, int def)
-{
-    auto it = mAnsiModes.find(mode);
-    if (it != mAnsiModes.end())
-        return it->second;
-    //
-    return def;
-}
-void SerialConnEcma48::SetAnsiMode(int mode, int val)
-{
-    mAnsiModes[mode] = val;
-}
-//
 void SerialConnEcma48::Fill(int X0, int Y0, int X1, int Y1, const VTChar& c)
 {
     if (Y0 > Y1) { // top left
@@ -317,7 +287,7 @@ void SerialConnEcma48::ProcessHT(const std::string_view&)
 void SerialConnEcma48::ProcessLF(const std::string_view&)
 {
     mVy += 1;
-    if (GetAnsiMode(LNM) == 1) {
+    if (mModes.GetAnsiMode(LNM, 0) == 1) {
         mVx = mLineHome;
     }
 }
@@ -1052,8 +1022,7 @@ void SerialConnEcma48::ProcessRIS(const std::string_view& p)
 void SerialConnEcma48::ProcessRM(const std::string_view& p)
 {
     SplitString(p.data(), ";", [=](const char* token) {
-        int ps = atoi(token);
-        SetAnsiMode(ps, 0);
+        mModes.SetAnsiMode(atoi(token), 0);
     });
 }
 // set additional character separation
@@ -1282,8 +1251,7 @@ void SerialConnEcma48::ProcessSLS(const std::string_view& p)
 void SerialConnEcma48::ProcessSM(const std::string_view& p)
 {
     SplitString(p.data(), ";", [=](const char* token) {
-        int ps = atoi(token);
-        SetAnsiMode(ps, 1);
+        mModes.SetAnsiMode(atoi(token), 1);
     });
 }
 // start of string
@@ -1448,7 +1416,7 @@ void SerialConnEcma48::ProcessVTS(const std::string_view& p)
 bool SerialConnEcma48::ProcessChar(Upp::dword cc)
 {
     std::vector<uint32_t> ss(1, cc);
-    if (GetAnsiMode(SRM) == 1) {
+    if (mModes.GetAnsiMode(SRM, 0) == 1) {
         RenderText(ss);
     }
     return SerialConnVT::ProcessChar(cc);

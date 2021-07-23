@@ -10,34 +10,6 @@ class SerialConnEcma48 : public virtual SerialConnVT {
 public:
     SerialConnEcma48(std::shared_ptr<SerialIo> io);
     ~SerialConnEcma48();
-    // compatible with ANSI modes
-    enum Ecma48Modes {
-        GATM = 1,
-        KAM, // Set - Locked, Reset - Unlocked
-        CRM,
-        IRM, // Set - Insert, Reset - Replace
-        SRTM,
-        ERM,
-        VEM,
-        BDSM,
-        DCSM,
-        HEM,
-        PUM,
-        SRM, // Set - Off, Reset - On
-        FEAM,
-        FETM,
-        MATM,
-        TTM,
-        SATM,
-        TSM,
-        EBM,
-        LNM, // Set - New line, Reset - Linefeed
-        GRCM,
-        ZDM
-    };
-    void SetAnsiMode(int mode, int val);
-    // return def if there's no mode found.
-    int GetAnsiMode(int mode, int def = -1);
 protected:
     virtual void ProcessSOH(const std::string_view&);
     virtual void ProcessSTX(const std::string_view&);
@@ -232,8 +204,6 @@ protected:
     void Fill(int X0, int Y0, int X1, int Y1, const VTChar& c);
 
 private:
-    // ANSI Modes
-    std::map<int, int> mAnsiModes;
     bool mUseS8C; // 8-bit control seq
     void InstallFunctions();
     void LoadDefaultModes();

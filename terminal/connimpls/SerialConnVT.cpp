@@ -204,7 +204,6 @@ void SerialConnVT::SaveScr(ScreenData& sd)
     sd.Vx = mVx;
     sd.Vy = mVy;
     sd.Style = mStyle;
-    sd.Font = mFont;
     sd.Lines = mLines;
     sd.LinesBuffer = mLinesBuffer;
     sd.SelSpan = mSelectionSpan;
@@ -215,14 +214,9 @@ void SerialConnVT::SwapScr(ScreenData& sd)
     std::swap(sd.Vx, mVx);
     std::swap(sd.Vy, mVy);
     std::swap(sd.Style, mStyle);
-    std::swap(sd.Font, mFont);
     std::swap(sd.Lines, mLines);
     std::swap(sd.LinesBuffer, mLinesBuffer);
     std::swap(sd.SelSpan, mSelectionSpan);
-    // layout again.
-    mFontW = mFont.GetAveWidth();
-    mFontH = mFont.GetLineHeight();
-    DoLayout();
     //
     UpdatePresentation();
 }
@@ -234,13 +228,8 @@ void SerialConnVT::LoadScr(const ScreenData& sd)
     mVx = sd.Vx;
     mVy = sd.Vy;
     mStyle = sd.Style;
-    mFont = sd.Font;
     mSelectionSpan = sd.SelSpan;
-    // restore font w/h
-    mFontW = mFont.GetAveWidth();
-    mFontH = mFont.GetLineHeight();
-    // reset layout
-    DoLayout();
+    //
     UpdatePresentation();
 }
 //

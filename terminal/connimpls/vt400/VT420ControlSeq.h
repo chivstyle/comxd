@@ -42,7 +42,6 @@ enum VT420SeqType {
     DECRQDE,
     //
     DECES,
-    DECINVM,
     //
     VT420_SEQ_MAX
 };

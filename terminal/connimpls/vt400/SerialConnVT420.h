@@ -13,8 +13,6 @@ public:
 protected:
     // override vt320
     void ProcessDECSCL(const std::string_view& p);
-    void ProcessDECSM(const std::string_view& p);
-    void ProcessDECRM(const std::string_view& p);
     void ProcessDA(const std::string_view&);
     void ProcessSecondaryDA(const std::string_view&);
     void ProcessDECDSR(const std::string_view& p);
@@ -27,20 +25,7 @@ protected:
     //
     void SetHostToS7C();
     void SetHostToS8C();
-
-    struct VT420Modes {
-        enum DECKBUMValue {
-            DECKPM_Character = 0,
-            DECKPM_Position
-        };
-        uint32_t DECKPM : 1; // key position
-        VT420Modes()
-            : DECKPM(DECKPM_Character)
-        {
-        }
-    };
-    VT420Modes mModes;
-
 private:
+	void LoadDefaultModes();
     void InstallFunctions();
 };

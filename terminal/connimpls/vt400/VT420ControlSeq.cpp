@@ -10,7 +10,6 @@
 
 void AddVT420ControlSeqs(ControlSeqFactory* factory)
 {
-    REGISTER_SEQ(factory, DECINVM, kCSI, Ps, 0, "z");
     REGISTER_SEQ(factory, ANSI_CONFORMANCE_LEVEL_1, "\E ", No, 0, "L");
     REGISTER_SEQ(factory, ANSI_CONFORMANCE_LEVEL_2, "\E ", No, 0, "M");
     REGISTER_SEQ(factory, ANSI_CONFORMANCE_LEVEL_3, "\E ", No, 0, "N");

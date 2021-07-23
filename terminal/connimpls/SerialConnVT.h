@@ -12,6 +12,7 @@
 #include "ColorTable.h"
 #include "Conn.h"
 #include "VTTypes.h"
+#include "VTModes.h"
 #include <functional>
 #include <map>
 #include <mutex>
@@ -51,7 +52,6 @@ public:
         std::deque<VTLine> Lines; // virtual screen
         VTStyle Style;
         int Vx, Vy;
-        Upp::Font Font;
         struct SelectionSpan SelSpan;
         ScreenData()
             : Vx(0)
@@ -287,6 +287,8 @@ protected:
     };
     ScrollingRegion mScrollingRegion;
     void CheckAndFix(ScrollingRegion& span);
+    // all modes defined here
+    VTModes mModes;
     //------------------------------------------------------------------------------------------
     int mTabWidth;
     //------------------------------------------------------------------------------------------

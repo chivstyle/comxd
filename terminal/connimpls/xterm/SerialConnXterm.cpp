@@ -19,7 +19,13 @@ SerialConnXterm::SerialConnXterm(std::shared_ptr<SerialIo> io)
     // take a snap the current screen
     this->SaveScr(mAlternateScr);
     //
+    LoadDefaultModes();
+    //
     InstallFunctions();
+}
+
+void SerialConnXterm::LoadDefaultModes()
+{
 }
 
 void SerialConnXterm::InstallFunctions()
@@ -46,7 +52,7 @@ void SerialConnXterm::LeftDown(Point p, dword keyflags)
 {
     int px = p.x / mFontW + 1, py = p.y / mFontH + 1;
     int cb = 0;
-    if (mModes.SendXyOnPress || mModes.SendXyOnPressAndRelease) {
+    if (mModes.GetDecpMode(SendXyOnPress, 0) || mModes.GetDecpMode(SendXyOnPressAndRelease, 0)) {
         if (keyflags & K_SHIFT) {
             cb |= 0x04;
         }
@@ -56,7 +62,7 @@ void SerialConnXterm::LeftDown(Point p, dword keyflags)
         if (keyflags & K_CTRL) {
             cb |= 0x10;
         }
-        if (mModes.SgrMouse) {
+        if (mModes.GetDecpMode(EnableSGRMouseMode, 0)) {
             Put(std::string("\E[<") + std::to_string(cb) + ";" +
                 std::to_string(px) + ";" + std::to_string(py) +
                 "M");
@@ -74,7 +80,7 @@ void SerialConnXterm::RightDown(Point p, dword keyflags)
 {
     int px = p.x / mFontW + 1, py = p.y / mFontH + 1;
     int cb = 1;
-    if (mModes.SendXyOnPress || mModes.SendXyOnPressAndRelease) {
+    if (mModes.GetDecpMode(SendXyOnPress, 0) || mModes.GetDecpMode(SendXyOnPressAndRelease, 0)) {
         if (keyflags & K_SHIFT) {
             cb |= 0x04;
         }
@@ -84,7 +90,7 @@ void SerialConnXterm::RightDown(Point p, dword keyflags)
         if (keyflags & K_CTRL) {
             cb |= 0x10;
         }
-        if (mModes.SgrMouse) {
+        if (mModes.GetDecpMode(EnableSGRMouseMode, 0)) {
             Put(std::string("\E[<") + std::to_string(cb) + ";" +
                 std::to_string(px) + ";" + std::to_string(py) +
                 "M");
@@ -102,7 +108,7 @@ void SerialConnXterm::MiddleDown(Point p, dword keyflags)
 {
     int px = p.x / mFontW + 1, py = p.y / mFontH + 1;
     int cb = 2;
-    if (mModes.SendXyOnPress || mModes.SendXyOnPressAndRelease) {
+    if (mModes.GetDecpMode(SendXyOnPress, 0) || mModes.GetDecpMode(SendXyOnPressAndRelease, 0)) {
         if (keyflags & K_SHIFT) {
             cb |= 0x04;
         }
@@ -112,7 +118,7 @@ void SerialConnXterm::MiddleDown(Point p, dword keyflags)
         if (keyflags & K_CTRL) {
             cb |= 0x10;
         }
-        if (mModes.SgrMouse) {
+        if (mModes.GetDecpMode(EnableSGRMouseMode, 0)) {
             Put(std::string("\E[<") + std::to_string(cb) + ";" +
                 std::to_string(px) + ";" + std::to_string(py) +
                 "M");
@@ -130,7 +136,7 @@ void SerialConnXterm::LeftUp(Point p, dword keyflags)
 {
     int px = p.x / mFontW + 1, py = p.y / mFontH + 1;
     int cb = 3;
-    if (mModes.SendXyOnPressAndRelease) { // X11 mouse tracking
+    if (mModes.GetDecpMode(SendXyOnPressAndRelease, 0)) { // X11 mouse tracking
         if (keyflags & K_SHIFT) {
             cb |= 0x04;
         }
@@ -140,7 +146,7 @@ void SerialConnXterm::LeftUp(Point p, dword keyflags)
         if (keyflags & K_CTRL) {
             cb |= 0x10;
         }
-        if (mModes.SgrMouse) {
+        if (mModes.GetDecpMode(EnableSGRMouseMode, 0)) {
             Put(std::string("\E[<") + std::to_string(cb) + ";" +
                 std::to_string(px) + ";" + std::to_string(py) +
                 "m");
@@ -158,7 +164,7 @@ void SerialConnXterm::RightUp(Point p, dword keyflags)
 {
     int px = p.x / mFontW + 1, py = p.y / mFontH + 1;
     int cb = 3;
-    if (mModes.SendXyOnPressAndRelease) { // X11 mouse tracking
+    if (mModes.GetDecpMode(SendXyOnPressAndRelease, 0)) { // X11 mouse tracking
         if (keyflags & K_SHIFT) {
             cb |= 0x04;
         }
@@ -168,7 +174,7 @@ void SerialConnXterm::RightUp(Point p, dword keyflags)
         if (keyflags & K_CTRL) {
             cb |= 0x10;
         }
-        if (mModes.SgrMouse) {
+        if (mModes.GetDecpMode(EnableSGRMouseMode, 0)) {
             Put(std::string("\E[<") + std::to_string(cb) + ";" +
                 std::to_string(px) + ";" + std::to_string(py) +
                 "m");
@@ -186,7 +192,7 @@ void SerialConnXterm::MiddleUp(Point p, dword keyflags)
 {
     int px = p.x / mFontW + 1, py = p.y / mFontH + 1;
     int cb = 3;
-    if (mModes.SendXyOnPressAndRelease) { // X11 mouse tracking
+    if (mModes.GetDecpMode(SendXyOnPressAndRelease, 0)) { // X11 mouse tracking
         if (keyflags & K_SHIFT) {
             cb |= 0x04;
         }
@@ -196,7 +202,7 @@ void SerialConnXterm::MiddleUp(Point p, dword keyflags)
         if (keyflags & K_CTRL) {
             cb |= 0x10;
         }
-        if (mModes.SgrMouse) {
+        if (mModes.GetDecpMode(EnableSGRMouseMode, 0)) {
             Put(std::string("\E[<") + std::to_string(cb) + ";" +
                 std::to_string(px) + ";" + std::to_string(py) +
                 "m");
@@ -214,7 +220,7 @@ void SerialConnXterm::MouseWheel(Upp::Point p, int zdelta, Upp::dword keyflags)
 {
     int px = p.x / mFontW + 1, py = p.y / mFontH + 1;
     int cb = zdelta > 0 ? 5 : 4;
-    if (mModes.SendXyOnPress || mModes.SendXyOnPressAndRelease) { // X10 mouse
+    if (mModes.GetDecpMode(SendXyOnPress, 0) || mModes.GetDecpMode(SendXyOnPressAndRelease, 0)) { // X10 mouse
         if (keyflags & K_SHIFT) {
             cb |= 0x04;
         }
@@ -224,7 +230,7 @@ void SerialConnXterm::MouseWheel(Upp::Point p, int zdelta, Upp::dword keyflags)
         if (keyflags & K_CTRL) {
             cb |= 0x10;
         }
-        if (mModes.SgrMouse) {
+        if (mModes.GetDecpMode(EnableSGRMouseMode)) {
             Put(std::string("\E[<") + std::to_string(cb) + ";" +
                 std::to_string(px) + ";" + std::to_string(py) +
                 "M");
@@ -241,14 +247,14 @@ void SerialConnXterm::MouseWheel(Upp::Point p, int zdelta, Upp::dword keyflags)
 
 void SerialConnXterm::GotFocus()
 {
-    if (mModes.SendFocusInAndOut) {
+    if (mModes.GetDecpMode(SendFocusInAndOut, 0)) {
         Put("\E[I");
     }
     SerialConnVT520::GotFocus();
 }
 void SerialConnXterm::LostFocus()
 {
-    if (mModes.SendFocusInAndOut) {
+    if (mModes.GetDecpMode(SendFocusInAndOut, 0)) {
         Put("\E[O");
     }
     SerialConnVT520::LostFocus();
@@ -432,7 +438,7 @@ void SerialConnXterm::ProcessXTCHECKSUM(const std::string_view&)
 
 void SerialConnXterm::Paste()
 {
-    if (mModes.BracketedPaste) {
+    if (mModes.GetDecpMode(SetBracketedPasteMode, 0)) {
         Put("\E[200~");
         SerialConnVT520::Paste();
         Put("\E[201~");
@@ -462,120 +468,26 @@ void SerialConnXterm::ProcessDECSM(const std::string_view& p)
 {
     int pn = atoi(p.data());
     switch (pn) {
-    case 9:
-        mModes.SendXyOnPress = 1;
-        break;
-    case 10:
-        mModes.ShowToolbar = 1;
-        break;
-    case 12:
-    case 13:
-        mModes.BlinkingCursor = 1;
-        break;
-    case 14:
-        mModes.XOR = 1;
-        break;
-    case 30:
-        mModes.ShowScrollbar = 1;
-        break;
-    case 35:
-        mModes.FontShifting = 1;
-        break;
-    case 40:
-        mModes.Allow80T132 = 1;
-        break;
-    case 41:
-        mModes.MoreFix = 1;
-        break;
-    case 44:
-        mModes.MarginBell = 1;
-        break;
-    case 45:
-        mModes.ReverseWrapAround = 1;
-        break;
-    case 46:
-        mModes.Logging = 1;
-        break;
-    case 1000:
-        mModes.SendXyOnPress = 1;
-        break;
-    case 1001:
-        mModes.HiliteMouseTracking = 1;
-        break;
-    case 1002:
-        mModes.CellMotionMouseTracking = 1;
-        break;
-    case 1003:
-        mModes.AllMotionMouseTracking = 1;
-        break;
-    case 1004:
-        mModes.SendFocusInAndOut = 1;
-        break;
-    case 1005:
-        mModes.Utf8Mouse = 1;
-        break;
-    case 1006:
-        mModes.SgrMouse = 1;
-        break;
-    case 1007:
-        mModes.AlternateScroll = 1;
-        break;
-    case 1010:
-        mModes.ScrollToBottomOnOutput = 1;
-        break;
-    case 1011:
-        mModes.ScrollToBottomOnKeyPress = 1;
-        break;
-    case 1015:
-        mModes.UrxVtMouse = 1;
-        break;
-    case 1034:
-        mModes.InterpretMetaKey = 1;
-        break;
-    case 1035:
-        mModes.SpecModAltAndNumlck = 1;
-        break;
-    case 1036:
-        mModes.SendEscOnMetaModifiesKey = 1;
-        break;
-    case 1037:
-        mModes.SendDelFromKeypadDel = 1;
-        break;
-    case 1039:
-        mModes.SendEscOnAltModifiesKey = 1;
-        break;
-    case 1040:
-        mModes.KeepSelection = 1;
-        break;
-    case 1041:
-        mModes.UseClipboardSelection = 1;
-        break;
-    case 1042:
-        mModes.EnableUrgencyWmHint = 1;
-        break;
-    case 1043:
-        mModes.EnableWindowRaising = 1;
-        break;
-    case 1044:
-        // Reuse the most recent data copied to clipboard
-        break;
-    case 1046:
-        mModes.EnableAlternateScr = 1;
-        break;
     case 1048:
-        SerialConnVT520::ProcessDECSC(p);
+        mModes.SetDecpMode(pn, 1);
+        this->ProcessDECSC("");
         break;
     case 47:
     case 1047:
     case 1049:
         // switch to alternate screen
-        if (mModes.UseAlternateScr == 0) {
+        if (!mModes.GetDecpMode(UseAlternateScreen_47, 0) &&
+            !mModes.GetDecpMode(UseAlternateScreen_1047, 0) &&
+            !mModes.GetDecpMode(SaveCursorAndSwitchToAlternateScreenThenClear, 0)) {
+            if (pn == 1049) {
+                this->ProcessDECSC("");
+            }
             this->SwapScr(mAlternateScr);
-            mModes.UseAlternateScr = 1;
             if (pn == 1049) {
                 Clear();
             }
         }
+        mModes.SetDecpMode(pn, 1);
         break;
     default:
         SerialConnVT520::ProcessDECSM(p);
@@ -587,113 +499,25 @@ void SerialConnXterm::ProcessDECRM(const std::string_view& p)
 {
     int pn = atoi(p.data());
     switch (pn) {
-    case 9:
-        mModes.SendXyOnPress = 0;
-        break;
-    case 10:
-        mModes.ShowToolbar = 0;
-        break;
-    case 12:
-    case 13:
-        mModes.BlinkingCursor = 0;
-        break;
-    case 14:
-        mModes.XOR = 0;
-        break;
-    case 30:
-        mModes.ShowScrollbar = 0;
-        break;
-    case 35:
-        mModes.FontShifting = 0;
-        break;
-    case 40:
-        mModes.Allow80T132 = 0;
-        break;
-    case 41:
-        mModes.MoreFix = 0;
-        break;
-    case 44:
-        mModes.MarginBell = 0;
-        break;
-    case 45:
-        mModes.ReverseWrapAround = 0;
-        break;
-    case 46:
-        mModes.Logging = 0;
-        break;
-    case 1000:
-        mModes.SendXyOnPress = 0;
-        break;
-    case 1001:
-        mModes.HiliteMouseTracking = 0;
-        break;
-    case 1002:
-        mModes.CellMotionMouseTracking = 0;
-        break;
-    case 1003:
-        mModes.AllMotionMouseTracking = 0;
-        break;
-    case 1004:
-        mModes.SendFocusInAndOut = 0;
-        break;
-    case 1005:
-        mModes.Utf8Mouse = 0;
-        break;
-    case 1006:
-        mModes.SgrMouse = 0;
-        break;
-    case 1007:
-        mModes.AlternateScroll = 0;
-        break;
-    case 1010:
-        mModes.ScrollToBottomOnOutput = 0;
-        break;
-    case 1011:
-        mModes.ScrollToBottomOnKeyPress = 0;
-        break;
-    case 1015:
-        mModes.UrxVtMouse = 0;
-        break;
-    case 1034:
-        mModes.InterpretMetaKey = 0;
-        break;
-    case 1035:
-        mModes.SpecModAltAndNumlck = 0;
-        break;
-    case 1036:
-        mModes.SendEscOnMetaModifiesKey = 0;
-        break;
-    case 1037:
-        mModes.SendDelFromKeypadDel = 0;
-        break;
-    case 1039:
-        mModes.SendEscOnAltModifiesKey = 0;
-        break;
-    case 1040:
-        mModes.KeepSelection = 0;
-        break;
-    case 1041:
-        mModes.UseClipboardSelection = 0;
-        break;
-    case 1042:
-        mModes.EnableUrgencyWmHint = 0;
-        break;
-    case 1043:
-        mModes.EnableWindowRaising = 0;
-        break;
-    case 1046:
-        mModes.EnableAlternateScr = 0;
-        break;
     case 1048:
-        SerialConnVT520::ProcessDECRC(p);
+        mModes.SetDecpMode(pn, 0);
+        this->ProcessDECRC(p);
         break;
     case 47:
     case 1047:
     case 1049:
         // switch to main screen
-        if (mModes.UseAlternateScr == 1) {
+        if (mModes.GetDecpMode(UseAlternateScreen_47, 0) ||
+            mModes.GetDecpMode(UseAlternateScreen_1047, 0) ||
+            mModes.GetDecpMode(SaveCursorAndSwitchToAlternateScreenThenClear, 0)) {
             this->SwapScr(mAlternateScr);
-            mModes.UseAlternateScr = 0;
+            if (pn == 1049) {
+                this->ProcessDECRC("");
+            }
+            // clear all bits
+            mModes.SetDecpMode(UseAlternateScreen_47, 0);
+            mModes.SetDecpMode(UseAlternateScreen_1047, 0);
+            mModes.SetDecpMode(SaveCursorAndSwitchToAlternateScreenThenClear, 0);
         }
         break;
     default:

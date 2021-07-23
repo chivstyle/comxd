@@ -30,10 +30,10 @@ SerialConnVT100::SerialConnVT100(std::shared_ptr<SerialIo> io)
 
 void SerialConnVT100::LoadDefaultModes()
 {
-    SetDecMode(DECCKM, 0); // cursor
-    SetDecMode(DECANM, 1); // ANSI
-    SetDecMode(DECOM,  0); // Absolute
-    SetDecMode(DECAWM, 1); // Auto wrap line
+    mModes.SetDecpMode(DECCKM, 0); // cursor
+    mModes.SetDecpMode(DECANM, 1); // ANSI
+    mModes.SetDecpMode(DECOM,  0); // Absolute
+    mModes.SetDecpMode(DECAWM, 1); // Auto wrap line
     // others modes were ignored, we do not support them.
 }
 
@@ -128,28 +128,28 @@ bool SerialConnVT100::ProcessKeyDown(Upp::dword key, Upp::dword flags)
         processed = true;
         switch (key) {
         case K_UP:
-            if (GetDecMode(DECCKM) == 0) {
+            if (mModes.GetDecpMode(DECCKM) == 0) {
                 Put("\E[A");
             } else {
                 Put("\EOA");
             }
             break;
         case K_DOWN:
-            if (GetDecMode(DECCKM) == 0) {
+            if (mModes.GetDecpMode(DECCKM) == 0) {
                 Put("\E[B");
             } else {
                 Put("\EOB");
             }
             break;
         case K_LEFT:
-            if (GetDecMode(DECCKM) == 0) {
+            if (mModes.GetDecpMode(DECCKM) == 0) {
                 Put("\E[D");
             } else {
                 Put("\EOD");
             }
             break;
         case K_RIGHT:
-            if (GetDecMode(DECCKM) == 0) {
+            if (mModes.GetDecpMode(DECCKM) == 0) {
                 Put("\E[C");
             } else {
                 Put("\EOC");
@@ -157,28 +157,28 @@ bool SerialConnVT100::ProcessKeyDown(Upp::dword key, Upp::dword flags)
             break;
         /*! PF1 ~ PF4 */
         case K_F1:
-            if (GetDecMode(DECANM) == 1) {
+            if (mModes.GetDecpMode(DECANM) == 1) {
                 Put("\EOP");
             } else {
                 Put("\EP");
             }
             break;
         case K_F2:
-            if (GetDecMode(DECANM) == 1) {
+            if (mModes.GetDecpMode(DECANM) == 1) {
                 Put("\EOQ");
             } else {
                 Put("\EQ");
             }
             break;
         case K_F3:
-            if (GetDecMode(DECANM) == 1) {
+            if (mModes.GetDecpMode(DECANM) == 1) {
                 Put("\EOR");
             } else {
                 Put("\ER");
             }
             break;
         case K_F4:
-            if (GetDecMode(DECANM) == 1) {
+            if (mModes.GetDecpMode(DECANM) == 1) {
                 Put("\EOS");
             } else {
                 Put("\ES");
@@ -219,7 +219,7 @@ void SerialConnVT100::ProcessDECSM(const std::string_view& p)
     int ps = atoi(p.data());
     switch (ps) {
     case 5:
-        if (GetDecMode(DECSCNM, 0) == 0) {
+        if (mModes.GetDecpMode(DECSCNM, 0) == 0) {
             mColorTbl.Swap(VTColorTable::kColorId_Paper, VTColorTable::kColorId_Texts);
         }
         break;
@@ -230,14 +230,14 @@ void SerialConnVT100::ProcessDECSM(const std::string_view& p)
         SetWrapLine(true);
         break;
     }
-    SetDecMode(ps, 1);
+    mModes.SetDecpMode(ps, 1);
 }
 void SerialConnVT100::ProcessDECRM(const std::string_view& p)
 {
     int ps = atoi(p.data());
     switch (ps) {
     case 5:
-        if (GetDecMode(DECSCNM) == 1) {
+        if (mModes.GetDecpMode(DECSCNM) == 1) {
             mColorTbl.Swap(VTColorTable::kColorId_Paper, VTColorTable::kColorId_Texts);
         }
         break;
@@ -248,7 +248,7 @@ void SerialConnVT100::ProcessDECRM(const std::string_view& p)
         SetWrapLine(false);
         break;
     }
-    SetDecMode(ps, 0);
+    mModes.SetDecpMode(ps, 0);
 }
 //
 void SerialConnVT100::ProcessDECDSR(const std::string_view& p)
@@ -262,7 +262,7 @@ void SerialConnVT100::ProcessDECDSR(const std::string_view& p)
 }
 void SerialConnVT100::SetCursorToHome()
 {
-    if (GetDecMode(DECOM) == 1) { // Set - Absolute
+    if (mModes.GetDecpMode(DECOM) == 1) { // Set - Absolute
          mVx = 0; mVy = 0;
     } else {
         int top = mScrollingRegion.Top;
@@ -285,7 +285,7 @@ void SerialConnVT100::ProcessCUP(const std::string_view& p)
         pn[0] = 1;
     if (pn[1] <= 0)
         pn[1] = 1;
-    if (GetDecMode(DECOM) == 1) {
+    if (mModes.GetDecpMode(DECOM) == 1) {
         mPx = mFontW * (pn[1] - 1);
         mVy = pn[0] - 1;
     } else {

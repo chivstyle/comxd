@@ -24,8 +24,6 @@ protected:
     void ProcessDECSCL(const std::string_view&);
     void ProcessDECSEL(const std::string_view&);
     void ProcessDECSED(const std::string_view&);
-    void ProcessDECSM(const std::string_view&);
-    void ProcessDECRM(const std::string_view&);
     void ProcessDA(const std::string_view&);
     void ProcessSecondaryDA(const std::string_view&);
     // override cs
@@ -34,19 +32,7 @@ protected:
     void ProcessG2_CS(const std::string_view&);
     void ProcessG3_CS(const std::string_view&);
     //
-    struct VT320Modes {
-        enum DECKBUMValue {
-            DECKBUM_Typewriter = 0,
-            DECKBUM_DataProcessing
-        };
-        uint32_t DECKBUM : 1; // keyboard usage
-        VT320Modes()
-            : DECKBUM(DECKBUM_DataProcessing)
-        {
-        }
-    };
-    VT320Modes mModes;
-    //
 private:
+	void LoadDefaultModes();
     void InstallFunctions();
 };
