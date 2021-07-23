@@ -134,8 +134,10 @@ void SerialConnVT::ShowVTOptions()
             if (shrink_cnt > 0) {
                 mLinesBuffer.erase(mLinesBuffer.begin(), mLinesBuffer.begin() + shrink_cnt);
             }
-            // will override the old parameters, such as line-height
+#if ENABLE_FIXED_LINE_HEIGHT == 0
+            // will override the old parameters, such as line-height, keep ratio
             for (size_t k = 0; k < mLinesBuffer.size(); ++k) {
+				mLinesBuffer[k].SetHeight(fonth);
                 int h = mLinesBuffer[k].GetHeight();
                 mLinesBuffer[k].SetHeight((int)((double)h / mFontH * fonth));
             }
@@ -143,6 +145,7 @@ void SerialConnVT::ShowVTOptions()
                 int h = mLines[k].GetHeight();
                 mLines[k].SetHeight((int)((double)h / mFontH * fonth));
             }
+#endif
             mFontW = fontw, mFontH = fonth;
             vscr_modified = true;
         }
@@ -218,6 +221,8 @@ void SerialConnVT::SwapScr(ScreenData& sd)
     std::swap(sd.LinesBuffer, mLinesBuffer);
     std::swap(sd.SelSpan, mSelectionSpan);
     //
+    DoLayout();
+    //
     UpdatePresentation();
 }
 
@@ -229,6 +234,8 @@ void SerialConnVT::LoadScr(const ScreenData& sd)
     mVy = sd.Vy;
     mStyle = sd.Style;
     mSelectionSpan = sd.SelSpan;
+    //
+    DoLayout();
     //
     UpdatePresentation();
 }
@@ -940,7 +947,11 @@ int SerialConnVT::GetLineHeight(int vy) const
 {
     const VTLine* vline = this->GetVTLine(vy);
     if (vline)
+#if ENABLE_FIXED_LINE_HEIGHT
+		return mFontH;
+#else
         return vline->GetHeight();
+#endif
     else
         return 0;
 }
@@ -992,7 +1003,11 @@ void SerialConnVT::LeftDown(Point p, dword)
     VTLine* vline = this->GetVTLine(vpos.y);
     if (vline) {
         Point lpos = VirtualToLogic(mSelectionSpan.X0, mSelectionSpan.Y0);
+#if ENABLE_FIXED_LINE_HEIGHT
+		this->SetCaret(lpos.x - mSbH.Get(), lpos.y - mSbV.Get(), 1, mFontH);
+#else
         this->SetCaret(lpos.x - mSbH.Get(), lpos.y - mSbV.Get(), 1, vline->GetHeight());
+#endif
     }
     // capture, event the cursor move out of the client region.
     SetFocus();
@@ -1567,12 +1582,16 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
         if (is_selected) {
             std::swap(bg_color, fg_color);
         }
+        int line_height = mFontH;
+#if ENABLE_FIXED_LINE_HEIGHT == 0
+		int line_height = vline.GetHeight();
+#endif
         if (blink) {
             if (mBlinkSignal) {
-                draw.DrawRect(x, y, vchar_cx, vline.GetHeight(), paper_color);
+                draw.DrawRect(x, y, vchar_cx, line_height, paper_color);
             } else {
                 if (bg_color != paper_color) {
-                    draw.DrawRect(x, y, vchar_cx, vline.GetHeight(), bg_color);
+                    draw.DrawRect(x, y, vchar_cx, line_height, bg_color);
                 }
                 if (fg_color != bg_color) {
                     if (!_IsBlank(vline[i]) && visible) {
@@ -1582,7 +1601,7 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
             }
         } else {
             if (bg_color != paper_color) {
-                draw.DrawRect(x, y, vchar_cx, vline.GetHeight(), bg_color);
+                draw.DrawRect(x, y, vchar_cx, line_height, bg_color);
             }
             if (fg_color != bg_color) {
                 if (!_IsBlank(vline[i]) && visible) {
@@ -1666,7 +1685,11 @@ void SerialConnVT::UpdateHScrollbar()
     int longest_linesz = 0;
     for (int i = vpos.y; i < (int)mLinesBuffer.size() && lyoff < usz.cy; ++i) {
         const VTLine& vline = mLinesBuffer[i];
+#if ENABLE_FIXED_LINE_HEIGHT
+		lyoff += mFontH;
+#else
         lyoff += vline.GetHeight();
+#endif
         int nchars = (int)vline.size() - this->CalculateNumberOfBlankCharsFromEnd(vline);
         int linesz = this->GetLogicWidth(vline, nchars);
         if (linesz > longest_linesz) {
@@ -1675,7 +1698,11 @@ void SerialConnVT::UpdateHScrollbar()
     }
     for (int i = std::max(0, vpos.y - (int)mLinesBuffer.size()); i < (int)mLines.size() && lyoff < usz.cy; ++i) {
         const VTLine& vline = mLines[i];
+#if ENABLE_FIXED_LINE_HEIGHT
+		lyoff += mFontH;
+#else
         lyoff += vline.GetHeight();
+#endif
         int nchars = (int)vline.size() - this->CalculateNumberOfBlankCharsFromEnd(vline);
         int linesz = this->GetLogicWidth(vline, nchars);
         if (linesz > longest_linesz) {
