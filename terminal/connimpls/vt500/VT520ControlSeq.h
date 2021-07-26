@@ -30,6 +30,34 @@ enum VT520SeqType {
     DECRQKT, // request key type
     DECRQM_ANSI, // request ansi mode
     DECRQM_DECP, // request dec private mode
+    DECRQPKFM, // request program key free memory
+    DECCTR, // color table request
+    DECSCP, // select communication port
+    DECSCS, // select communication speed
+    DECSCUSR, // set cursor style
+    DECSDDT, // select disconnect delay time
+    DECSDPT, // Select Digital Printed Data Type
+    DECSEST, // Energy saver timing
+    DECSFC, // Select Flow Control
+    DECSKCV, // Set Key Click Volume
+    DECSLCK, // Set Lock Key Style
+    DECSMBV, // Set Margin Bell Volume
+    DECSPMA, // Session Page Memory Allocation
+    DECSPP, // Set Port Parameters
+    DECSPPCS, // Select ProPrinter Character Set
+    DECSPRTT, // Select Printer Type
+    DECSR, // Secure Reset
+    DECSRC, // Secure Reset Confirmation
+    DECSSCLS, // Set Scroll Speed
+    DECSSL, // Select Set-Up Language
+    DECST8C, // Set Tab at Every 8 Columns
+    DECSTGLT, // Select Color Look-Up Table
+    DECSTRL, // Set Transmit Rate Limit
+    DECSWBV, // Set Warning Bell Volume
+    DECSZS, // Select Zero Symbol
+    DECTID, // Select Terminal ID
+    DECTME, // Terminal Mode Emulation
+    DECUS, // Update Session
     
     VT520_SEQ_MAX
 };

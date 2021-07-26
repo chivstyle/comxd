@@ -15,4 +15,6 @@ enum VT420Charset {
 };
 static_assert(VT420_CS_MAX < VT400_CS_END, "please define VT400_CS_COUNT big enough");
 
+uint32_t VT420_RemapL(uint32_t uc, int cs);
+uint32_t VT420_RemapR(uint32_t uc, int cs);
 uint32_t VT420_RemapCharacter(uint32_t uc, int cs, int extended_cs);
