@@ -1,7 +1,7 @@
 //
 // (c) 2020 chiv
 //
-#include "ProtoXmodem.h"
+#include "ProtoYmodem.h"
 #include "xyzmodem.h"
 #include "Conn.h"
 #include "ProtoFactory.h"
@@ -9,44 +9,46 @@
 #include <thread>
 
 namespace proto {
+REGISTER_PROTO_INSTANCE("YMODEM", ProtoYmodem);
 
-REGISTER_PROTO_INSTANCE("XMODEM", ProtoXmodem);
-
-ProtoXmodem::ProtoXmodem(SerialConn* conn)
+ProtoYmodem::ProtoYmodem(SerialConn* conn)
     : Proto(conn)
 {
     WhenUsrBar = [=](Bar& bar) {
-        bar.Add(t_("About"), terminal::help(), [=]() { Upp::PromptOK("Standard XMODEM/CRC v1.0a"); });
-        bar.Add(t_("Transmit File..."), [=]() {
+        bar.Add(t_("About"), terminal::help(), [=]() {
+            Upp::PromptOK("Standard YMODEM-1K/CRC v1.0a");
+        });
+        bar.Add(t_("Transmit Files..."), [=]() {
             FileSel fs;
-            if (fs.AllFilesType().ExecuteOpen()) {
-                auto filename = fs.Get();
-                std::string errmsg;
-                TransmitFile(filename.ToStd(), errmsg);
-                if (!errmsg.empty()) {
-                    PromptOK(errmsg.c_str());
+            if (fs.AllFilesType().Multi(true).ExecuteOpen()) {
+                for (int k = 0; k < fs.GetCount(); ++k) {
+                    std::string errmsg;
+                    TransmitFile(fs.GetFile(k).ToStd(), errmsg);
+                    if (!errmsg.empty()) {
+                        PromptOK(errmsg.c_str());
+                    }
                 }
             }
         });
     };
 }
 
-ProtoXmodem::~ProtoXmodem()
+ProtoYmodem::~ProtoYmodem()
 {
 }
 
-std::string ProtoXmodem::GetDescription() const
+std::string ProtoYmodem::GetDescription() const
 {
-    return t_("Standard XMODEM/CRC");
+    return t_("Standard YMODEM-1K/CRC");
 }
 // return  0 Absolutely not
 //         1 Pending
 //        >1 Yes
-int ProtoXmodem::IsProto(const unsigned char* buf, size_t sz)
+int ProtoYmodem::IsProto(const unsigned char* buf, size_t sz)
 {
     if (sz > 0) {
-        if (sz >= 133) {
-            if (buf[0] == xyzmodem::fSOH && xyzmodem::calcrc(buf + 1, 128) == (((int)buf[131] << 8) | buf[132]))
+        if (sz >= 2+1024+3) {
+            if (buf[0] == xyzmodem::fSOH && xyzmodem::calcrc(buf + 1, 1024) == (((int)buf[1024+3] << 8) | buf[1024+4]))
                 return 2;
             else if (buf[0] == xyzmodem::fSOH)
                 return 1;
@@ -55,7 +57,7 @@ int ProtoXmodem::IsProto(const unsigned char* buf, size_t sz)
     return 0;
 }
 
-std::vector<unsigned char> ProtoXmodem::Pack(const void* input, size_t input_size, size_t pkt_sz,
+std::vector<unsigned char> ProtoYmodem::Pack(const void* input, size_t input_size, size_t pkt_sz,
     unsigned char pad, unsigned char pkt_idx)
 {
     std::vector<unsigned char> out(3+pkt_sz+2, xyzmodem::fEOF);
@@ -122,7 +124,7 @@ static inline bool expect_seqs(SerialIo* io, int timeout, volatile bool* should_
     return false;
 }
 
-int ProtoXmodem::TransmitFile(const std::string& filename, std::string& errmsg)
+int ProtoYmodem::TransmitFile(const std::string& filename, std::string& errmsg)
 {
     Progress bar;
     const int kTimeout = 1500;
@@ -141,8 +143,8 @@ int ProtoXmodem::TransmitFile(const std::string& filename, std::string& errmsg)
             return -1;
         }
         //
-        size_t blkcnt = filesz / 128;
-        size_t leftcn = filesz % 128;
+        size_t blkcnt = filesz / 1024;
+        size_t leftcn = filesz % 1024;
         size_t totcnt = leftcn ? blkcnt + 1 : blkcnt;
         size_t k;
         // create the job
@@ -153,10 +155,23 @@ int ProtoXmodem::TransmitFile(const std::string& filename, std::string& errmsg)
                 failed = true;
                 errmsg = "Sync Timeout!";
             }
+            // send filename
+            auto hdr = Pack(filename.c_str(), std::min(size_t(127), filename.length()), 128, '\0', 0);
+            io->Write(hdr);
+            if (expect_resp(io, kTimeout, &should_stop, { xyzmodem::fACK }) != xyzmodem::fACK) {
+                failed = true;
+                errmsg = "Failed to transmit filename";
+            }
+            if (!failed) { // Wait for sync again
+                if (!expect_seqs(io, kTimeout, &should_stop, { 'C' })) {
+                    failed = true;
+                    errmsg = "Sync Timeout 2!";
+                }
+            }
             //
-            char chunk[128];
+            char chunk[1024];
             for (k = 0; k < totcnt && !should_stop && !failed; ++k) {
-                auto frmsz = fin.Get(chunk, 128);
+                auto frmsz = fin.Get(chunk, 1024);
                 if (TransmitFrame(chunk, frmsz, idx++, errmsg) < 0) {
                     failed = true;
                     break;
@@ -167,17 +182,19 @@ int ProtoXmodem::TransmitFile(const std::string& filename, std::string& errmsg)
             // write the tail seq
             if (!failed) {
                 failed = true;
-                io->Write((const unsigned char*)&xyzmodem::fEOT, 1);
-                if (expect_resp(io, kTimeout, &should_stop, { xyzmodem::fACK }) == xyzmodem::fACK) {
-                    //io->Write((const unsigned char*)&xyzmodem::fETB, 1);
-                    //if (expect_resp(io, kTimeout, &should_stop, {xyzmodem::fACK}) == xyzmodem::fACK) {
-                    // completed.
-                    failed = false;
-                    //} else {
-                    //    errmsg = "ETB was not responsed!";
-                    //}
+                std::vector<unsigned char> eot({xyzmodem::fEOT, xyzmodem::fEOT});
+                io->Write(eot);
+                if (expect_seqs(io, kTimeout, &should_stop, std::vector<char>({xyzmodem::fNAK, xyzmodem::fACK, 'C'}))) {
+                    // send the tail
+                    auto tail = Pack(nullptr, 0, 128, '\0', 0);
+                    io->Write(tail);
+                    if (expect_resp(io, kTimeout, &should_stop, std::vector<char>({xyzmodem::fACK})) == xyzmodem::fACK) {
+                        failed = false;
+                    } else {
+                        errmsg = "Failed to transmit tail";
+                    }
                 } else {
-                    errmsg = "EOT was not responsed!";
+                    errmsg = "Failed to send/recv EOT<-NAK, EOT<-ACK, <-C";
                 }
             }
             Upp::PostCallback([&]() { bar.Close(); });
@@ -196,14 +213,14 @@ int ProtoXmodem::TransmitFile(const std::string& filename, std::string& errmsg)
     return failed ? 0 : (int)input_size;
 }
 
-int ProtoXmodem::TransmitFrame(const void* frm, size_t frm_size, unsigned char frm_idx, std::string& errmsg)
+int ProtoYmodem::TransmitFrame(const void* frm, size_t frm_size, unsigned char frm_idx, std::string& errmsg)
 {
     bool failed = false;
     const int kTimeout = 1500;
     volatile bool should_stop = false;
     auto io = mConn->GetIo();
-    size_t blksz = std::min(frm_size, size_t(128));
-    auto pkt = Pack(frm, blksz, 128, xyzmodem::fEOF, frm_idx);
+    size_t blksz = std::min(frm_size, size_t(1024));
+    auto pkt = Pack(frm, blksz, 1024, xyzmodem::fEOF, frm_idx);
     int retry = 3;
     while (retry--) {
         io->Write(pkt);
@@ -226,7 +243,7 @@ int ProtoXmodem::TransmitFrame(const void* frm, size_t frm_size, unsigned char f
     return failed ? -1 : (int)blksz;
 }
 
-int ProtoXmodem::Transmit(const void* input, size_t input_size, std::string& errmsg)
+int ProtoYmodem::Transmit(const void* input, size_t input_size, std::string& errmsg)
 {
     (void)input;
     (void)input_size;

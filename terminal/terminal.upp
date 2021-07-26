@@ -27,6 +27,8 @@ file
 	ProtoFactory.h,
 	proto/ss.h,
 	proto/ss.cpp,
+	proto\ProtoYmodem.cpp,
+	proto\ProtoYmodem.h,
 	proto/ProtoSs.cpp,
 	proto/ProtoSs.h,
 	proto\ProtoXmodem.cpp,

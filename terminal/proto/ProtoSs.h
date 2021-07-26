@@ -20,9 +20,6 @@ public:
     int IsProto(const unsigned char* buf, size_t sz);
     //
     int Transmit(const void* input, size_t input_size, std::string& errmsg);
-    //
-private:
-    std::string mName;
 };
 
 }
