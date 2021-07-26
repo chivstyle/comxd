@@ -25,6 +25,9 @@ protected:
     void ProcessG1_CS(const std::string_view&);
     void ProcessG2_CS(const std::string_view&);
     void ProcessG3_CS(const std::string_view&);
+    void ProcessG1_CS96(const std::string_view&);
+    void ProcessG2_CS96(const std::string_view&);
+    void ProcessG3_CS96(const std::string_view&);
     //
 private:
 	void LoadDefaultModes();

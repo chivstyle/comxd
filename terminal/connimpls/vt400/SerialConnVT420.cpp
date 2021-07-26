@@ -103,6 +103,27 @@ void SerialConnVT420::SetHostToS8C()
     Put("\E G");
 }
 
+#define DO_SET_CHARSET96(g)                               \
+    do {                                                  \
+        if (p == "A") {                                   \
+            mCharsets[g] = CS_ISO_LATIN1_SUPPLEMENTAL;    \
+        } else                                            \
+            SerialConnVT320::ProcessG##g##_CS96(p);       \
+    } while (0)
+//
+void SerialConnVT420::ProcessG1_CS96(const std::string_view& p)
+{
+    DO_SET_CHARSET96(1);
+}
+void SerialConnVT420::ProcessG2_CS96(const std::string_view& p)
+{
+    DO_SET_CHARSET96(2);
+}
+void SerialConnVT420::ProcessG3_CS96(const std::string_view& p)
+{
+    DO_SET_CHARSET96(3);
+}
+
 void SerialConnVT420::ProcessDA(const std::string_view& p)
 {
     int pn = atoi(p.data());

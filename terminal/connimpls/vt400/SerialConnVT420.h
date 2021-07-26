@@ -22,6 +22,10 @@ protected:
     virtual void ProcessDECFI(const std::string_view&);
     virtual void ProcessDECDC(const std::string_view&);
     virtual void ProcessDECIC(const std::string_view&);
+    // override cs
+    void ProcessG1_CS96(const std::string_view&);
+    void ProcessG2_CS96(const std::string_view&);
+    void ProcessG3_CS96(const std::string_view&);
     //
     void SetHostToS7C();
     void SetHostToS8C();

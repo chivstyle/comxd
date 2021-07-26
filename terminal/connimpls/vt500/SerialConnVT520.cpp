@@ -67,6 +67,21 @@ void SerialConnVT520::ProcessDECST8C(const std::string_view&)
             SerialConnVT420::ProcessG##g##_CS(p);         \
     } while (0)
 //
+#define DO_SET_CHARSET96(g)                               \
+    do {                                                  \
+        if (p == "B") {                                   \
+            mCharsets[g] = CS_ISO_LATIN2_SUPPLEMENTAL;    \
+        } else if (p == "F") {                            \
+            mCharsets[g] = CS_ISO_GREEK_SUPPLEMENTAL;     \
+        } else if (p == "H") {                            \
+            mCharsets[g] = CS_ISO_HEBREW_SUPPLEMENTAL;    \
+        } else if (p == "L") {                            \
+            mCharsets[g] = CS_ISO_LATIN_CYRILLIC;         \
+        } else if (p == "M") {                            \
+            mCharsets[g] = CS_ISO_LATIN5_SUPPLEMENTAL;    \
+        } else                                            \
+            SerialConnVT420::ProcessG##g##_CS96(p);       \
+    } while (0)
 void SerialConnVT520::ProcessG0_CS(const std::string_view& p)
 {
     DO_SET_CHARSET(0);
@@ -82,6 +97,18 @@ void SerialConnVT520::ProcessG2_CS(const std::string_view& p)
 void SerialConnVT520::ProcessG3_CS(const std::string_view& p)
 {
     DO_SET_CHARSET(3);
+}
+void SerialConnVT520::ProcessG1_CS96(const std::string_view& p)
+{
+    DO_SET_CHARSET96(1);
+}
+void SerialConnVT520::ProcessG2_CS96(const std::string_view& p)
+{
+    DO_SET_CHARSET96(2);
+}
+void SerialConnVT520::ProcessG3_CS96(const std::string_view& p)
+{
+    DO_SET_CHARSET96(3);
 }
 
 void SerialConnVT520::ProcessDECRQM_ANSI(const std::string_view& p)

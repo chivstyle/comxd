@@ -62,6 +62,9 @@ void SerialConnVT320::InstallFunctions()
     mFunctions[ANSIRQM] = [=](const std::string_view& p) { ProcessANSIRQM(p); };
     mFunctions[DECRPM] = [=](const std::string_view& p) { ProcessDECRPM(p); };
     mFunctions[DECRQUPSS] = [=](const std::string_view& p) { ProcessDECRQUPSS(p); };
+    mFunctions[G1_CS96] = [=](const std::string_view& p) { ProcessG1_CS96(p); };
+    mFunctions[G2_CS96] = [=](const std::string_view& p) { ProcessG2_CS96(p); };
+    mFunctions[G3_CS96] = [=](const std::string_view& p) { ProcessG3_CS96(p); };
 }
 //
 #define DO_SET_CHARSET(g)                                 \
@@ -78,6 +81,8 @@ void SerialConnVT320::InstallFunctions()
             SerialConnVT220::ProcessG##g##_CS(p);         \
     } while (0)
 //
+#define DO_SET_CHARSET96(g) do { } while (0)
+//
 void SerialConnVT320::ProcessG0_CS(const std::string_view& p)
 {
     DO_SET_CHARSET(0);
@@ -93,6 +98,18 @@ void SerialConnVT320::ProcessG2_CS(const std::string_view& p)
 void SerialConnVT320::ProcessG3_CS(const std::string_view& p)
 {
     DO_SET_CHARSET(3);
+}
+void SerialConnVT320::ProcessG1_CS96(const std::string_view&)
+{
+    DO_SET_CHARSET96(1);
+}
+void SerialConnVT320::ProcessG2_CS96(const std::string_view&)
+{
+    DO_SET_CHARSET96(2);
+}
+void SerialConnVT320::ProcessG3_CS96(const std::string_view&)
+{
+    DO_SET_CHARSET96(3);
 }
 //
 void SerialConnVT320::ProcessDECSASD(const std::string_view&)

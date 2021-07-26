@@ -15,6 +15,9 @@ enum VT320SeqType {
     ANSIRQM, // set mode ansi
     DECRPM,
     DECRQUPSS,
+    G1_CS96,
+    G2_CS96,
+    G3_CS96,
     VT320_SEQ_MAX
 };
 static_assert(VT320_SEQ_MAX < VT300_SEQ_END, "You should define VT300_SEQ_MAX_COUNT big enough");

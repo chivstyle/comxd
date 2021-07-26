@@ -20,6 +20,9 @@ protected:
     virtual void ProcessANSIRQM(const std::string_view&);
     virtual void ProcessDECRPM(const std::string_view&);
     virtual void ProcessDECRQUPSS(const std::string_view&);
+    virtual void ProcessG1_CS96(const std::string_view&);
+    virtual void ProcessG2_CS96(const std::string_view&);
+    virtual void ProcessG3_CS96(const std::string_view&);
     // override vt220
     void ProcessDECSCL(const std::string_view&);
     void ProcessDECSEL(const std::string_view&);
