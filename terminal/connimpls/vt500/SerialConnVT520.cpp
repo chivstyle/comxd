@@ -53,16 +53,6 @@ void SerialConnVT520::ProcessDECST8C(const std::string_view&)
             mCharsets[g] = CS_SCS;                        \
         } else if (p == "&5") {                           \
             mCharsets[g] = CS_RUSSIAN;                    \
-        } else if (p == "B") {                            \
-            mCharsets[g] = CS_ISO_LATIN2_SUPPLEMENTAL;    \
-        } else if (p == "F") {                            \
-            mCharsets[g] = CS_ISO_GREEK_SUPPLEMENTAL;     \
-        } else if (p == "H") {                            \
-            mCharsets[g] = CS_ISO_HEBREW_SUPPLEMENTAL;    \
-        } else if (p == "L") {                            \
-            mCharsets[g] = CS_ISO_LATIN_CYRILLIC;         \
-        } else if (p == "M") {                            \
-            mCharsets[g] = CS_ISO_LATIN5_SUPPLEMENTAL;    \
         } else                                            \
             SerialConnVT420::ProcessG##g##_CS(p);         \
     } while (0)
