@@ -7,6 +7,7 @@
 #include "ControlSeq.h"
 #include "TextCodecsDialog.h"
 #include "VTOptionsDialog.h"
+#include "ProtoFactory.h"
 #include <algorithm>
 //
 #define ENABLE_H_SCROLLBAR 1
@@ -191,6 +192,18 @@ void SerialConnVT::InstallUserActions()
             .Key(K_CTRL | K_SHIFT | K_V);
         bar.Add(true, t_("Select all"), [=]() { SelectAll(); })
             .Key(K_CTRL | K_SHIFT | K_A);
+        //--------------------------------------------------------------------------------------
+        bar.Sub(t_("Transmit File(s)"), [=](Bar& sub) {
+            auto proto_names = ProtoFactory::Inst()->GetSupportedProtoNames();
+            for (size_t k = 0; k < proto_names.size(); ++k) {
+                sub.Add(proto_names[k], [=]() {
+                    auto proto = ProtoFactory::Inst()->CreateInst(proto_names[k], this);
+                    proto->TransmitFile();
+                    delete proto;
+                });
+            }
+        });
+        //--------------------------------------------------------------------------------------
     };
 }
 void SerialConnVT::SetWrapLine(bool b)

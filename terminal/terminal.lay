@@ -46,3 +46,9 @@ LAYOUT(TextCodecs, 264, 64)
 	ITEM(Upp::Button, mCancel, SetLabel(t_("Cancel")).LeftPosZ(200, 56).TopPosZ(36, 20))
 END_LAYOUT
 
+LAYOUT(TransmitProgressDialog, 400, 60)
+	ITEM(Upp::ProgressIndicator, mProgress, LeftPosZ(8, 384).TopPosZ(8, 24))
+	ITEM(Upp::Label, mTxRate, LeftPosZ(8, 168).TopPosZ(36, 19))
+	ITEM(Upp::Label, mTime, SetAlign(ALIGN_RIGHT).RightPosZ(8, 168).TopPosZ(36, 19))
+END_LAYOUT
+

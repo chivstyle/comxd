@@ -466,8 +466,8 @@ void SerialConnRaw::OnSend()
     if (mTxHex.Get()) {
         // write as hex.
         auto hex_ = ToHex_(tx);
-        if (mTxProto) {
-            mTxProto->Transmit(hex_.data(), hex_.size(), errmsg);
+        if (mTxProto && mTxProto->SupportTransmitData()) {
+            mTxProto->TransmitData(hex_.data(), hex_.size(), errmsg);
         } else {
             GetIo()->Write(hex_);
         }
@@ -476,8 +476,8 @@ void SerialConnRaw::OnSend()
         if (mEnableEscape.Get()) {
             text = TranslateEscapeChars(text);
         }
-        if (mTxProto) {
-            mTxProto->Transmit(text.c_str(), text.length(), errmsg);
+        if (mTxProto && mTxProto->SupportTransmitData()) {
+            mTxProto->TransmitData(text.c_str(), text.length(), errmsg);
         } else {
             auto tmp = ReplaceLineBreak_(text, mLineBreaks.GetKey(mLineBreaks.GetIndex()).To<int>());
             GetIo()->Write(GetCodec()->TranscodeFromUTF8((const unsigned char*)tmp.c_str(), tmp.length()));

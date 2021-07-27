@@ -9,6 +9,7 @@
 #include <vector>
 
 class SerialConn;
+class SerialIo;
 class Proto {
 public:
     Proto(SerialConn*);
@@ -18,13 +19,19 @@ public:
     void SetName(const char* name) { mName = name; }
     //
     virtual std::string GetDescription() const { return ""; }
-    // return  0 Absolutely not
-    //         1 Pending
-    //        >1 Yes
-    virtual int IsProto(const unsigned char* buf, size_t sz) = 0;
-    // return <= 0 failed
+    enum TransmitError {
+        T_FAILED = -1,               // Failed to transmit
+        T_NOT_SUPPORTED = -2         // Does not support transmit
+    };
+    virtual bool SupportTransmitData() const { return false; }
+    virtual bool SupportTransmitFile() const { return false; }
+    // typical behavior: pop up a dialog to show the transmit progress.
+    // please invoke this routine from GUI thread
+    // return <= 0 failed, T_NOT_SUPPORTED, T_FAILED, =0 No operations
     //        > 0  bytes transmitted
-    virtual int Transmit(const void* input, size_t input_size, std::string& errmsg) = 0;
+    virtual int TransmitData(const void* input, size_t input_size, std::string& errmsg) { return T_NOT_SUPPORTED; };
+    // typical behavior : pop up a dialog to allow the user to select some file(s) to transmit
+    virtual int TransmitFile() { return T_NOT_SUPPORTED; };
     //
     Upp::Event<Upp::Bar&> WhenUsrBar;
     //

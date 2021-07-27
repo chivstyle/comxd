@@ -31,7 +31,8 @@ void AddVT220ControlSeqs(ControlSeqFactory* factory)
     REGISTER_SEQ(factory, DECSEL, kDEC, Ps, 0, "K");
     REGISTER_SEQ(factory, DECSED, kDEC, Ps, 0, "J");
     // capture all printing sequences
-    REGISTER_SEQ(factory, PRINTING, kCSI, Gs, 0, "i");
+    REGISTER_SEQ(factory, PRINTING, kCSI, Ps, 0, "i");
+    REGISTER_SEQ(factory, PRINTING, kDEC, Ps, 0, "i");
     REGISTER_SEQ(factory, SecondaryDA, "\E[>", Ps, 0, "c");
     REGISTER_SEQ(factory, DECSTR, kCSI, No, 0, "!p");
 }
