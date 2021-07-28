@@ -4,7 +4,7 @@
 #include "terminal_rc.h"
 #include "ProtoYmodem.h"
 #include "TransmitProgressDialog.h"
-#include "xyzmodem.h"
+#include "xymodem.h"
 #include "Conn.h"
 #include "ProtoFactory.h"
 #include <thread>
@@ -86,21 +86,21 @@ static inline int _TransmitFrame1024(SerialIo* io, const void* frm, size_t frm_s
 {
     bool failed = false;
     size_t blksz = std::min(frm_size, size_t(1024));
-    auto pkt = xyzmodem::Pack(frm, blksz, 1024, xyzmodem::fSTX, xyzmodem::fEOF, cs_type, frm_idx);
+    auto pkt = xymodem::Pack(frm, blksz, 1024, xymodem::fSTX, xymodem::fEOF, cs_type, frm_idx);
     int retry = 3;
     while (retry--) {
         io->Write(pkt);
         // wait for the response
-        int ret = expect_resp(io, xyzmodem::kTimeout, should_stop, { xyzmodem::fACK, xyzmodem::fNAK, xyzmodem::fCAN });
+        int ret = expect_resp(io, xymodem::kTimeout, should_stop, { xymodem::fACK, xymodem::fNAK, xymodem::fCAN });
         if (ret < 0) {
             errmsg = "The remote device was not responsed in time";
             failed = true;
             break;
-        } else if (ret == xyzmodem::fNAK) { // retransmit
+        } else if (ret == xymodem::fNAK) { // retransmit
             io->Write(pkt);
-        } else if (ret == xyzmodem::fACK) {
+        } else if (ret == xymodem::fACK) {
             break;
-        } else if (ret == xyzmodem::fCAN) {
+        } else if (ret == xymodem::fCAN) {
             errmsg = "The remote device canceled the transmit";
             failed = true;
             break;
@@ -113,21 +113,21 @@ static inline int _TransmitFrame128(SerialIo* io, const void* frm, size_t frm_si
 {
     bool failed = false;
     size_t blksz = std::min(frm_size, size_t(128));
-    auto pkt = xyzmodem::Pack(frm, blksz, 128, xyzmodem::fSOH, xyzmodem::fEOF, cs_type, frm_idx);
+    auto pkt = xymodem::Pack(frm, blksz, 128, xymodem::fSOH, xymodem::fEOF, cs_type, frm_idx);
     int retry = 3;
     while (retry--) {
         io->Write(pkt);
         // wait for the response
-        int ret = expect_resp(io, xyzmodem::kTimeout, should_stop, { xyzmodem::fACK, xyzmodem::fNAK, xyzmodem::fCAN });
+        int ret = expect_resp(io, xymodem::kTimeout, should_stop, { xymodem::fACK, xymodem::fNAK, xymodem::fCAN });
         if (ret < 0) {
             errmsg = "The remote device was not responsed in time";
             failed = true;
             break;
-        } else if (ret == xyzmodem::fNAK) { // retransmit
+        } else if (ret == xymodem::fNAK) { // retransmit
             io->Write(pkt);
-        } else if (ret == xyzmodem::fACK) {
+        } else if (ret == xymodem::fACK) {
             break;
-        } else if (ret == xyzmodem::fCAN) {
+        } else if (ret == xymodem::fCAN) {
             errmsg = "The remote device canceled the transmit";
             failed = true;
             break;
@@ -158,8 +158,8 @@ int ProtoYmodem::TransmitFile(SerialIo* io, const std::string& filename, std::st
     FileIn fin;
     if (fin.Open(filename.c_str())) {
         auto filesz = fin.GetSize();
-        if (filesz > xyzmodem::kMaxFileSize) {
-            errmsg = filename + " is too large to transmit, max:" + std::to_string(xyzmodem::kMaxFileSize);
+        if (filesz > xymodem::kMaxFileSize) {
+            errmsg = filename + " is too large to transmit, max:" + std::to_string(xymodem::kMaxFileSize);
             return -1;
         }
         bar.SetTotal(filesz);
@@ -168,9 +168,9 @@ int ProtoYmodem::TransmitFile(SerialIo* io, const std::string& filename, std::st
         double ts = 0;
         // create the job
         auto job = [&]() {
-            unsigned char idx = 1; // xyzmodem begins from 1
+            unsigned char idx = 1; // xymodem begins from 1
             // wait for sync
-            int resp = expect_resp(io, xyzmodem::kTimeout, &should_stop, { 'C' });
+            int resp = expect_resp(io, xymodem::kTimeout, &should_stop, { 'C' });
             switch (resp) {
             case 'C': break;
             case -1: failed = true; errmsg = "Sync Timeout!"; break;
@@ -178,10 +178,10 @@ int ProtoYmodem::TransmitFile(SerialIo* io, const std::string& filename, std::st
             }
             // send filename
             auto filename_ = _Filename(filename);
-            auto hdr = xyzmodem::Pack(filename_.c_str(), std::min(size_t(127), filename_.length()), 128,
-                xyzmodem::fSOH, '\0', xyzmodem::CRC16, 0);
+            auto hdr = xymodem::Pack(filename_.c_str(), std::min(size_t(127), filename_.length()), 128,
+                xymodem::fSOH, '\0', xymodem::CRC16, 0);
             io->Write(hdr);
-            if (!expect_seqs(io, xyzmodem::kTimeout, &should_stop, { xyzmodem::fACK, 'C' })) {
+            if (!expect_seqs(io, xymodem::kTimeout, &should_stop, { xymodem::fACK, 'C' })) {
                 failed = true;
                 errmsg = "Failed to transmit filename";
             }
@@ -190,7 +190,7 @@ int ProtoYmodem::TransmitFile(SerialIo* io, const std::string& filename, std::st
             char chunk[1024];
             while (!should_stop && !failed && !fin.IsEof()) {
                 auto frmsz = fin.Get(chunk, 1024);
-                if (_TransmitFrame1024(io, chunk, frmsz, xyzmodem::CRC16, idx++, &should_stop, errmsg) < 0) {
+                if (_TransmitFrame1024(io, chunk, frmsz, xymodem::CRC16, idx++, &should_stop, errmsg) < 0) {
                     failed = true;
                     break;
                 }
@@ -202,17 +202,17 @@ int ProtoYmodem::TransmitFile(SerialIo* io, const std::string& filename, std::st
             // write the tail seq
             if (!failed) {
                 failed = true;
-                io->Write((unsigned char*)&xyzmodem::fEOT, 1);
-                if (expect_resp(io, xyzmodem::kTimeout, &should_stop, {xyzmodem::fNAK}) != xyzmodem::fNAK) {
+                io->Write((unsigned char*)&xymodem::fEOT, 1);
+                if (expect_resp(io, xymodem::kTimeout, &should_stop, {xymodem::fNAK}) != xymodem::fNAK) {
                     failed = true;
                     errmsg = "EOT 1 was not responsed by NAK";
                 } else {
-                    io->Write((unsigned char*)&xyzmodem::fEOT, 1);
-                    if (expect_seqs(io, xyzmodem::kTimeout, &should_stop, {xyzmodem::fACK})) {
+                    io->Write((unsigned char*)&xymodem::fEOT, 1);
+                    if (expect_seqs(io, xymodem::kTimeout, &should_stop, {xymodem::fACK})) {
                         failed = false;
                         if (last_one) {
-                            io->Write(xyzmodem::Pack(nullptr, 0, 128, xyzmodem::fSOH, '\0', xyzmodem::CRC16, 0));
-                            if (expect_seqs(io, xyzmodem::kTimeout, &should_stop, {xyzmodem::fACK})) {
+                            io->Write(xymodem::Pack(nullptr, 0, 128, xymodem::fSOH, '\0', xymodem::CRC16, 0));
+                            if (expect_seqs(io, xymodem::kTimeout, &should_stop, {xymodem::fACK})) {
                                 failed = false;
                             } else {
                                 failed = true;
@@ -224,7 +224,7 @@ int ProtoYmodem::TransmitFile(SerialIo* io, const std::string& filename, std::st
                     }
                 }
             }
-            if (should_stop == true) io->Write(std::vector<unsigned char>({xyzmodem::fCAN}));
+            if (should_stop == true) io->Write(std::vector<unsigned char>({xymodem::fCAN}));
             Upp::PostCallback([&]() { bar.Close(); });
         };
         auto thr = std::thread(job);

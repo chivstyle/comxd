@@ -5,7 +5,7 @@
 #pragma once
 
 // ref:http://web.mit.edu/6.115/www/amulet/xmodem.htm
-namespace xyzmodem {
+namespace xymodem {
     static const char fNUL = 0;
     static const char fDLE = 16;
     static const char fSOH = 1;
@@ -48,7 +48,7 @@ namespace xyzmodem {
     static inline std::vector<unsigned char> Pack(const void* input, size_t input_size, size_t pkt_sz,
         unsigned char prefix, unsigned char pad, int cs_type, unsigned char pkt_idx)
     {
-        std::vector<unsigned char> out(3+pkt_sz, xyzmodem::fEOF);
+        std::vector<unsigned char> out(3+pkt_sz, fEOF);
         for (size_t k = 0; k < input_size && k < pkt_sz; ++k) {
             out[k + 3] = *((const unsigned char*)input + k);
         }
@@ -60,7 +60,7 @@ namespace xyzmodem {
         out[2] = ~pkt_idx;
         switch (cs_type) {
         case CRC16:if (1) {
-            unsigned short crc = (unsigned short)xyzmodem::calcrc(out.data() + 3, pkt_sz);
+            unsigned short crc = (unsigned short)calcrc(out.data() + 3, pkt_sz);
             out.push_back((unsigned char)(crc >> 8));
             out.push_back((unsigned char)(crc & 0xff));
         } break;
