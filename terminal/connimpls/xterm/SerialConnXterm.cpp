@@ -15,6 +15,8 @@ SerialConnXterm::SerialConnXterm(std::shared_ptr<SerialIo> io)
     : SerialConnVT520(io)
     , SerialConnVT(io)
 {
+    SetConnDescription("xterm emulator, by chiv, v1.0a");
+    //
     AddXtermControlSeqs(this->mSeqsFactory);
     // take a snap the current screen
     this->SaveScr(mAlternateScr);

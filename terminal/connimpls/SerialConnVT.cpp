@@ -161,14 +161,13 @@ void SerialConnVT::InstallUserActions()
 {
     WhenUsrBar = [=](Bar& bar) {
         bar.Add(t_("Text Codec"), terminal::text_codec(), [=]() {
-               TextCodecsDialog d(GetCodec()->GetName().c_str());
-               int ret = d.Run();
-               if (ret == IDOK) {
-                   this->SetCodec(d.GetCodecName());
-                   Refresh();
-               }
-           })
-            .Help(t_("Select a text codec"));
+           TextCodecsDialog d(GetCodec()->GetName().c_str());
+           int ret = d.Run();
+           if (ret == IDOK) {
+               this->SetCodec(d.GetCodecName());
+               Refresh();
+           }
+        }).Help(t_("Select a text codec"));
         bar.Add(t_("Clear Buffer"), terminal::clear_buffer(), [=]() { Clear(); })
             .Help(t_("Clear the line buffers"));
         bar.Add(t_("VT Options"), terminal::vt_options(), [=]() { ShowVTOptions(); })
@@ -176,16 +175,25 @@ void SerialConnVT::InstallUserActions()
         //
         bar.Add(t_("Benchmark"), terminal::benchmark(), [=]() { RunParserBenchmark(); })
             .Help(t_("Test the performance of the parser"));
+        bar.Add(t_("Information"), terminal::info(), [=]() {
+            std::string info(t_("Basic information")); info += "&";
+            Size csz = GetConsoleSize();
+            info += "  [* "; info += t_("Size "); info += "]-|" + std::to_string(csz.cx) + "x" + std::to_string(csz.cy) + "&";
+            info += "  [* "; info += t_("vPos "); info += "]-|" + std::to_string(mVx) + "x" + std::to_string(mVy) + "&";
+            info += "  [* "; info += t_("pPos "); info += "]-|" + std::to_string(mPx) + "x" + std::to_string(mPy) + "&";
+            info += "  [* "; info += t_("Desc "); info += "]-|" + GetConnDescription() + "&";
+            info += "  [* "; info += t_("Io   "); info += "]-|" + GetIo()->DeviceName() + "&";
+            info += "  [* "; info += t_("Codec"); info += "]-|" + GetCodec()->GetName() + "&";
+            Upp::PromptOK(info.c_str());
+        }).Help(t_("Show basic vt information"));
     };
     // Context menu bar
     WhenBar = [=](Bar& bar) {
         bool has_sel = mSelectionSpan.Valid;
         bar.Add(has_sel, t_("Copy"), [=] {
-               // copy to clipboard
-               Copy();
-           })
-            .Image(CtrlImg::copy())
-            .Key(K_CTRL | K_SHIFT | K_C);
+           // copy to clipboard
+           Copy();
+       }).Image(CtrlImg::copy()).Key(K_CTRL | K_SHIFT | K_C);
         String text = ReadClipboardUnicodeText().ToString();
         bar.Add(text.GetCount() > 0, t_("Paste"), [=] { Paste(); })
             .Image(CtrlImg::paste())

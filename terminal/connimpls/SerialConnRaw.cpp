@@ -33,6 +33,8 @@ SerialConnRaw::SerialConnRaw(std::shared_ptr<SerialIo> io)
 {
     this->mIo = io; //!< Important, let this as the first sentence.
     //
+    this->SetConnDescription("A common serial tool by chiv, v1.0a");
+    //
     this->mRx.SetFrame(FieldFrame());
     this->mTx.SetFrame(FieldFrame());
     this->mVsp.Vert(mRx.SetEditable(false), mTx);
@@ -91,17 +93,19 @@ void SerialConnRaw::InstallUsrActions()
 {
     WhenUsrBar = [=](Bar& bar) {
         bar.Add(t_("Text Codec"), terminal::text_codec(), [=]() {
-               TextCodecsDialog d(GetCodec()->GetName().c_str());
-               int ret = d.Run();
-               if (ret == IDOK) {
-                   this->SetCodec(d.GetCodecName());
-                   // refresh rx.
-                   if (!mRxHex.Get()) {
-                       UpdateAsTxt();
-                   }
+           TextCodecsDialog d(GetCodec()->GetName().c_str());
+           int ret = d.Run();
+           if (ret == IDOK) {
+               this->SetCodec(d.GetCodecName());
+               // refresh rx.
+               if (!mRxHex.Get()) {
+                   UpdateAsTxt();
                }
-           })
-            .Help(t_("Select a text codec"));
+           }
+       }).Help(t_("Select a text codec"));
+       bar.Add(t_("Information"), terminal::info(), [=]() {
+           PromptOK(this->GetConnDescription().c_str());
+       });
     };
 }
 
@@ -168,7 +172,7 @@ void SerialConnRaw::InstallActions()
     this->mTx.WhenBar = [=](Bar& bar) {
         mTx.StdBar(bar);
         if (mTxProto) {
-            bar.Sub(t_("Proto actions"), [=](Bar& sub) { mTxProto->WhenUsrBar(sub); });
+            bar.Sub(mTxProto->GetName().c_str(), [=](Bar& sub) { mTxProto->WhenUsrBar(sub); });
         }
     };
     this->mTxHex.WhenAction = [=]() {
@@ -466,7 +470,7 @@ void SerialConnRaw::OnSend()
     if (mTxHex.Get()) {
         // write as hex.
         auto hex_ = ToHex_(tx);
-        if (mTxProto && mTxProto->SupportTransmitData()) {
+        if (mTxProto) {
             mTxProto->TransmitData(hex_.data(), hex_.size(), errmsg);
         } else {
             GetIo()->Write(hex_);
@@ -476,7 +480,7 @@ void SerialConnRaw::OnSend()
         if (mEnableEscape.Get()) {
             text = TranslateEscapeChars(text);
         }
-        if (mTxProto && mTxProto->SupportTransmitData()) {
+        if (mTxProto) {
             mTxProto->TransmitData(text.c_str(), text.length(), errmsg);
         } else {
             auto tmp = ReplaceLineBreak_(text, mLineBreaks.GetKey(mLineBreaks.GetIndex()).To<int>());

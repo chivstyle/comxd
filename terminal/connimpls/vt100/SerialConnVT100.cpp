@@ -16,6 +16,8 @@ SerialConnVT100::SerialConnVT100(std::shared_ptr<SerialIo> io)
     , SerialConnEcma48(io)
     , mKeypadMode(KM_Normal)
 {
+    SetConnDescription("vt100 emulator, by chiv, v1.0a");
+    //
     AddVT100ControlSeqs(this->mSeqsFactory);
     // VT100, permanently selected modes
     LoadDefaultModes();

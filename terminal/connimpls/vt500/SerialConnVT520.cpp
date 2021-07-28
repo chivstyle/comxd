@@ -15,6 +15,8 @@ SerialConnVT520::SerialConnVT520(std::shared_ptr<SerialIo> io)
     : SerialConnVT420(io)
     , SerialConnVT(io)
 {
+    SetConnDescription("vt520 emulator, by chiv, v1.0a");
+    //
     SetOperatingLevel(VT500_S7C); // default
     //
     AddVT520ControlSeqs(this->mSeqsFactory);

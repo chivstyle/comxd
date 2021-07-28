@@ -15,6 +15,8 @@ SerialConnVT220::SerialConnVT220(std::shared_ptr<SerialIo> io)
     : SerialConnVT100(io)
     , SerialConnVT(io)
 {
+    SetConnDescription("vt220 emulator, by chiv, v1.0a");
+    //
     SetOperatingLevel(VT200_S7C);
     // vt100 supports G0,G1, vt200 supports G2,G3
     mCharsets[2] = CS_DEC_SUPPLEMENTAL;

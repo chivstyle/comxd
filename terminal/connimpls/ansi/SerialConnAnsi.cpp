@@ -13,6 +13,8 @@ SerialConnAnsi::SerialConnAnsi(std::shared_ptr<SerialIo> io)
     : SerialConnVT100(io)
     , SerialConnVT(io)
 {
+    SetConnDescription("ansi emulator, by chiv, v1.0a");
+    //
     mCharsets[2] = mCharsets[0];
     mCharsets[3] = mCharsets[0];
     //

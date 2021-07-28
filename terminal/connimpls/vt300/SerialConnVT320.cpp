@@ -15,6 +15,7 @@ SerialConnVT320::SerialConnVT320(std::shared_ptr<SerialIo> io)
     : SerialConnVT220(io)
     , SerialConnVT(io)
 {
+    SetConnDescription("vt320 emulator, by chiv, v1.0a");
     // vt100 supports G0,G1, vt200 supports G2,G3
     mCharsets[2] = CS_DEFAULT;
     mCharsets[3] = CS_DEFAULT;

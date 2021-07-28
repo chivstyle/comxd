@@ -20,6 +20,8 @@ protected:
     int TransmitFile(const std::string& filename, std::string& errmsg);
     int TransmitFile(SerialIo* io, const std::string& filename, std::string& errmsg);
     int TransmitData(SerialIo* io, const void* input, size_t input_size, std::string& errmsg);
+    // whether to use XMODEM-k
+    bool mXmodemK;
 };
 
 }

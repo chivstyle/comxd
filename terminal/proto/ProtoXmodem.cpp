@@ -16,12 +16,16 @@ REGISTER_PROTO_INSTANCE("XMODEM", ProtoXmodem);
 
 ProtoXmodem::ProtoXmodem(SerialConn* conn)
     : Proto(conn)
+    , mXmodemK(false)
 {
     WhenUsrBar = [=](Bar& bar) {
         bar.Add(t_("About"), terminal::help(), [=]() { Upp::PromptOK("Standard XMODEM/CRC v1.0a"); });
         bar.Add(t_("Transmit File..."), [=]() {
             TransmitFile();
         });
+        bar.Add(t_("Enable XMODEM-k"), [=]() {
+            mXmodemK = !mXmodemK;
+        }).Check(mXmodemK);
     };
 }
 
@@ -171,10 +175,15 @@ int ProtoXmodem::TransmitFile(SerialIo* io, const std::string& filename, std::st
             }
             //
             auto t1 = std::chrono::high_resolution_clock::now();
-            char chunk[128];
+            char chunk[1024];
             while (!should_stop && !failed && !fin.IsEof()) {
-                auto frmsz = fin.Get(chunk, 128);
-                if (_TransmitFrame128(io, chunk, frmsz, cs_type, idx++, &should_stop, errmsg) < 0) {
+                auto frmsz = fin.Get(chunk, mXmodemK ? 1024 : 128);
+                if (mXmodemK) {
+                    if (_TransmitFrame1024(io, chunk, frmsz, cs_type, idx++, &should_stop, errmsg) < 0) {
+                        failed = true;
+                        break;
+                    }
+                } else if (_TransmitFrame128(io, chunk, frmsz, cs_type, idx++, &should_stop, errmsg) < 0) {
                     failed = true;
                     break;
                 }
@@ -227,7 +236,7 @@ int ProtoXmodem::TransmitData(const void* input, size_t input_size, std::string&
 {
     (void)input;
     (void)input_size;
-    errmsg = "Not supported";
+    errmsg = "XMODEM only support file transmit!";
     return T_NOT_SUPPORTED;
 }
 

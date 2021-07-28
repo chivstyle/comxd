@@ -25,6 +25,8 @@ public:
     {
         return mIo->DeviceName();
     }
+    void SetConnDescription(const std::string& desc) { mDesc = desc; }
+    const std::string& GetConnDescription() const { return mDesc; }
     //
     SerialIo* GetIo() const { return mIo.get(); }
     Codec* GetCodec() const { return mCodec.get(); }
@@ -35,6 +37,9 @@ public:
 protected:
     std::shared_ptr<SerialIo> mIo;
     std::shared_ptr<Codec> mCodec;
+    //
+private:
+    std::string mDesc;
 };
 
 #endif

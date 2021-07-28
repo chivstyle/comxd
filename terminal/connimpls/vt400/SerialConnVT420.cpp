@@ -15,6 +15,8 @@ SerialConnVT420::SerialConnVT420(std::shared_ptr<SerialIo> io)
     : SerialConnVT320(io)
     , SerialConnVT(io)
 {
+    SetConnDescription("vt420 emulator, by chiv, v1.0a");
+    //
     SetOperatingLevel(VT400_S7C); // default
     //
     AddVT420ControlSeqs(this->mSeqsFactory);
