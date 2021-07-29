@@ -10,16 +10,6 @@
 
 namespace proto {
 namespace ss {
-
-    const char SOH = 0x01;
-    const char STX = 0x02;
-    const char ETX = 0x03;
-    const char EOT = 0x04;
-    const char ETB = 0x17;
-    const char US = 0x1f;
-    const char ACK = 0x06;
-    const char ENQ = 0x05;
-
     unsigned char ss_chksum(const char* buf, int sz);
 
     // we have a ss implementation in C, but it's designed for MCU, it's not safe for multi-thread,

@@ -29,7 +29,13 @@ public:
     // please invoke this routine from GUI thread
     // return <= 0 failed, T_NOT_SUPPORTED, T_FAILED, =0 No operations
     //        > 0  bytes transmitted
-    virtual int TransmitData(const void* input, size_t input_size, std::string& errmsg) { return T_NOT_SUPPORTED; };
+    virtual int TransmitData(const void* input, size_t input_size, std::string& errmsg)
+    {
+        (void)input;
+        (void)input_size;
+        (void)errmsg;
+        return T_NOT_SUPPORTED;
+    };
     // typical behavior : pop up a dialog to allow the user to select some file(s) to transmit
     virtual int TransmitFile() { return T_NOT_SUPPORTED; };
     //

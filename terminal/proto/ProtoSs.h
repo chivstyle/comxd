@@ -11,8 +11,6 @@ public:
     ~ProtoSs();
     //
     std::string GetDescription() const;
-    // use this proto to pack the data
-    std::vector<unsigned char> Pack(const void* input, size_t input_size, std::string& errmsg);
     //
     bool SupportTransmitData() const { return true; }
     int Transmit(const void* input, size_t input_size, std::string& errmsg);

@@ -32,45 +32,21 @@ std::string ProtoSs::GetDescription() const
     return t_("This proto was designed by chivstyle acording to KISS principal");
 }
 //
-static inline std::vector<unsigned char> MakeCommand(const String& part,
+static inline std::string MakeCommand(const String& part,
     const String& action, const Value& params)
 {
-    std::vector<unsigned char> command;
-    command.push_back(ss::ENQ);
-    command.push_back(ss::STX);
-    // No check
-    for (int i = 0; i < part.GetLength(); ++i) {
-        command.push_back(part[i]);
-    }
-    command.push_back(ss::US);
-    for (int i = 0; i < action.GetLength(); ++i) {
-        command.push_back(action[i]);
-    }
+    std::vector<std::string> ps;
     if (params.GetType() == VALUEARRAY_V) {
         int count = params.GetCount();
-        if (count > 0)
-            command.push_back(ss::US);
         for (int n = 0; n < count; ++n) {
             String pn = params[n].ToString();
-            for (int i = 0; i < pn.GetLength(); ++i) {
-                command.push_back(pn[i]);
-            }
-            if (n != count - 1) {
-                command.push_back(ss::US);
-            }
+            ps.push_back(pn.ToStd());
         }
     } else {
         String p0 = params.ToString();
-        for (int i = 0; i < p0.GetLength(); ++i) {
-            command.push_back(p0[i]);
-        }
+        ps.push_back(p0.ToStd());
     }
-    command.push_back(ss::ETX);
-    // calculate check sum of contents between STX and ETX
-    command.push_back(ss::ss_chksum((const char*)command.data() + 2, (int)command.size() - 3));
-    command.push_back(ss::EOT);
-    //
-    return std::move(command);
+    return ss::ss_make_request(part.ToStd(), action.ToStd(), ps);
 }
 //
 static inline void operator+=(std::vector<unsigned char>& out, const std::vector<unsigned char>& in)
@@ -79,9 +55,9 @@ static inline void operator+=(std::vector<unsigned char>& out, const std::vector
         out.push_back(in[k]);
 }
 // use this proto to pack the data
-std::vector<unsigned char> ProtoSs::Pack(const void* input, size_t input_size, std::string& errmsg)
+std::string _Pack(const void* input, size_t input_size, std::string& errmsg)
 {
-    std::vector<unsigned char> out;
+    std::string out;
     std::string json_((const char*)input, input_size);
     Value json = ParseJSON(json_.c_str());
     if (json.IsError()) {
@@ -89,13 +65,6 @@ std::vector<unsigned char> ProtoSs::Pack(const void* input, size_t input_size, s
     } else {
         if (json.GetType() == VALUEMAP_V) {
             if (json["Part"].IsError()) {
-                // No part, parse as response.
-                out.push_back(ss::ACK);
-                out.push_back(ss::STX);
-                out.insert(out.end(), json_.begin(), json_.end());
-                out.push_back(ss::ETX);
-                out.push_back(ss::ss_chksum(json_.c_str(), (int)json_.length()));
-                out.push_back(ss::EOT);
                 errmsg = t_("There's no key \"Part\", pack as response.");
             } else {
                 String part = json["Part"].ToString();
@@ -105,7 +74,7 @@ std::vector<unsigned char> ProtoSs::Pack(const void* input, size_t input_size, s
             }
         } else if (json.GetType() == VALUEARRAY_V) {
             int count = json.GetCount();
-            out.push_back(ss::SOH);
+            std::string reqs;
             for (int i = 0; i < count; ++i) {
                 const Value& command = json[i];
                 if (command.GetType() != VALUEMAP_V) {
@@ -115,17 +84,9 @@ std::vector<unsigned char> ProtoSs::Pack(const void* input, size_t input_size, s
                 String part = command["Part"].ToString();
                 String action = command["Action"].ToString();
                 const Value& params = command["Parameters"];
-                out += MakeCommand(part, action, params);
+                reqs += MakeCommand(part, action, params);
             }
-            out.push_back(ss::ETB);
-        } else {
-            // response ?
-            out.push_back(ss::ACK);
-            out.push_back(ss::STX);
-            out.insert(out.end(), json_.begin(), json_.end());
-            out.push_back(ss::ETX);
-            out.push_back(ss::ss_chksum(json_.c_str(), (int)json_.length()));
-            out.push_back(ss::EOT);
+            out = ss::ss_make_group(reqs);
         }
     }
     return out;
@@ -133,7 +94,7 @@ std::vector<unsigned char> ProtoSs::Pack(const void* input, size_t input_size, s
 
 int ProtoSs::Transmit(const void* input, size_t input_size, std::string& errmsg)
 {
-    auto out = Pack(input, input_size, errmsg);
+    auto out = _Pack(input, input_size, errmsg);
     if (out.empty())
         return T_FAILED;
     return mConn->GetIo()->Write(out);

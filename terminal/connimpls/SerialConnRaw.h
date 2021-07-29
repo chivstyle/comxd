@@ -25,6 +25,7 @@ protected:
     std::thread mRxThr; //<! thread to receive data
     std::vector<unsigned char> mRxBuffer;
     volatile bool mRxShouldStop;
+    volatile bool mStopUpdateRx;
     std::mutex mRxBufferLock; //<! protect the received buffer
     void RxProc();
     //

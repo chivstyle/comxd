@@ -95,6 +95,7 @@ protected:
     std::deque<VTLine> mLines; //<! Text on current screen, treat is as virtual screen
     //-------------------------------------------------------------------------------------
     std::mutex mLockSeqs;
+    //
     struct Seq {
         enum SeqType {
             CTRL_SEQ,

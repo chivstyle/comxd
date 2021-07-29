@@ -25,6 +25,15 @@ namespace proto {
 */
 
 namespace ss {
+    
+    const char fSOH = 0x01;
+    const char fSTX = 0x02;
+    const char fETX = 0x03;
+    const char fEOT = 0x04;
+    const char fETB = 0x17;
+    const char fUS = 0x1f;
+    const char fACK = 0x06;
+    const char fENQ = 0x05;
 
     static inline unsigned char b1_count(unsigned char bits)
     {
@@ -73,11 +82,11 @@ namespace ss {
     {
         ss_command_t cmd;
         cmd.error = 0;
-        if (ss.length() < 4 || ss[0] != ENQ || ss[1] != STX || ss[ss.length() - 1] != EOT) {
+        if (ss.length() < 4 || ss[0] != fENQ || ss[1] != fSTX || ss[ss.length() - 1] != fEOT) {
             cmd.error = ss_command_t::error_format;
         } else {
             size_t p_stx = 1;
-            size_t p_etx = ss.find(ETX);
+            size_t p_etx = ss.find(fETX);
             size_t p_eot = ss.length() - 1;
             if (p_etx == ss.npos) {
                 cmd.error = ss_command_t::error_format;
@@ -91,24 +100,24 @@ namespace ss {
                 }
             }
             if (cmd.error == 0) { // Ok, let's go
-                size_t p = ss.find(US);
+                size_t p = ss.find(fUS);
                 size_t q = p_stx + 1;
                 if (p == ss.npos) {
                     cmd.part = ss.substr(q, p_etx - 1);
                 } else {
                     cmd.part = ss.substr(q, p - q);
                     q = p + 1;
-                    p = ss.find(US, q);
+                    p = ss.find(fUS, q);
                     if (p == ss.npos) {
                         cmd.action = ss.substr(q, p_etx - q);
                     } else {
                         cmd.action = ss.substr(q, p - q);
                         q = p + 1;
-                        p = ss.find(US, q);
+                        p = ss.find(fUS, q);
                         while (p != ss.npos) {
                             cmd.params.push_back(ss.substr(q, p - q));
                             q = p + 1;
-                            p = ss.find(US, q);
+                            p = ss.find(fUS, q);
                         }
                         if (q < p_etx) {
                             cmd.params.push_back(ss.substr(q, p_etx - q));
@@ -135,14 +144,14 @@ namespace ss {
     std::vector<ss_command_t> ss_parse(const std::string& ss_message)
     {
         std::vector<ss_command_t> out;
-        if (ss_message[0] == ENQ && ss_message[ss_message.length() - 1] == EOT) {
+        if (ss_message[0] == fENQ && ss_message[ss_message.length() - 1] == fEOT) {
             out.push_back(ss_parse_command(ss_message));
-        } else if (ss_message[0] == SOH && ss_message[ss_message.length() - 1] == ETB) {
-            size_t q = 1, p = ss_message.find(EOT, q);
+        } else if (ss_message[0] == fSOH && ss_message[ss_message.length() - 1] == fETB) {
+            size_t q = 1, p = ss_message.find(fEOT, q);
             while (p != ss_message.npos) {
                 out.push_back(ss_parse_command(ss_message.substr(q, p - q + 1)));
                 q = p + 1;
-                p = ss_message.find(EOT, q);
+                p = ss_message.find(fEOT, q);
             }
             if (q < ss_message.length() - 1) {
                 out.push_back(ss_parse_command(ss_message.substr(q, ss_message.length() - q)));
@@ -159,18 +168,18 @@ namespace ss {
     std::string ss_make_request(const std::string& part, const std::string& action, const std::vector<std::string>& params)
     {
         std::string out;
-        out.push_back(ENQ);
-        out.push_back(STX);
+        out.push_back(fENQ);
+        out.push_back(fSTX);
         out += part;
-        out.push_back(US);
+        out.push_back(fUS);
         out += action;
         for (size_t k = 0; k < params.size(); ++k) {
-            out.push_back(US);
+            out.push_back(fUS);
             out += params[k];
         }
-        out.push_back(ETX);
+        out.push_back(fETX);
         out.push_back((unsigned char)ss_chksum(out.c_str() + 2, (int)out.length() - 3));
-        out.push_back(EOT);
+        out.push_back(fEOT);
         return std::move(out);
     }
     //
@@ -181,21 +190,21 @@ namespace ss {
     std::string ss_make_group(const std::string& ss)
     {
         std::string out;
-        out.push_back(SOH);
+        out.push_back(fSOH);
         out += ss;
-        out.push_back(ETB);
+        out.push_back(fETB);
         return std::move(out);
     }
 
     std::string ss_make_response(const std::string& json)
     {
         std::string out;
-        out.push_back(ACK);
-        out.push_back(STX);
+        out.push_back(fACK);
+        out.push_back(fSTX);
         out += json;
-        out.push_back(ETX);
+        out.push_back(fETX);
         out.push_back((char)ss_chksum(json.c_str(), -1));
-        out.push_back(EOT);
+        out.push_back(fEOT);
         return std::move(out);
     }
 
@@ -210,16 +219,16 @@ namespace ss {
             int p_eot = -1;
             for (int k = 0; k < sz; ++k) {
                 switch (response[k]) {
-                case ACK:
+                case fACK:
                     p_ack = (int)k;
                     break;
-                case STX:
+                case fSTX:
                     p_stx = (int)k;
                     break;
-                case ETX:
+                case fETX:
                     p_etx = (int)k;
                     break;
-                case EOT:
+                case fEOT:
                     p_eot = (int)k;
                     break;
                 }

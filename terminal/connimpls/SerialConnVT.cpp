@@ -193,7 +193,7 @@ void SerialConnVT::InstallUserActions()
         bar.Add(has_sel, t_("Copy"), [=] {
            // copy to clipboard
            Copy();
-       }).Image(CtrlImg::copy()).Key(K_CTRL | K_SHIFT | K_C);
+        }).Image(CtrlImg::copy()).Key(K_CTRL | K_SHIFT | K_C);
         String text = ReadClipboardUnicodeText().ToString();
         bar.Add(text.GetCount() > 0, t_("Paste"), [=] { Paste(); })
             .Image(CtrlImg::paste())

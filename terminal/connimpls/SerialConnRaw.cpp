@@ -30,6 +30,7 @@ static int _HexFilter(int c)
 SerialConnRaw::SerialConnRaw(std::shared_ptr<SerialIo> io)
     : mRxShouldStop(false)
     , mTxProto(nullptr)
+    , mStopUpdateRx(false)
 {
     this->mIo = io; //!< Important, let this as the first sentence.
     //
@@ -139,13 +140,7 @@ void SerialConnRaw::InstallActions()
     };
     // pause rx
     this->mBtnPauseRx.WhenAction = [&]() {
-        if (mRxThr.joinable()) {
-            mRxShouldStop = true;
-            mRxThr.join();
-        } else {
-            mRxShouldStop = false;
-            mRxThr = std::thread([=] { RxProc(); });
-        }
+        mStopUpdateRx = !mStopUpdateRx;
     };
     // period
     this->mTxPeriod.WhenAction = [=]() {
@@ -568,8 +563,15 @@ void SerialConnRaw::UpdateAsHex()
 
 void SerialConnRaw::Update()
 {
-    std::lock_guard<std::mutex> _(mRxBufferLock);
-    this->mRxHex.Get() ? UpdateAsHex() : UpdateAsTxt();
+    if (!mStopUpdateRx) {
+        std::lock_guard<std::mutex> _(mRxBufferLock);
+        Upp::int64 l, h;
+        bool sel = mRx.GetSelection(l, h);
+        this->mRxHex.Get() ? UpdateAsHex() : UpdateAsTxt();
+        if (sel) {
+            mRx.SetSelection(l, h);
+        }
+    }
 }
 
 void SerialConnRaw::RxProc()
