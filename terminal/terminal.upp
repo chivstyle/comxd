@@ -29,6 +29,8 @@ file
 	proto\TransmitProgressDialog.h,
 	proto/ss.h,
 	proto/ss.cpp,
+	proto\ProtoKermit.cpp,
+	proto\ProtoKermit.h,
 	proto\ProtoYmodem.cpp,
 	proto\ProtoYmodem.h,
 	proto\ProtoXmodem.cpp,

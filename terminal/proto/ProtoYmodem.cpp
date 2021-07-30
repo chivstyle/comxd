@@ -136,16 +136,6 @@ static inline int _TransmitFrame128(SerialIo* io, const void* frm, size_t frm_si
     return failed ? -1 : (int)blksz;
 }
 
-static inline std::string _Filename(const std::string& pathname)
-{
-    int len = (int)pathname.length();
-    while (pathname[len] != '/' && pathname[len] != '\\') {
-        len--;
-    }
-    // len >= 0, found 1 path prefix at least
-    return len >= 0 ? pathname.substr(len + 1) : pathname;
-}
-
 int ProtoYmodem::TransmitFile(SerialIo* io, const std::string& filename, std::string& errmsg, bool last_one)
 {
     TransmitProgressDialog bar;
@@ -177,7 +167,7 @@ int ProtoYmodem::TransmitFile(SerialIo* io, const std::string& filename, std::st
             default: failed = true; errmsg = "Unrecognized sync character!"; break;
             }
             // send filename
-            auto filename_ = _Filename(filename);
+            auto filename_ = xymodem::_Filename(filename);
             auto hdr = xymodem::Pack(filename_.c_str(), std::min(size_t(127), filename_.length()), 128,
                 xymodem::fSOH, '\0', xymodem::CRC16, 0);
             io->Write(hdr);
@@ -251,7 +241,7 @@ int ProtoYmodem::TransmitData(const void* input, size_t input_size, std::string&
 {
     (void)input;
     (void)input_size;
-    errmsg = errmsg = "XMODEM only support file(s) transmit!";
+    errmsg = "XMODEM only support file(s) transmit!";
     return T_NOT_SUPPORTED;
 }
 

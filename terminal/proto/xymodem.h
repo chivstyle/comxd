@@ -74,4 +74,15 @@ namespace xymodem {
         }
         return out;
     }
+    //
+    static inline std::string _Filename(const std::string& pathname)
+    {
+        int len = (int)pathname.length();
+        while (pathname[len] != '/' && pathname[len] != '\\') {
+            len--;
+        }
+        // len >= 0, found 1 path prefix at least
+        return len >= 0 ? pathname.substr(len + 1) : pathname;
+    }
+
 }
