@@ -24,7 +24,7 @@ namespace kermit {
         out.push_back(xymodem::fSOH);
         idx = idx % 64;
         // len include all chars following it
-        if (data_sz <= 220) { // len : seq [ 1 byte ] + mark [ 1 byte ] + data [ data_sz ] + checksum [ 1 byte ]
+        if (data_sz <= 95) { // len : seq [ 1 byte ] + mark [ 1 byte ] + data [ data_sz ] + checksum [ 1 byte ]
             size_t len = data_sz + 3;
             out.push_back((char)len + 32); out.push_back(idx + 32); out.push_back(mark);
         } else if (data_sz <= kMaxKermitFrameSize - 1)  {
@@ -203,7 +203,7 @@ namespace kermit {
     };
     
     static int kMaxFileSz = 64*1024*1024;
-    static int kTimeout = 10000;
+    static int kTimeout = 2000;
 }
 
 ProtoKermit::ProtoKermit(SerialConn* conn)
@@ -254,14 +254,14 @@ static void _FlushIn(SerialIo* io)
 }
 
 static bool _TransmitFrame(SerialIo* io, const std::string& b_data, std::string& errmsg,
-    kermit::KermitMsg& msg, volatile bool* should_stop)
+    kermit::KermitMsg& msg, int timeout, volatile bool* should_stop)
 {
     int retry = 3;
     bool failed = false;
     bool ack = false;
     while (retry-- && !failed && !ack) {
         io->Write(b_data);
-        msg = expect_resp(io, kermit::kTimeout, should_stop);
+        msg = expect_resp(io, timeout, should_stop);
         switch (msg.Mark) {
         case 'Y': ack = true; break;
         case 'N': break; // NAK, break the switch to retry
@@ -271,7 +271,7 @@ static bool _TransmitFrame(SerialIo* io, const std::string& b_data, std::string&
             break;
         default:
             failed = true;
-            errmsg = "DATA FRAME was not responsed by ACK";
+            errmsg = *should_stop ? "Aborted by user" : "DATA FRAME was not responsed by ACK";
             break;
         }
     }
@@ -322,41 +322,17 @@ int ProtoKermit::TransmitFile(SerialIo* io, const std::string& fname, std::strin
                     errmsg = "FILE HEADER was not responsed by ACK";
                 }
             }
-            // 3. data
-            auto t1 = std::chrono::high_resolution_clock::now();
-            // for retry
-            unsigned char i_last = 255;
-            std::string b_last;
-            //
+            // 3. data stage
+            double ts = 0; // Total time, unit: seconds
             while (!fin.IsEnd() && !failed && !should_stop) {
                 auto data = fin.Take(kermit::kFrameSize);
                 if (data.empty()) break;
                 auto b_data = kermit::Pack('D', data.c_str(), data.length(), idx++);
-                failed = _TransmitFrame(io, b_data, errmsg, msg, &should_stop);
-#if 0
-                // wait until the device accepted last frame.
-                while (!failed) {
-                    failed = _TransmitFrame(io, b_data, errmsg, msg, &should_stop);
-                    if (!failed) {
-                        if (msg.Seq != i_last) {
-                            i_last = msg.Seq;
-                            b_last = b_data;
-                            // the last frame was accepted by the device, so we break this loop
-                            // to send the next frame.
-                            break;
-                        } else {
-                            failed = _TransmitFrame(io, b_last, errmsg, msg, &should_stop);
-                            if (!failed) {
-                                // reset the i_last
-                                i_last = msg.Seq;
-                            }
-                        }
-                    }
-                }
-#endif
+                auto t1 = std::chrono::high_resolution_clock::now();
+                failed = _TransmitFrame(io, b_data, errmsg, msg, kermit::kTimeout, &should_stop);
                 // update progress bar
                 if (!failed) {
-                    ts = std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - t1).count();
+                    ts += std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - t1).count();
                     PostCallback([&]() { bar.Update(fin.BytesRead(), (double)fin.BytesRead() / ts); });
                 }
             }

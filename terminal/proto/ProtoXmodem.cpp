@@ -86,7 +86,7 @@ static inline bool expect_seqs(SerialIo* io, int timeout, volatile bool* should_
 }
 //
 static inline int _TransmitFrame128(SerialIo* io, const void* frm, size_t frm_size, int cs_type, unsigned char frm_idx,
-    volatile bool* should_stop, std::string& errmsg)
+    int timeout, volatile bool* should_stop, std::string& errmsg)
 {
     bool failed = false;
     size_t blksz = std::min(frm_size, size_t(128));
@@ -95,9 +95,9 @@ static inline int _TransmitFrame128(SerialIo* io, const void* frm, size_t frm_si
     while (retry--) {
         io->Write(pkt);
         // wait for the response
-        int ret = expect_resp(io, xymodem::kTimeout, should_stop, { xymodem::fACK, xymodem::fNAK, xymodem::fCAN });
+        int ret = expect_resp(io, timeout, should_stop, { xymodem::fACK, xymodem::fNAK, xymodem::fCAN });
         if (ret < 0) {
-            errmsg = "The remote device was not responsed in time";
+            errmsg = *should_stop ? "Aborted by user" : "The remote device was not responsed in time";
             failed = true;
             break;
         } else if (ret == xymodem::fNAK) { // retransmit
@@ -113,7 +113,7 @@ static inline int _TransmitFrame128(SerialIo* io, const void* frm, size_t frm_si
     return failed ? -1 : (int)blksz;
 }
 static inline int _TransmitFrame1024(SerialIo* io, const void* frm, size_t frm_size, int cs_type, unsigned char frm_idx,
-    volatile bool* should_stop, std::string& errmsg)
+    int timeout, volatile bool* should_stop, std::string& errmsg)
 {
     bool failed = false;
     size_t blksz = std::min(frm_size, size_t(1024));
@@ -122,9 +122,9 @@ static inline int _TransmitFrame1024(SerialIo* io, const void* frm, size_t frm_s
     while (retry--) {
         io->Write(pkt);
         // wait for the response
-        int ret = expect_resp(io, xymodem::kTimeout, should_stop, { xymodem::fACK, xymodem::fNAK, xymodem::fCAN });
+        int ret = expect_resp(io, timeout, should_stop, { xymodem::fACK, xymodem::fNAK, xymodem::fCAN });
         if (ret < 0) {
-            errmsg = "The remote device was not responsed in time";
+            errmsg = *should_stop ? "Aborted by user" : "The remote device was not responsed in time";
             failed = true;
             break;
         } else if (ret == xymodem::fNAK) { // retransmit
@@ -165,7 +165,7 @@ int ProtoXmodem::TransmitFile(SerialIo* io, const std::string& filename, std::st
             unsigned char idx = 1; // xymodem begins from 1
             // wait for sync
             int cs_type = xymodem::CRC16;
-            int resp = expect_resp(io, xymodem::kTimeout, &should_stop, { 'C', xymodem::fNAK, 'W' });
+            int resp = expect_resp(io, xymodem::kSyncTimeout, &should_stop, { 'C', xymodem::fNAK, 'W' });
             switch (resp) {
             case 'C': cs_type = xymodem::CRC16; break;
             case 'W': failed = true; errmsg = "WX-Modem CRC was not supported!"; break;
@@ -174,22 +174,22 @@ int ProtoXmodem::TransmitFile(SerialIo* io, const std::string& filename, std::st
             default: failed = true; errmsg = "Sync Timeout!"; break;
             }
             //
-            auto t1 = std::chrono::high_resolution_clock::now();
             char chunk[1024];
             while (!should_stop && !failed && !fin.IsEof()) {
                 auto frmsz = fin.Get(chunk, mXmodemK ? 1024 : 128);
+                auto t1 = std::chrono::high_resolution_clock::now();
                 if (mXmodemK) {
-                    if (_TransmitFrame1024(io, chunk, frmsz, cs_type, idx++, &should_stop, errmsg) < 0) {
+                    if (_TransmitFrame1024(io, chunk, frmsz, cs_type, idx++, xymodem::kTimeout, &should_stop, errmsg) < 0) {
                         failed = true;
                         break;
                     }
-                } else if (_TransmitFrame128(io, chunk, frmsz, cs_type, idx++, &should_stop, errmsg) < 0) {
+                } else if (_TransmitFrame128(io, chunk, frmsz, cs_type, idx++, xymodem::kTimeout, &should_stop, errmsg) < 0) {
                     failed = true;
                     break;
                 }
                 count += frmsz;
-                //
-                ts = std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - t1).count();
+                // update progress bar
+                ts += std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - t1).count();
                 PostCallback([&]() { bar.Update(count, count / ts); });
             }
             // write the tail seq

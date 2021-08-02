@@ -8,6 +8,7 @@ TransmitProgressDialog::TransmitProgressDialog()
     : mTotal(1)
 {
     CtrlLayout(*this);
+    mProgress.Percent(true);
 }
 void TransmitProgressDialog::SetTotal(size_t total)
 {
@@ -16,8 +17,7 @@ void TransmitProgressDialog::SetTotal(size_t total)
 
 void TransmitProgressDialog::Update(size_t count, double tx_rate)
 {
-    int p = (int)(count * 100 / mTotal);
-    mProgress.Set(p, 100);
+    mProgress.Set(count, mTotal);
     // tx rate
     char buff[256]; // 256 is large enough for double.2
     sprintf(buff, "%.2lf", tx_rate / 1000);

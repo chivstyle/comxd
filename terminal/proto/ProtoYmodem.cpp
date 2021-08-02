@@ -82,7 +82,7 @@ static inline bool expect_seqs(SerialIo* io, int timeout, volatile bool* should_
 }
 
 static inline int _TransmitFrame1024(SerialIo* io, const void* frm, size_t frm_size, int cs_type, unsigned char frm_idx,
-    volatile bool* should_stop, std::string& errmsg)
+    int timeout, volatile bool* should_stop, std::string& errmsg)
 {
     bool failed = false;
     size_t blksz = std::min(frm_size, size_t(1024));
@@ -91,36 +91,9 @@ static inline int _TransmitFrame1024(SerialIo* io, const void* frm, size_t frm_s
     while (retry--) {
         io->Write(pkt);
         // wait for the response
-        int ret = expect_resp(io, xymodem::kTimeout, should_stop, { xymodem::fACK, xymodem::fNAK, xymodem::fCAN });
+        int ret = expect_resp(io, timeout, should_stop, { xymodem::fACK, xymodem::fNAK, xymodem::fCAN });
         if (ret < 0) {
-            errmsg = "The remote device was not responsed in time";
-            failed = true;
-            break;
-        } else if (ret == xymodem::fNAK) { // retransmit
-            io->Write(pkt);
-        } else if (ret == xymodem::fACK) {
-            break;
-        } else if (ret == xymodem::fCAN) {
-            errmsg = "The remote device canceled the transmit";
-            failed = true;
-            break;
-        }
-    }
-    return failed ? -1 : (int)blksz;
-}
-static inline int _TransmitFrame128(SerialIo* io, const void* frm, size_t frm_size, int cs_type, unsigned char frm_idx,
-    volatile bool* should_stop, std::string& errmsg)
-{
-    bool failed = false;
-    size_t blksz = std::min(frm_size, size_t(128));
-    auto pkt = xymodem::Pack(frm, blksz, 128, xymodem::fSOH, xymodem::fEOF, cs_type, frm_idx);
-    int retry = 3;
-    while (retry--) {
-        io->Write(pkt);
-        // wait for the response
-        int ret = expect_resp(io, xymodem::kTimeout, should_stop, { xymodem::fACK, xymodem::fNAK, xymodem::fCAN });
-        if (ret < 0) {
-            errmsg = "The remote device was not responsed in time";
+            errmsg = *should_stop ? "Aborted by user" : "The remote device was not responsed in time";
             failed = true;
             break;
         } else if (ret == xymodem::fNAK) { // retransmit
@@ -160,7 +133,7 @@ int ProtoYmodem::TransmitFile(SerialIo* io, const std::string& filename, std::st
         auto job = [&]() {
             unsigned char idx = 1; // xymodem begins from 1
             // wait for sync
-            int resp = expect_resp(io, xymodem::kTimeout, &should_stop, { 'C' });
+            int resp = expect_resp(io, xymodem::kSyncTimeout, &should_stop, { 'C' });
             switch (resp) {
             case 'C': break;
             case -1: failed = true; errmsg = "Sync Timeout!"; break;
@@ -176,17 +149,17 @@ int ProtoYmodem::TransmitFile(SerialIo* io, const std::string& filename, std::st
                 errmsg = "Failed to transmit filename";
             }
             //
-            auto t1 = std::chrono::high_resolution_clock::now();
             char chunk[1024];
             while (!should_stop && !failed && !fin.IsEof()) {
                 auto frmsz = fin.Get(chunk, 1024);
-                if (_TransmitFrame1024(io, chunk, frmsz, xymodem::CRC16, idx++, &should_stop, errmsg) < 0) {
+                auto t1 = std::chrono::high_resolution_clock::now();
+                if (_TransmitFrame1024(io, chunk, frmsz, xymodem::CRC16, idx++, xymodem::kTimeout, &should_stop, errmsg) < 0) {
                     failed = true;
                     break;
                 }
                 count += frmsz;
                 //
-                ts = std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - t1).count();
+                ts += std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - t1).count();
                 PostCallback([&]() { bar.Update(count, count / ts); });
             }
             // write the tail seq

@@ -36,7 +36,8 @@ namespace xymodem {
     }
     //
     static const int64_t kMaxFileSize = 1024 * 1024 * 64;
-    static const int kTimeout = 10000;
+    static const int kTimeout = 1000;
+    static const int kSyncTimeout = 10000;
     //
     enum ChecksumType {
         CSUM,
