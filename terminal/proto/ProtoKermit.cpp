@@ -323,7 +323,6 @@ int ProtoKermit::TransmitFile(SerialIo* io, const std::string& fname, std::strin
                 }
             }
             // 3. data stage
-            double ts = 0; // Total time, unit: seconds
             while (!fin.IsEnd() && !failed && !should_stop) {
                 auto data = fin.Take(kermit::kFrameSize);
                 if (data.empty()) break;
