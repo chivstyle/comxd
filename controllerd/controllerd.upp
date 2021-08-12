@@ -5,6 +5,8 @@ uses
 	serial;
 
 file
+	Hardwared.h,
+	Hardwared.cpp,
 	Serverd.h,
 	Serverd.cpp,
 	controllerd.cpp;
