@@ -20,7 +20,7 @@ void TransmitProgressDialog::Update(size_t count, double tx_rate)
     mProgress.Set(count, mTotal);
     // tx rate
     char buff[256]; // 256 is large enough for double.2
-    sprintf(buff, "%.2lf", tx_rate / 1000);
+    sprintf(buff, "%.2lf", tx_rate / 1024);
     mTxRate.SetText((std::string(t_("Tx Rate:")) + buff + "KiB/s").c_str());
     // left time
     if (tx_rate == 0.) tx_rate = 1.;

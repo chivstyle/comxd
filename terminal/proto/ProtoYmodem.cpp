@@ -7,6 +7,7 @@
 #include "xymodem.h"
 #include "Conn.h"
 #include "ProtoFactory.h"
+#include <sys/time.h>
 #include <thread>
 
 namespace proto {
@@ -108,6 +109,13 @@ static inline int _TransmitFrame1024(SerialIo* io, const void* frm, size_t frm_s
     }
     return failed ? -1 : (int)blksz;
 }
+// return tv1 - tv2 in seconds
+static inline double _diff(const struct timeval& tv1, const struct timeval& tv2)
+{
+    double d_secs = tv1.tv_sec - tv2.tv_sec;
+    double d_usecs = tv1.tv_usec - tv2.tv_usec;
+    return d_secs + d_usecs / 1000000.;
+}
 
 int ProtoYmodem::TransmitFile(SerialIo* io, const std::string& filename, std::string& errmsg, bool last_one)
 {
@@ -127,8 +135,10 @@ int ProtoYmodem::TransmitFile(SerialIo* io, const std::string& filename, std::st
         }
         bar.SetTotal(filesz);
         //
+        std::mutex lock;
         size_t count = 0;
         double ts = 0;
+        double rate = 0;
         // create the job
         auto job = [&]() {
             unsigned char idx = 1; // xymodem begins from 1
@@ -152,15 +162,24 @@ int ProtoYmodem::TransmitFile(SerialIo* io, const std::string& filename, std::st
             char chunk[1024];
             while (!should_stop && !failed && !fin.IsEof()) {
                 auto frmsz = fin.Get(chunk, 1024);
-                auto t1 = std::chrono::high_resolution_clock::now();
+                struct timeval t1, t2;
+                gettimeofday(&t1, NULL);
                 if (_TransmitFrame1024(io, chunk, frmsz, xymodem::CRC16, idx++, xymodem::kTimeout, &should_stop, errmsg) < 0) {
                     failed = true;
                     break;
                 }
                 count += frmsz;
-                //
-                ts += std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - t1).count();
-                PostCallback([&]() { bar.Update(count, count / ts); });
+                if (!failed) {
+                    std::lock_guard<std::mutex> _(lock);
+                    gettimeofday(&t2, NULL);
+                    count += frmsz;
+                    ts += _diff(t2, t1); // t2 - t1
+                    rate = count / ts;
+                    PostCallback([&]() {
+                        std::lock_guard<std::mutex> _(lock);
+                        bar.Update(count, rate);
+                    });
+                }
             }
             // write the tail seq
             if (!failed) {

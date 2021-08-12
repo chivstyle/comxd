@@ -8,6 +8,8 @@
 #include "Conn.h"
 #include "ProtoFactory.h"
 #include <thread>
+#include <mutex>
+#include <sys/time.h>
 
 namespace proto {
 REGISTER_PROTO_INSTANCE("KERMIT", ProtoKermit);
@@ -163,10 +165,12 @@ namespace kermit {
             if (!mIn.IsEof()) {
                 std::vector<unsigned char> buff(mChunkSize);
                 int asz = mIn.Get(buff.data(), mChunkSize);
-                // data frame
-                mStream += Encode(buff.data(), asz);
-                //
-                mBytesRead += asz;
+                if (asz > 0) {
+                    // data frame
+                    mStream += Encode(buff.data(), asz);
+                    //
+                    mBytesRead += asz;
+                }
             }
         }
         // Take will step the file
@@ -281,6 +285,13 @@ static bool _TransmitFrame(SerialIo* io, const std::string& b_data, std::string&
     }
     return failed;
 }
+// return tv1 - tv2 in seconds
+static inline double _diff(const struct timeval& tv1, const struct timeval& tv2)
+{
+    double d_secs = tv1.tv_sec - tv2.tv_sec;
+    double d_usecs = tv1.tv_usec - tv2.tv_usec;
+    return d_secs + d_usecs / 1000000.;
+}
 
 int ProtoKermit::TransmitFile(SerialIo* io, const std::string& fname, std::string& errmsg, bool last_file)
 {
@@ -296,8 +307,10 @@ int ProtoKermit::TransmitFile(SerialIo* io, const std::string& fname, std::strin
         failed = true;
         errmsg = "You should not transmit big files by kermit!";
     } else {
+        std::mutex lock; // protect ts, rate
         total = (int)fin.FileSize();
         double ts = 0;
+        double rate = 0;
         auto job = [&]() {
             unsigned char idx = 0;
             kermit::KermitMsg msg;
@@ -327,12 +340,19 @@ int ProtoKermit::TransmitFile(SerialIo* io, const std::string& fname, std::strin
                 auto data = fin.Take(kermit::kFrameSize);
                 if (data.empty()) break;
                 auto b_data = kermit::Pack('D', data.c_str(), data.length(), idx++);
-                auto t1 = std::chrono::high_resolution_clock::now();
+                struct timeval t1, t2;
+                gettimeofday(&t1, NULL);
                 failed = _TransmitFrame(io, b_data, errmsg, msg, kermit::kTimeout, &should_stop);
                 // update progress bar
                 if (!failed) {
-                    ts += std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - t1).count();
-                    PostCallback([&]() { bar.Update(fin.BytesRead(), (double)fin.BytesRead() / ts); });
+                    std::lock_guard<std::mutex> _(lock);
+                    gettimeofday(&t2, NULL);
+                    ts += _diff(t2, t1); // t2 - t1
+                    rate = fin.BytesRead() / ts;
+                    PostCallback([&]() {
+                        std::lock_guard<std::mutex> _(lock);
+                        bar.Update(fin.BytesRead(), rate);
+                    });
                 }
             }
             // 4. EOT
