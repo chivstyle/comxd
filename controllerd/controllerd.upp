@@ -1,0 +1,14 @@
+description "controller for water-gate project 1.0a\377";
+
+uses
+	Core,
+	serial;
+
+file
+	Serverd.h,
+	Serverd.cpp,
+	controllerd.cpp;
+
+mainconfig
+	"" = "";
+
