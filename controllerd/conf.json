@@ -1,0 +1,19 @@
+{
+	"Version": "1.0a",
+	"Hardwared": {
+		"Serial": {
+			"Name": "/dev/ttyUSB0",
+			"Baudrate": 115200,
+			"ByteSize": 8,
+			"Parity": 0,
+			"FlowControl": 0,
+			"StopBits": 1
+		}
+	},
+	"WsServerd": {
+		"ListenPort": 9001
+	},
+	"Actuator": {
+		"URL":"ws://192.168.0.121:9001"
+	}
+}

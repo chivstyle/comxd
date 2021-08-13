@@ -22,9 +22,12 @@ public:
     // stopbits: 1
     // throws std::exception on error
     Hardwared(const std::string& devname, uint32_t baudrate);
+    Hardwared(const Upp::Value& conf);
     virtual ~Hardwared();
     //
     void Run(volatile bool* should_exit);
+    // command - JSON Object
+    bool Send(const Upp::String& command);
     // The hardware generate some event(s), this thread will wrap
     // it in JSON, and then invoke this function.
     Upp::Event<Upp::String> WhenMessage;

@@ -1,7 +1,7 @@
 //
 // (c) 2021 chiv
 //
-#include "Serverd.h"
+#include "WsServerd.h"
 
 using namespace Upp;
 
@@ -21,6 +21,11 @@ void WsServerd::Worker::Do(std::function<void(const Upp::String&)> on_message)
 WsServerd::WsServerd(int port)
     : mPort(port)
 {
+}
+
+WsServerd::WsServerd(const Value& conf)
+{
+	mPort = conf["ListenPort"];
 }
 
 bool WsServerd::SendText(const String& text)

@@ -7,8 +7,11 @@ uses
 file
 	Hardwared.h,
 	Hardwared.cpp,
-	Serverd.h,
-	Serverd.cpp,
+	WsServerd.h,
+	WsServerd.cpp,
+	BusinessLogic.cpp,
+	BusinessLogic.h,
+	conf.json,
 	controllerd.cpp;
 
 mainconfig

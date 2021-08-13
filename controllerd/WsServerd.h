@@ -1,8 +1,8 @@
 //
 // (c) 2021 chiv
 //
-#ifndef _controllerd_Serverd_h_
-#define _controllerd_Serverd_h_
+#ifndef _controllerd_WsServerd_h_
+#define _controllerd_WsServerd_h_
 
 #include <Core/Core.h>
 #include <functional>
@@ -11,6 +11,7 @@
 class WsServerd {
 public:
     WsServerd(int port);
+    WsServerd(const Upp::Value& conf);
     
     void Run(volatile bool* should_exit);
     
