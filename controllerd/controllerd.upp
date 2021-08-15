@@ -5,12 +5,16 @@ uses
 	serial;
 
 file
+	HardwareSpec.cpp,
+	HardwareSpec.h,
 	Hardwared.h,
 	Hardwared.cpp,
 	WsServerd.h,
 	WsServerd.cpp,
 	BusinessLogic.cpp,
 	BusinessLogic.h,
+	Actuator.cpp,
+	Actuator.h,
 	conf.json,
 	controllerd.cpp;
 

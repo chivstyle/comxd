@@ -1,0 +1,21 @@
+description "actuator for water-gate project 1.0a\377";
+
+uses
+	Core,
+	serial;
+
+file
+	BusinessLogic.cpp,
+	BusinessLogic.h,
+	Hardwared.cpp,
+	Hardwared.h,
+	HardwareSpec.cpp,
+	HardwareSpec.h,
+	WsServerd.cpp,
+	WsServerd.h,
+	conf.json,
+	actuatord.cpp;
+
+mainconfig
+	"" = "";
+

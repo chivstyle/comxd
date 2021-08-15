@@ -55,7 +55,7 @@
 			]
 		},
 		"Serial": {
-			"Name": "COM11",
+			"Name": "COM1",
 			"Baudrate": 115200,
 			"ByteSize": 8,
 			"Parity": 0,
@@ -64,7 +64,7 @@
 		}
 	},
 	"WsServerd": {
-		"ListenPort": 9011
+		"ListenPort": 9001
 	},
 	"Actuator": {
 		"URL":"ws://127.0.0.1:9001"
