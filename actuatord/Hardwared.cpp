@@ -21,7 +21,7 @@ Hardwared::Hardwared(const std::string& devname, uint32_t baudrate)
 Hardwared::Hardwared(const Value& conf)
 {
     const Value& s = conf["Serial"];
-	mIo = new serial::Serial((String)s["Name"].ToStd(),
+	mIo = new serial::Serial(s["Name"].ToStd(),
 							 static_cast<uint32_t>((int)s["Baudrate"]),
 							 serial::Timeout(),
 							 static_cast<serial::bytesize_t>((int)s["ByteSize"]),
