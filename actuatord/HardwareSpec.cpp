@@ -8,6 +8,8 @@
 #include <thread>
 #include <chrono>
 
+#define TAG "<HardwareSpec>:"
+
 using namespace Upp;
 
 #ifdef _MSC_VER
@@ -116,6 +118,7 @@ void HardwareSpec::RunCommand(const Upp::String& req)
 {
     Value s = ParseJSON(req);
     // TODO: translate command and send frame to device
+    LOG(TAG << req);
 }
 
 void HardwareSpec::ProcessRequest(const Upp::String& request)
