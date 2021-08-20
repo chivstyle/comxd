@@ -8,6 +8,8 @@
 #include <thread>
 #include <chrono>
 
+#define TAG "<HardwareSpec>:"
+
 using namespace Upp;
 
 #ifdef _MSC_VER
@@ -77,20 +79,20 @@ static inline String ToJSON(const FrameData& fd)
             ("waterTank", fd.Analog.水箱液位)
             ("fuelTank", fd.Analog.燃油箱液位)
             ("hydraulic", fd.Analog.液压油液位)
-            ("speed", "") // TODO: What's it ?
+            ("speed", 100) // TODO: What's it ?
             ("waterWe", fd.Analog.冷却水温度)
-            ("fuelWe", "") // TODO: What's it ?
+            ("fuelWe", 45) // TODO: What's it ?
             ("hydraulicWe", fd.Analog.液压油温度)
             ("leftPointSpeed", fd.Analog.左吊点速度)
             ("rightPointSpeed", fd.Analog.右吊点速度)
             ("closeValueScale", "") // TODO: what's it ?
             ("closeValue", fd.Analog.闸门开度)
-            ("zengValue", "") // TODO: what's it ?
-            ("motorSpeed", "") // TODO: what's it ?
+            ("zengValue", 3) // TODO: what's it ?
+            ("motorSpeed", 1200) // TODO: what's it ?
             ("battery", fd.Analog.启动电池电量)
-            ("motorRun", false) // TODO: true or false, how to define it ?
-            ("windRun", false) // TODO: true or false, how to define it ?
-            ("windCanRun", false) // TODO: true or false, how to define it ?
+            ("motorRun", true) // TODO: true or false, how to define it ?
+            ("windRun", true) // TODO: true or false, how to define it ?
+            ("windCanRun", true) // TODO: true or false, how to define it ?
     );
     return json.ToString();
 }
@@ -116,6 +118,7 @@ void HardwareSpec::RunCommand(const Upp::String& req)
 {
     Value s = ParseJSON(req);
     // TODO: translate command and send frame to device
+    LOG(TAG << "Command=" << req);
 }
 
 void HardwareSpec::ProcessRequest(const Upp::String& request)
