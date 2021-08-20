@@ -24,7 +24,7 @@ public:
 		: mText("")
 	{
 	}
-	const char* what() const _NOEXCEPT { return mText; }
+	const char* what() const throw() { return mText; }
 	
 private:
 	//
