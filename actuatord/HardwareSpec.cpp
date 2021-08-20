@@ -10,6 +10,9 @@
 
 #define TAG "<HardwareSpec>:"
 
+// basic parameters
+static const double kQueryPeroid = 0.2; // 0.2 seconds
+
 using namespace Upp;
 
 #ifdef _MSC_VER
@@ -191,7 +194,7 @@ void HardwareSpec::Run(volatile bool* should_exit)
             // query
             Query(should_exit);
         } else {
-            std::this_thread::sleep_for(std::chrono::duration<double>(0.1 - ts));
+            std::this_thread::sleep_for(std::chrono::duration<double>(kQueryPeroid - ts));
         }
     }
 }
