@@ -146,8 +146,12 @@ void HardwareSpec::Query(volatile bool* should_exit)
     auto req_1 = Hardwared::MakeFrame(0x01, 0x03, {
         0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     });
+    LOG(TAG << "Send req_1(analog) to device");
     if (mHw->SendFrame(req_1, resp, kTimeout, should_exit)) {
+        LOG(TAG << "Received a valid frame from hardware, parse it as analog");
         ParseQueryResult(resp, mFrameData);
+    } else {
+        LOG(TAG << "Timeout");
     }
     auto req_2 = Hardwared::MakeFrame(0x01, 0x03, {
         0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -155,8 +159,12 @@ void HardwareSpec::Query(volatile bool* should_exit)
         0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00
     });
+    LOG(TAG << "Send req_2(digital) to device");
     if (mHw->SendFrame(req_2, resp, kTimeout, should_exit)) {
+        LOG(TAG << "Received a valid frame from hardware, parse it as digital");
         ParseQueryResult(resp, mFrameData);
+    } else {
+        LOG(TAG << "Timeout");
     }
     // Report regardless of success or failure
     mWs->SendText(ToJSON(*mFrameData));
