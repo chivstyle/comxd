@@ -54,7 +54,8 @@ struct FrameData {
     	uint16_t 手动止回;         // 电动球阀
     	uint8_t 制动器驱动;        // 电动球阀
     	uint8_t 手动提升下降;      // 3位4通手动换向阀
-    	uint8_t 未定义[4];         // 未定义的
+    	uint16_t 发动机转速;       // 发动机转速
+    	uint16_t 燃油温度;         // 燃油温
     	uint8_t 工程控制[10];      // 按键
     }
 #ifdef __GNUC__
@@ -82,20 +83,14 @@ static inline String ToJSON(const FrameData& fd)
             ("waterTank", fd.Analog.水箱液位)
             ("fuelTank", fd.Analog.燃油箱液位)
             ("hydraulic", fd.Analog.液压油液位)
-            ("speed", 100) // TODO: What's it ?
+            ("speed", fd.Digial.发动机转速)
             ("waterWe", fd.Analog.冷却水温度)
-            ("fuelWe", 45) // TODO: What's it ?
+            ("fuelWe", fd.Digital.燃油温度)
             ("hydraulicWe", fd.Analog.液压油温度)
             ("leftPointSpeed", fd.Analog.左吊点速度)
             ("rightPointSpeed", fd.Analog.右吊点速度)
-            ("closeValueScale", "") // TODO: what's it ?
-            ("closeValue", fd.Analog.闸门开度)
-            ("zengValue", 3) // TODO: what's it ?
-            ("motorSpeed", 1200) // TODO: what's it ?
+            ("motorSpeed", fd.Digital.发动机转速)
             ("battery", fd.Analog.启动电池电量)
-            ("motorRun", true) // TODO: true or false, how to define it ?
-            ("windRun", true) // TODO: true or false, how to define it ?
-            ("windCanRun", true) // TODO: true or false, how to define it ?
     );
     return json.ToString();
 }
@@ -135,36 +130,20 @@ void HardwareSpec::ParseQueryResult(const std::vector<unsigned char>& frame, Fra
 {
     auto s = reinterpret_cast<const Hardwared::Frame*>(frame.data());
     auto d = reinterpret_cast<const FrameData*>(s->Data);
-    if (d->DataType == 0x01) { // Analog
-        fd->Analog = d->Analog;
-    } else if (d->DataType == 0x02) { // Digital
-        fd->Digital = d->Digital;
-    }
+	fd->Analog = d->Analog;
+	fd->Digital = d->Digital;
 }
 
 void HardwareSpec::Query(volatile bool* should_exit)
 {
     std::vector<unsigned char> resp;
-    // 查询模拟部分
+    // 查询
     auto req_1 = Hardwared::MakeFrame(0x01, 0x03, {
         0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     });
-    LOG(TAG << "Send req_1(analog) to device");
+    LOG(TAG << "Send query to device");
     if (mHw->SendFrame(req_1, resp, kTimeout, should_exit)) {
         LOG(TAG << "Received a valid frame from hardware, parse it as analog");
-        ParseQueryResult(resp, mFrameData);
-    } else {
-        LOG(TAG << "Timeout");
-    }
-    auto req_2 = Hardwared::MakeFrame(0x01, 0x03, {
-        0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00
-    });
-    LOG(TAG << "Send req_2(digital) to device");
-    if (mHw->SendFrame(req_2, resp, kTimeout, should_exit)) {
-        LOG(TAG << "Received a valid frame from hardware, parse it as digital");
         ParseQueryResult(resp, mFrameData);
     } else {
         LOG(TAG << "Timeout");
