@@ -11,7 +11,7 @@
 #define TAG "<HardwareSpec>:"
 
 // basic parameters
-static const double kQueryPeroid = 0.2; // 0.2 seconds
+static const double kQueryPeroid = 0.5; // 0.5 seconds
 
 using namespace Upp;
 
@@ -56,7 +56,8 @@ struct FrameData {
     	uint8_t 手动提升下降;      // 3位4通手动换向阀
     	uint16_t 发动机转速;       // 发动机转速
     	uint16_t 燃油温度;         // 燃油温
-    	uint8_t 工程控制[10];      // 按键
+    	uint8_t 增容档位;          // 增容档位 0,1,2,3
+    	uint8_t 工程控制[9];       // 按键
     }
 #ifdef __GNUC__
     __attribute__((packed))
@@ -75,7 +76,8 @@ static_assert(sizeof(FrameData) == 0x3a, "sizeof(FrameData) should be 0x3a");
 
 static inline String ToJSON(const FrameData& fd)
 {
-    Json json("info",
+    Json json(
+        "info",
         Json("leftPress", fd.Analog.左油杆压力)
             ("systemPress", fd.Analog.系统压力)
             ("rightPress", fd.Analog.右油杆压力)
@@ -83,7 +85,7 @@ static inline String ToJSON(const FrameData& fd)
             ("waterTank", fd.Analog.水箱液位)
             ("fuelTank", fd.Analog.燃油箱液位)
             ("hydraulic", fd.Analog.液压油液位)
-            ("speed", fd.Digial.发动机转速)
+            ("speed", fd.Digital.发动机转速)
             ("waterWe", fd.Analog.冷却水温度)
             ("fuelWe", fd.Digital.燃油温度)
             ("hydraulicWe", fd.Analog.液压油温度)
@@ -91,6 +93,11 @@ static inline String ToJSON(const FrameData& fd)
             ("rightPointSpeed", fd.Analog.右吊点速度)
             ("motorSpeed", fd.Digital.发动机转速)
             ("battery", fd.Analog.启动电池电量)
+    );
+    json("outInfo",
+        Json("windRun", fd.Digital.风门开关)
+            ("motorRun", fd.Digital.发动机启动)
+            ("zengValue", fd.Digital.增容档位)
     );
     return json.ToString();
 }
@@ -115,8 +122,31 @@ HardwareSpec::~HardwareSpec()
 void HardwareSpec::RunCommand(const Upp::String& req)
 {
     Value s = ParseJSON(req);
-    // TODO: translate command and send frame to device
-    LOG(TAG << "Command=" << req);
+#if 0
+    {
+        closeValue: 0,
+        closeValueScale: null, //阀门开度比例
+        motorRun: false, //发动机启动状态
+        windRun: false, //风机运行状态
+        zengValue: 3, //增容设置值,
+        zengPreset: []
+      }
+#endif
+    if (!s.IsNull()) {
+        FrameData fd;
+        memset(&fd, 0, sizeof(fd));
+        fd.Analog.闸门开度 = static_cast<uint16_t>((int)(s["closeValue"]));
+        fd.Digital.发动机启动 = s["motorRun"] ? 0xffff : 0;
+        fd.Digital.风门开关 = s["windRun"] ? 0xff : 0;
+        fd.Digital.增容档位 = static_cast<uint8_t>((int)s["zengValue"]);
+        for (int k = 0; k < 3 && k < s["zengPreset"].GetCount(); ++k) {
+            fd.Digital.增容调压[k] = static_cast<uint8_t>((int)s["zengPreset"][k]);
+        }
+        // send command to device
+        // we do not care about the response, so set timeout to 0
+        std::vector<unsigned char> resp;
+        mHw->SendFrame(Hardwared::MakeFrame(1, 1, (const unsigned char*)&fd, sizeof(fd)), resp, 0);
+    }
 }
 
 void HardwareSpec::ProcessRequest(const Upp::String& request)
