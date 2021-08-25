@@ -55,7 +55,7 @@
 			]
 		},
 		"Serial": {
-			"Name": "COM11",
+			"Name": "COM12",
 			"Baudrate": 115200,
 			"ByteSize": 8,
 			"Parity": 0,

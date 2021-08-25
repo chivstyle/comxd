@@ -5,6 +5,8 @@
 
 using namespace Upp;
 
+#define TAG "<WsServerd>:"
+
 WsServerd::Worker::Worker()
 {
     Ws.NonBlocking();
@@ -26,6 +28,7 @@ WsServerd::WsServerd(int port)
 WsServerd::WsServerd(const Value& conf)
 {
 	mPort = conf["ListenPort"];
+	LOG(TAG << "Listen on " << mPort);
 }
 
 bool WsServerd::SendText(const String& text)

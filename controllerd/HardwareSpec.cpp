@@ -101,7 +101,9 @@ HardwareSpec::HardwareSpec(Hardwared* hardware, WsServerd* server)
     mHw->WhenResponse = [=](const std::vector<unsigned char>& frame) {
         auto f = reinterpret_cast<const Hardwared::Frame*>(frame.data());
         auto d = reinterpret_cast<const FrameData*>(f->Data);
-        mWs->SendText(ToJSON(*d));
+        auto s = ToJSON(*d);
+        LOG(TAG << "Buttons = " << s);
+        mWs->SendText(s);
     };
     mFrameData = new FrameData;
 }

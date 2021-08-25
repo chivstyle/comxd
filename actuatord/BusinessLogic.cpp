@@ -33,7 +33,11 @@ private:
 
 BusinessLogic::BusinessLogic(const String& conf_file)
 {
+#ifdef _DEBUG
+    mConf = ParseJSON(LoadFile(GetDataFile(conf_file)));
+#else
 	mConf = ParseJSON(LoadFile(conf_file));
+#endif
 	if (mConf.IsNull()) {
 		// use default instead
 		throw s_exception("You should pass me a valid JSON configuration file");
