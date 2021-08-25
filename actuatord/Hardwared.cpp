@@ -94,8 +94,6 @@ bool Hardwared::SendFrame(const std::vector<unsigned char>& frame,
     std::unique_lock<std::mutex> _(mLock);
     mResponseCount = 0;
     mIo->write(frame);
-    LOG(TAG << "Send frame to device");
-    DUMPHEX(String((const char*)frame.data(), frame.size()));
     bool ret = mCond.wait_for(_, std::chrono::milliseconds(timeout), [=]() {
         return mResponseCount > 0 || (should_exit && *should_exit);
     });

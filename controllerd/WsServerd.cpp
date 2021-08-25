@@ -75,6 +75,8 @@ void WsServerd::Run(volatile bool* should_exit)
             mLock.Enter();
             if (!mWorkers.Add().Ws.NonBlocking().Accept(server)) {
                 mWorkers.Drop();
+            } else {
+                LOG(TAG << "Accept new client");
             }
             mLock.Leave();
         }

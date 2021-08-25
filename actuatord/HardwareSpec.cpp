@@ -134,6 +134,8 @@ void HardwareSpec::RunCommand(const Upp::String& req)
       }
 #endif
     if (!s.IsNull()) {
+        LOG(TAG << "Send req to device = " << req);
+        //
         FrameData fd;
         memset(&fd, 0, sizeof(fd));
         fd.Analog.闸门开度 = static_cast<uint16_t>((int)(s["closeValue"]));
@@ -173,15 +175,12 @@ void HardwareSpec::Query(volatile bool* should_exit)
     auto req_1 = Hardwared::MakeFrame(0x01, 0x03, {
         0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     });
-    LOG(TAG << "Send query to device");
     if (mHw->SendFrame(req_1, resp, kTimeout, should_exit)) {
         LOG(TAG << "Received a valid frame from hardware, parse it as analog");
         ParseQueryResult(resp, mFrameData);
-    } else {
-        LOG(TAG << "Timeout");
+        // Report regardless of success or failure
+        mWs->SendText(ToJSON(*mFrameData));
     }
-    // Report regardless of success or failure
-    mWs->SendText(ToJSON(*mFrameData));
 }
 // Run command committed to command queue, and query status periodically
 void HardwareSpec::Run(volatile bool* should_exit)
