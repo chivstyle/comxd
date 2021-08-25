@@ -126,6 +126,7 @@ void HardwareSpec::RunCommand(const Upp::String& req)
     {
         closeValue: 0,
         closeValueScale: null, //阀门开度比例
+        gearValue: 10,
         motorRun: false, //发动机启动状态
         windRun: false, //风机运行状态
         zengValue: 3, //增容设置值,
@@ -139,6 +140,7 @@ void HardwareSpec::RunCommand(const Upp::String& req)
         fd.Digital.发动机启动 = s["motorRun"] ? 0xffff : 0;
         fd.Digital.风门开关 = s["windRun"] ? 0xff : 0;
         fd.Digital.增容档位 = static_cast<uint8_t>((int)s["zengValue"]);
+        fd.Digital.发动机转速 = static_cast<uint8_t>((int)s["gearValue"]);
         for (int k = 0; k < 3 && k < s["zengPreset"].GetCount(); ++k) {
             fd.Digital.增容调压[k] = static_cast<uint8_t>((int)s["zengPreset"][k]);
         }
