@@ -122,6 +122,8 @@ void Hardwared::Run(volatile bool* should_exit)
 		            std::lock_guard<std::mutex> _(mLock);
 		            // check and process
 		            if (IsValidFrame(buff)) {
+		                WhenResponse(buff);
+		                //
 		                mResponseCount++;
 		                mResponse = std::move(buff);
 		                //

@@ -34,7 +34,11 @@ private:
 
 BusinessLogic::BusinessLogic(const String& conf_file)
 {
+#ifdef _DEBUG
+    mConf = ParseJSON(LoadFile(GetDataFile(conf_file)));
+#else
 	mConf = ParseJSON(LoadFile(conf_file));
+#endif
 	if (mConf.IsNull()) {
 		// use default instead
 		throw s_exception("You should pass me a valid JSON configuration file");
@@ -48,13 +52,11 @@ void BusinessLogic::Run(volatile bool* should_exit)
 {
 	Hardwared hardware(mConf["Hardwared"]);
 	WsServerd wsserver(mConf["WsServerd"]);
-	Actuator actuator(mConf["Actuator"]);
-	HardwareSpec spec (&hardware, &wsserver, &actuator);
+	HardwareSpec spec (&hardware, &wsserver);
 	//
 	Thread _1, _2, _3;
 	_1.Run([&]() { hardware.Run(should_exit); });
 	_2.Run([&]() { wsserver.Run(should_exit); });
-	_3.Run([&]() { actuator.Run(should_exit); });
 	//
 	spec.Run(should_exit);
 	//

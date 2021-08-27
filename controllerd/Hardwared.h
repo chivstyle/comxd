@@ -51,6 +51,8 @@ public:
     bool SendFrame(const std::vector<unsigned char>& frame, std::vector<unsigned char>& response,
                    int timeout, volatile bool* should_exit = nullptr);
     //
+    Upp::Event<const std::vector<unsigned char>&> WhenResponse;
+    //
 protected:
     bool IsValidFrame(const std::vector<unsigned char>& frame);
 private:

@@ -15,7 +15,7 @@ class WsServerd;
 class Actuator;
 class HardwareSpec {
 public:
-    HardwareSpec(Hardwared* hardware, WsServerd* server, Actuator* actuator);
+    HardwareSpec(Hardwared* hardware, WsServerd* server);
     virtual ~HardwareSpec();
     //
     void Run(volatile bool* should_exit);
@@ -31,7 +31,6 @@ protected:
 private:
     Hardwared* mHw;
     WsServerd* mWs;
-    Actuator* mActuator;
     // command queue
     std::queue<Upp::String> mReqs;
     std::mutex mLock;

@@ -10,6 +10,9 @@
 
 #define TAG "<HardwareSpec>:"
 
+// basic parameters
+static const double kQueryPeroid = 0.5; // 0.5 seconds
+
 using namespace Upp;
 
 #ifdef _MSC_VER
@@ -51,8 +54,10 @@ struct FrameData {
     	uint16_t 手动止回;         // 电动球阀
     	uint8_t 制动器驱动;        // 电动球阀
     	uint8_t 手动提升下降;      // 3位4通手动换向阀
-    	uint8_t 未定义[4];         // 未定义的
-    	uint8_t 工程控制[10];      // 按键
+    	uint16_t 发动机转速;       // 发动机转速
+    	uint16_t 燃油温度;         // 燃油温
+    	uint8_t 增容档位;          // 增容档位 0,1,2,3
+    	uint8_t 工程控制[9];       // 按键
     }
 #ifdef __GNUC__
     __attribute__((packed))
@@ -71,7 +76,8 @@ static_assert(sizeof(FrameData) == 0x3a, "sizeof(FrameData) should be 0x3a");
 
 static inline String ToJSON(const FrameData& fd)
 {
-    Json json("info",
+    Json json(
+        "info",
         Json("leftPress", fd.Analog.左油杆压力)
             ("systemPress", fd.Analog.系统压力)
             ("rightPress", fd.Analog.右油杆压力)
@@ -79,20 +85,19 @@ static inline String ToJSON(const FrameData& fd)
             ("waterTank", fd.Analog.水箱液位)
             ("fuelTank", fd.Analog.燃油箱液位)
             ("hydraulic", fd.Analog.液压油液位)
-            ("speed", "") // TODO: What's it ?
+            ("speed", fd.Digital.发动机转速)
             ("waterWe", fd.Analog.冷却水温度)
-            ("fuelWe", "") // TODO: What's it ?
+            ("fuelWe", fd.Digital.燃油温度)
             ("hydraulicWe", fd.Analog.液压油温度)
             ("leftPointSpeed", fd.Analog.左吊点速度)
             ("rightPointSpeed", fd.Analog.右吊点速度)
-            ("closeValueScale", "") // TODO: what's it ?
-            ("closeValue", fd.Analog.闸门开度)
-            ("zengValue", "") // TODO: what's it ?
-            ("motorSpeed", "") // TODO: what's it ?
+            ("motorSpeed", fd.Digital.发动机转速)
             ("battery", fd.Analog.启动电池电量)
-            ("motorRun", false) // TODO: true or false, how to define it ?
-            ("windRun", false) // TODO: true or false, how to define it ?
-            ("windCanRun", false) // TODO: true or false, how to define it ?
+    );
+    json("outInfo",
+        Json("windRun", fd.Digital.风门开关)
+            ("motorRun", fd.Digital.发动机启动)
+            ("zengValue", fd.Digital.增容档位)
     );
     return json.ToString();
 }
@@ -117,8 +122,35 @@ HardwareSpec::~HardwareSpec()
 void HardwareSpec::RunCommand(const Upp::String& req)
 {
     Value s = ParseJSON(req);
-    // TODO: translate command and send frame to device
-    LOG(TAG << req);
+#if 0
+    {
+        closeValue: 0,
+        closeValueScale: null, //阀门开度比例
+        gearValue: 10,
+        motorRun: false, //发动机启动状态
+        windRun: false, //风机运行状态
+        zengValue: 3, //增容设置值,
+        zengPreset: []
+      }
+#endif
+    if (!s.IsNull()) {
+        LOG(TAG << "Send req to device = " << req);
+        //
+        FrameData fd;
+        memset(&fd, 0, sizeof(fd));
+        fd.Analog.闸门开度 = static_cast<uint16_t>((int)(s["closeValue"]));
+        fd.Digital.发动机启动 = s["motorRun"] ? 0xffff : 0;
+        fd.Digital.风门开关 = s["windRun"] ? 0xff : 0;
+        fd.Digital.增容档位 = static_cast<uint8_t>((int)s["zengValue"]);
+        fd.Digital.发动机转速 = static_cast<uint8_t>((int)s["gearValue"]);
+        for (int k = 0; k < 3 && k < s["zengPreset"].GetCount(); ++k) {
+            fd.Digital.增容调压[k] = static_cast<uint8_t>((int)s["zengPreset"][k]);
+        }
+        // send command to device
+        // we do not care about the response, so set timeout to 0
+        std::vector<unsigned char> resp;
+        mHw->SendFrame(Hardwared::MakeFrame(1, 1, (const unsigned char*)&fd, sizeof(fd)), resp, 0);
+    }
 }
 
 void HardwareSpec::ProcessRequest(const Upp::String& request)
@@ -132,34 +164,23 @@ void HardwareSpec::ParseQueryResult(const std::vector<unsigned char>& frame, Fra
 {
     auto s = reinterpret_cast<const Hardwared::Frame*>(frame.data());
     auto d = reinterpret_cast<const FrameData*>(s->Data);
-    if (d->DataType == 0x01) { // Analog
-        fd->Analog = d->Analog;
-    } else if (d->DataType == 0x02) { // Digital
-        fd->Digital = d->Digital;
-    }
+	fd->Analog = d->Analog;
+	fd->Digital = d->Digital;
 }
 
 void HardwareSpec::Query(volatile bool* should_exit)
 {
     std::vector<unsigned char> resp;
-    // 查询模拟部分
+    // 查询
     auto req_1 = Hardwared::MakeFrame(0x01, 0x03, {
         0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     });
     if (mHw->SendFrame(req_1, resp, kTimeout, should_exit)) {
+        LOG(TAG << "Received a valid frame from hardware, parse it as analog");
         ParseQueryResult(resp, mFrameData);
+        // Report regardless of success or failure
+        mWs->SendText(ToJSON(*mFrameData));
     }
-    auto req_2 = Hardwared::MakeFrame(0x01, 0x03, {
-        0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00
-    });
-    if (mHw->SendFrame(req_2, resp, kTimeout, should_exit)) {
-        ParseQueryResult(resp, mFrameData);
-    }
-    // Report regardless of success or failure
-    mWs->SendText(ToJSON(*mFrameData));
 }
 // Run command committed to command queue, and query status periodically
 void HardwareSpec::Run(volatile bool* should_exit)
@@ -183,7 +204,7 @@ void HardwareSpec::Run(volatile bool* should_exit)
             // query
             Query(should_exit);
         } else {
-            std::this_thread::sleep_for(std::chrono::duration<double>(0.1 - ts));
+            std::this_thread::sleep_for(std::chrono::duration<double>(kQueryPeroid - ts));
         }
     }
 }

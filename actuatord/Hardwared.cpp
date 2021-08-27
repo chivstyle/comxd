@@ -118,6 +118,9 @@ void Hardwared::Run(volatile bool* should_exit)
 		        mIo->read(buff, std::min(expect_cnt, asz));
 		        if (buff.size() == kFrameSize) {
 		            pending = false; // got a frame
+		            //
+		            LOG(TAG << "Received frame");
+		            DUMPHEX(String((const char*)buff.data(), buff.size()));
 		            // Notify
 		            std::lock_guard<std::mutex> _(mLock);
 		            // check and process
@@ -126,6 +129,8 @@ void Hardwared::Run(volatile bool* should_exit)
 		                mResponse = std::move(buff);
 		                //
 		                mCond.notify_all();
+		            } else {
+		                LOG(TAG << "Invalid Response");
 		            }
 		        }
 		    } else {
@@ -133,6 +138,8 @@ void Hardwared::Run(volatile bool* should_exit)
 		        if (buff.size() == 2 && buff[0] == 0x68 && buff[1] == 0x68) {
 		            pending = true; // maybe there's a valid frame in buffer, let's go
 		        } else if (buff.size() == 2) { // it's not a valid header, go on
+		            LOG(TAG << "Received invalid frame head, reagain");
+		            DUMPHEX(String((const char*)buff.data(), buff.size()));
 		            buff.erase(buff.begin());
 		        }
 		    }
