@@ -9,7 +9,7 @@
 #include <mutex>
 #include <condition_variable>
 
-class FrameData;
+struct DeviceStatus;
 class Hardwared;
 class WsServerd;
 class HardwareSpec {
@@ -25,7 +25,7 @@ protected:
     // hardware specification
     void RunCommand(const Upp::String&);
     void Query(volatile bool* should_exit);
-    void ParseQueryResult(const std::vector<unsigned char>& frame, FrameData* fd);
+    void ParseQueryResult(const std::vector<unsigned char>& frame, DeviceStatus* fd);
     //
 private:
     Hardwared* mHw;
@@ -35,7 +35,9 @@ private:
     std::mutex mLock;
     std::condition_variable mCond;
     //
-    FrameData* mFrameData;
+    bool mDeviceReady;
+    //
+    DeviceStatus* mDeviceStatus;
 };
 
 #endif

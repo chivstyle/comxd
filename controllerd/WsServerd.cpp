@@ -66,6 +66,7 @@ void WsServerd::Run(volatile bool* should_exit)
                 if (w.Ws.IsClosed() || w.Ws.IsError()) {
                     WhenClosed(w.Ws);
                     mWorkers.Remove(i);
+                    LOG(TAG << "Remove closed client");
                 }
             }
         }
