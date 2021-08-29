@@ -10,6 +10,8 @@
 #include "Actuator.h"
 //
 using namespace Upp;
+//
+#define TAG "<BusinessLogic>:"
 
 class s_exception : public std::exception {
 public:
@@ -34,11 +36,8 @@ private:
 
 BusinessLogic::BusinessLogic(const String& conf_file)
 {
-#ifdef _DEBUG
-    mConf = ParseJSON(LoadFile(GetDataFile(conf_file)));
-#else
+	LOG(TAG << "Parse config from " << conf_file);
 	mConf = ParseJSON(LoadFile(conf_file));
-#endif
 	if (mConf.IsNull()) {
 		// use default instead
 		throw s_exception("You should pass me a valid JSON configuration file");

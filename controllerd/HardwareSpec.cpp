@@ -16,7 +16,7 @@ using namespace Upp;
 #pragma pack(1)
 #endif
 struct FrameData {
-	uint8_t RS[0x2f];
+	uint8_t RS[50];
 	uint8_t battery;
 	uint8_t Keys[10];
 }
@@ -30,19 +30,20 @@ __attribute__((packed))
 
 #define TAG "<HardwareSpec>:"
 
-static_assert(sizeof(FrameData) == 0x3a, "sizeof(FrameData) should be 0x3a");
+static_assert(sizeof(FrameData) < 64, "sizeof(FrameData) should be 64");
 
 static inline String ToJSON(const FrameData& fd)
 {
+	// fd.Keys[0] is reserved
     Json json("buttons",
-        Json("motorStart",  fd.Keys[0])
-            ("motorStop",   fd.Keys[1])
-            ("throttleInc", fd.Keys[2])
-            ("throttleDec", fd.Keys[3])
-            ("valveInc",    fd.Keys[4])
-            ("valveDec",    fd.Keys[5])
-            ("windStart",   fd.Keys[6])
-            ("windStop",    fd.Keys[7])
+        Json("motorStart",  fd.Keys[1])
+            ("motorStop",   fd.Keys[2])
+            ("throttleInc", fd.Keys[3])
+            ("throttleDec", fd.Keys[4])
+            ("valveInc",    fd.Keys[5])
+            ("valveDec",    fd.Keys[6])
+            ("windStart",   fd.Keys[7])
+            ("windStop",    fd.Keys[8])
     );
     json("info",
         Json("battery2",  fd.battery)
@@ -62,6 +63,7 @@ HardwareSpec::HardwareSpec(Hardwared* hardware, WsServerd* server)
         auto f = reinterpret_cast<const Hardwared::Frame*>(frame.data());
         auto d = reinterpret_cast<const FrameData*>(f->Data);
         auto s = ToJSON(*d);
+        DUMPHEX(String((const char*)d, sizeof(f->Data)));
         LOG(TAG << "Buttons = " << s);
         mWs->SendText(s);
     };
