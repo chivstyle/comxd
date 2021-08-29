@@ -16,7 +16,7 @@ using namespace Upp;
 #pragma pack(1)
 #endif
 struct FrameData {
-	uint8_t RS[50];
+	uint8_t RS[48];
 	uint8_t battery;
 	uint8_t Keys[10];
 }

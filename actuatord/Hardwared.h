@@ -16,6 +16,7 @@
 class Hardwared {
 public:
     struct Frame {
+        unsigned char Head[2];
         unsigned char Type;
         unsigned char Order;
         unsigned char Data[64];

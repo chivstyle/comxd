@@ -52,7 +52,7 @@ struct DeviceStatus {
 
 static_assert(sizeof(DeviceStatus) == 42, "sizeof(DeviceStatus) should be 42");
 
-static inline String ToJSON(const DeviceStatus& fd)
+static inline String ToJSON(const DeviceStatus& fd, const String& tag = "")
 {
     Json json(
         "info",
@@ -75,13 +75,14 @@ static inline String ToJSON(const DeviceStatus& fd)
     JsonArray caps;
     caps << (int)fd.Rw.zengPreset[0] << (int)fd.Rw.zengPreset[1] << (int)fd.Rw.zengPreset[2];
     json("outInfo",
-        Json("windRun", fd.Rw.windRun)
-            ("motorRun", fd.Rw.motorRun)
+        Json("windRun", fd.Rw.windRun ? true : false)
+            ("motorRun", fd.Rw.motorRun ? true : false)
             ("zengValue", fd.Rw.zengValue)
             ("closeValue", fd.Rw.closeValue)
             ("gearValue", fd.Rw.gearValue)
             ("zengPreset", caps)
     );
+    json("Tag", tag);
     return json.ToString();
 }
 
@@ -91,7 +92,7 @@ HardwareSpec::HardwareSpec(Hardwared* hardware, WsServerd* server)
 {
     mWs->WhenMessage = [=](WebSocket& ws, const String& message) {
         (void)ws;
-        this->ProcessRequest(message);
+        this->ProcessRequest(ws, message);
     };
     mDeviceStatus = new DeviceStatus;
     memset(mDeviceStatus, 0, sizeof(DeviceStatus));
@@ -102,7 +103,7 @@ HardwareSpec::~HardwareSpec()
     delete mDeviceStatus;
 }
 // safe, this routine was running in this thread (Run)
-void HardwareSpec::RunCommand(const Upp::String& req)
+void HardwareSpec::RunCommand(WebSocket& ws, const Upp::String& req)
 {
     Value s = ParseJSON(req);
 #if 0
@@ -115,32 +116,36 @@ void HardwareSpec::RunCommand(const Upp::String& req)
         zengPreset: []
       }
 #endif
-    if (!mDeviceReady) {
-        LOG(TAG << "Device is not ready, ignore this command");
-    } else if (!s.IsNull()) {
-        LOG(TAG << "Send req to device = " << req);
-        //
-        auto fd = mDeviceStatus;
-        fd->Rw.closeValue = static_cast<uint16_t>((int)(s["closeValue"]));
-        fd->Rw.motorRun = s["motorRun"] ? 1 : 0;
-        fd->Rw.windRun = s["windRun"] ? 1 : 0;
-        fd->Rw.zengValue = static_cast<uint8_t>((int)s["zengValue"]);
-        fd->Rw.gearValue = static_cast<uint8_t>((int)s["gearValue"]);
-        for (int k = 0; k < 3 && k < s["zengPreset"].GetCount(); ++k) {
-            fd->Rw.zengPreset[k] = static_cast<uint8_t>((int)s["zengPreset"][k]);
-        }
-        // send command to device
-        // we do not care about the response, so set timeout to 0
-        std::vector<unsigned char> resp;
-        mHw->SendFrame(Hardwared::MakeFrame(1, 1, (const unsigned char*)fd, sizeof(DeviceStatus)), resp, 0);
-    }
+	if (!mDeviceReady) {
+		LOG(TAG << "Device is not ready now, ignore this command");
+	} else {
+		LOG(TAG << "RunCommand " << req);
+	    auto fd = mDeviceStatus;
+	    fd->Rw.closeValue = static_cast<uint16_t>((int)(s["closeValue"]));
+	    fd->Rw.motorRun = s["motorRun"] ? 1 : 0;
+	    fd->Rw.windRun = s["windRun"] ? 1 : 0;
+	    fd->Rw.zengValue = static_cast<uint8_t>((int)s["zengValue"]);
+	    fd->Rw.gearValue = static_cast<uint8_t>((int)s["gearValue"]);
+	    for (int k = 0; k < 3 && k < s["zengPreset"].GetCount(); ++k) {
+	        fd->Rw.zengPreset[k] = static_cast<uint8_t>((int)s["zengPreset"][k]);
+	    }
+	    // send command to device
+	    // we do not care about the response, so set timeout to 0
+	    std::vector<unsigned char> resp;
+	    auto req1 = Hardwared::MakeFrame(1, 1, (const unsigned char*)fd, sizeof(DeviceStatus));
+	    LOG(TAG << "command req");
+	    if (mHw->SendFrame(req1, resp, 200)) {
+	        LOG(TAG << "Parse response of command");
+	        ParseQueryResult(resp, mDeviceStatus);
+	        //
+	        ws.SendText(ToJSON(*mDeviceStatus, "Response"));
+	    }
+	}
 }
 
-void HardwareSpec::ProcessRequest(const Upp::String& request)
+void HardwareSpec::ProcessRequest(WebSocket& ws, const Upp::String& request)
 {
-    std::lock_guard<std::mutex> _(mLock);
-    mReqs.push(request);
-    mCond.notify_all();
+    RunCommand(ws, request);
 }
 
 void HardwareSpec::ParseQueryResult(const std::vector<unsigned char>& frame, DeviceStatus* fd)
@@ -148,20 +153,18 @@ void HardwareSpec::ParseQueryResult(const std::vector<unsigned char>& frame, Dev
     auto s = reinterpret_cast<const Hardwared::Frame*>(frame.data());
     *fd = *reinterpret_cast<const DeviceStatus*>(s->Data);
 }
-
+//
 void HardwareSpec::Query(volatile bool* should_exit)
 {
     std::vector<unsigned char> resp;
     // 查询
-    auto req_1 = Hardwared::MakeFrame(0x01, 0x03, {
-        0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-    });
-    if (mHw->SendFrame(req_1, resp, kTimeout, should_exit)) {
+    auto req = Hardwared::MakeFrame(1, 3, (const unsigned char*)mDeviceStatus, sizeof(DeviceStatus));
+    if (mHw->SendFrame(req, resp, kTimeout, should_exit)) {
         mDeviceReady = true;
         //
         ParseQueryResult(resp, mDeviceStatus);
-        //
-        mWs->SendText(ToJSON(*mDeviceStatus));
+        // send to all clients
+        mWs->SendText(ToJSON(*mDeviceStatus, "Report"));
     } else {
         mDeviceReady = false;
     }
@@ -172,22 +175,11 @@ void HardwareSpec::Run(volatile bool* should_exit)
     while (*should_exit == false) {
         // serve the request firstly
         auto t1 = std::chrono::high_resolution_clock::now();
-        std::unique_lock<std::mutex> _(mLock);
-        bool ret = mCond.wait_for(_, std::chrono::milliseconds(100), [=]() {
-            return !mReqs.empty();
-        });
-        if (ret) {
-            String req = mReqs.front();mReqs.pop();
-            _.unlock(); // unique lock allows this ops
-            //
-            RunCommand(req);
-        } else _.unlock();
+        //
+        Query(should_exit);
         //
         auto ts = std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - t1).count();
-        if (ts > 0.1) {
-            // query
-            Query(should_exit);
-        } else {
+        if (ts < kQueryPeroid) {
             std::this_thread::sleep_for(std::chrono::duration<double>(kQueryPeroid - ts));
         }
     }

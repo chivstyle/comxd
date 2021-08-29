@@ -94,6 +94,10 @@ bool Hardwared::SendFrame(const std::vector<unsigned char>& frame,
     std::unique_lock<std::mutex> _(mLock);
     mResponseCount = 0;
     mIo->write(frame);
+#if 0
+    LOG(TAG << "Send frame");
+    DUMPHEX(String((const char*)frame.data(), frame.size()));
+#endif
     bool ret = mCond.wait_for(_, std::chrono::milliseconds(timeout), [=]() {
         return mResponseCount > 0 || (should_exit && *should_exit);
     });
@@ -118,9 +122,10 @@ void Hardwared::Run(volatile bool* should_exit)
 		        mIo->read(buff, std::min(expect_cnt, asz));
 		        if (buff.size() == kFrameSize) {
 		            pending = false; // got a frame
-		            //
+#if 0
 		            LOG(TAG << "Received frame");
 		            DUMPHEX(String((const char*)buff.data(), buff.size()));
+#endif
 		            // Notify
 		            std::lock_guard<std::mutex> _(mLock);
 		            // check and process

@@ -21,19 +21,15 @@ public:
 protected:
     static const int kTimeout = 1000;
     //
-    void ProcessRequest(const Upp::String&);
+    void ProcessRequest(Upp::WebSocket& ws, const Upp::String&);
     // hardware specification
-    void RunCommand(const Upp::String&);
+    void RunCommand(Upp::WebSocket& ws, const Upp::String&);
     void Query(volatile bool* should_exit);
     void ParseQueryResult(const std::vector<unsigned char>& frame, DeviceStatus* fd);
     //
 private:
     Hardwared* mHw;
     WsServerd* mWs;
-    // command queue
-    std::queue<Upp::String> mReqs;
-    std::mutex mLock;
-    std::condition_variable mCond;
     //
     bool mDeviceReady;
     //
