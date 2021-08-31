@@ -116,7 +116,7 @@ void HardwareSpec::RunCommand(WebSocket& ws, const Upp::String& req)
         zengPreset: []
       }
 #endif
-	if (!mDeviceReady) {
+	if (mDeviceReady) {
 		LOG(TAG << "Device is not ready now, ignore this command");
 	} else {
 		LOG(TAG << "RunCommand " << req);
@@ -145,7 +145,11 @@ void HardwareSpec::RunCommand(WebSocket& ws, const Upp::String& req)
 
 void HardwareSpec::ProcessRequest(WebSocket& ws, const Upp::String& request)
 {
-    RunCommand(ws, request);
+	try {
+	    RunCommand(ws, request);
+	} catch (const String& err) {
+		LOG(TAG << err);
+	}
 }
 
 void HardwareSpec::ParseQueryResult(const std::vector<unsigned char>& frame, DeviceStatus* fd)
