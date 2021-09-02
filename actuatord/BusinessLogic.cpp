@@ -7,29 +7,10 @@
 #include "Hardwared.h"
 #include "HardwareSpec.h"
 #include "WsServerd.h"
+#include "Database.h"
+#include "s_exception.h"
 //
 using namespace Upp;
-
-class s_exception : public std::exception {
-public:
-	static const int kMaxTextSize = 512;
-	s_exception(const char* fmt, ...)
-	{
-		va_list va;
-		va_start(va, fmt);
-		vsnprintf(mText, kMaxTextSize, fmt, va);
-		va_end(va);
-	}
-	s_exception()
-		: mText("")
-	{
-	}
-	const char* what() const throw() { return mText; }
-	
-private:
-	//
-	char mText[kMaxTextSize];
-};
 
 BusinessLogic::BusinessLogic(const String& conf_file)
 {
@@ -51,7 +32,8 @@ void BusinessLogic::Run(volatile bool* should_exit)
 {
 	Hardwared hardware(mConf["Hardwared"]);
 	WsServerd wsserver(mConf["WsServerd"]);
-	HardwareSpec spec (&hardware, &wsserver);
+	Database database(mConf["Database"]);
+	HardwareSpec spec (&hardware, &wsserver, &database);
 	//
 	Thread _1, _2;
 	_1.Run([&]() { hardware.Run(should_exit); });

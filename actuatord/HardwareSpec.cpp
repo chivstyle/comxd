@@ -4,6 +4,7 @@
 #include "HardwareSpec.h"
 #include "Hardwared.h"
 #include "WsServerd.h"
+#include "Database.h"
 #include <stdint.h>
 #include <thread>
 #include <chrono>
@@ -86,9 +87,10 @@ static inline String ToJSON(const DeviceStatus& fd, const String& tag = "")
     return json.ToString();
 }
 
-HardwareSpec::HardwareSpec(Hardwared* hardware, WsServerd* server)
+HardwareSpec::HardwareSpec(Hardwared* hardware, WsServerd* server, Database* db)
     : mHw(hardware)
     , mWs(server)
+    , mDb(db)
 {
     mWs->WhenMessage = [=](WebSocket& ws, const String& message) {
         (void)ws;
@@ -140,6 +142,8 @@ void HardwareSpec::RunCommand(WebSocket& ws, const Upp::String& req)
 	        //
 	        ws.SendText(ToJSON(*mDeviceStatus, "Response"));
 	    }
+	    // save to database
+	    mDb->Save(s, ToJSON(*mDeviceStatus, "Record"));
 	}
 }
 

@@ -37,7 +37,10 @@ bool WsServerd::SendText(const String& text)
     bool ok = false;
     mLock.Enter();
     for (int i = mWorkers.GetCount() - 1; i >= 0; i--) {
-        ok = ok || mWorkers[i].Ws.SendText(text, true);
+        if (mWorkers[i].Ws.IsOpen()) {
+            mWorkers[i].Ws.SendText(text);
+        }
+        ok = ok || !mWorkers[i].Ws.IsError();
     }
     mLock.Leave();
     return ok;
@@ -58,7 +61,7 @@ void WsServerd::Run(volatile bool* should_exit)
         for (auto& w : mWorkers) {
             w.Ws.AddTo(sel);
         }
-        sel.Wait(200);
+        sel.Wait(20);
         mLock.Enter();
         for (int i = mWorkers.GetCount() - 1; i >= 0; i--) {
             if (sel[i+1]) {

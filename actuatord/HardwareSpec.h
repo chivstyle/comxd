@@ -12,9 +12,10 @@
 struct DeviceStatus;
 class Hardwared;
 class WsServerd;
+class Database;
 class HardwareSpec {
 public:
-    HardwareSpec(Hardwared* hardware, WsServerd* server);
+    HardwareSpec(Hardwared* hardware, WsServerd* server, Database* db);
     virtual ~HardwareSpec();
     //
     void Run(volatile bool* should_exit);
@@ -30,6 +31,7 @@ protected:
 private:
     Hardwared* mHw;
     WsServerd* mWs;
+    Database* mDb;
     //
     bool mDeviceReady;
     //

@@ -2,7 +2,8 @@ description "actuator for water-gate project 1.0a\377";
 
 uses
 	Core,
-	serial;
+	serial,
+	plugin/sqlite3;
 
 file
 	BusinessLogic.cpp,
@@ -13,8 +14,12 @@ file
 	HardwareSpec.h,
 	WsServerd.cpp,
 	WsServerd.h,
+	Database.h,
+	Database.cpp,
+	actuatord.cpp,
+	s_exception.h,
 	conf.json,
-	actuatord.cpp;
+	actuatord.sch;
 
 mainconfig
 	"" = "";
