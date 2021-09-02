@@ -64,6 +64,7 @@ static inline String ToJSON(const DeviceStatus& fd, const String& tag = "")
             ("waterTank", fd.Ro.waterTank)
             ("fuelTank", fd.Ro.fuelTank)
             ("hydraulic", fd.Ro.hydraulic)
+            ("closeValue", fd.Ro.closeValue)
             ("speed", fd.Ro.speed)
             ("waterWe", fd.Ro.waterWe)
             ("fuelWe", fd.Ro.fuelWe)
@@ -176,6 +177,7 @@ void HardwareSpec::Query(volatile bool* should_exit)
     } else {
         mDeviceReady = false;
     }
+    mWs->SendText(ToJSON(*mDeviceStatus, "Report"));
 }
 // Run command committed to command queue, and query status periodically
 void HardwareSpec::Run(volatile bool* should_exit)
