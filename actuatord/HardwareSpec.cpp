@@ -177,7 +177,6 @@ void HardwareSpec::Query(volatile bool* should_exit)
     } else {
         mDeviceReady = false;
     }
-    mWs->SendText(ToJSON(*mDeviceStatus, "Report"));
 }
 // Run command committed to command queue, and query status periodically
 void HardwareSpec::Run(volatile bool* should_exit)
