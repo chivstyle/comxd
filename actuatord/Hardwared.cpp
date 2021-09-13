@@ -37,7 +37,7 @@ bool Hardwared::IsValidFrame(const std::vector<unsigned char>& frame)
         return false;
     }
     if (frame[0] != 0x68 || frame[1] != 0x68) {
-        LOG(TAG << "head error [" << frame[0] << "," << frame[1] << " expect [" << 0xfe << 0xfe << "]");
+        LOG(TAG << "head error [" << frame[0] << "," << frame[1] << " expect [" << 0x68 << 0x68 << "]");
         return false;
     }
     if (*frame.rbegin() != 0xfe) {
@@ -94,7 +94,7 @@ bool Hardwared::SendFrame(const std::vector<unsigned char>& frame,
     std::unique_lock<std::mutex> _(mLock);
     mResponseCount = 0;
     mIo->write(frame);
-#if 0
+#if 1
     LOG(TAG << "Send frame");
     DUMPHEX(String((const char*)frame.data(), frame.size()));
 #endif
@@ -103,20 +103,40 @@ bool Hardwared::SendFrame(const std::vector<unsigned char>& frame,
     });
     if (mResponseCount > 0) { // received response from device
         response = mResponse;
+        LOG(TAG << "Response");
+        DUMPHEX(String((const char*)response.data(), response.size()));
+    } else {
+        LOG(TAG << "Timeout or canceled");
     }
     return mResponseCount > 0;
 }
 
 void Hardwared::Run(volatile bool* should_exit)
 {
+#if 0
     std::vector<unsigned char> buff;
     bool pending = false;
+#endif
 	while (*should_exit == false) {
 		size_t asz = mIo->available();
-		if (asz == 0) {
+		if (asz < kFrameSize) {
 		    // wait for a while
 		    std::this_thread::sleep_for(std::chrono::milliseconds(20));
 		} else {
+			std::vector<unsigned char> frame;
+			mIo->read(frame, kFrameSize);
+			if (IsValidFrame(frame)) {
+				std::lock_guard<std::mutex> _(mLock);
+				mResponse = std::move(frame);
+				mResponseCount++;
+				mCond.notify_all();
+			} else {
+				LOG(TAG << "Invalid Response");
+	            DUMPHEX(String((const char*)frame.data(), frame.size()));
+	            // flush
+	            mIo->flushInput();
+			}
+#if 0
 		    if (pending) {
 		        size_t expect_cnt = kFrameSize - buff.size();
 		        mIo->read(buff, std::min(expect_cnt, asz));
@@ -130,24 +150,28 @@ void Hardwared::Run(volatile bool* should_exit)
 		            std::lock_guard<std::mutex> _(mLock);
 		            // check and process
 		            if (IsValidFrame(buff)) {
+		                mResponse = std::move(buff); // move, this implies clearing of buff.
 		                mResponseCount++;
-		                mResponse = std::move(buff);
 		                //
 		                mCond.notify_all();
 		            } else {
 		                LOG(TAG << "Invalid Response");
+		                DUMPHEX(String((const char*)buff.data(), buff.size()));
 		            }
+		            // clear it
+		            buff.clear();
 		        }
 		    } else {
 		        mIo->read(buff, 1);
 		        if (buff.size() == 2 && buff[0] == 0x68 && buff[1] == 0x68) {
 		            pending = true; // maybe there's a valid frame in buffer, let's go
 		        } else if (buff.size() == 2) { // it's not a valid header, go on
-		            LOG(TAG << "Received invalid frame head, reagain");
-		            DUMPHEX(String((const char*)buff.data(), buff.size()));
 		            buff.erase(buff.begin());
+		        } else if (buff.size() > 2) {
+		            LOG(TAG << "If you saw this message, please contact the developer!");
 		        }
 		    }
+#endif
 		}
 	}
 }
