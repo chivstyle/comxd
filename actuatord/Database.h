@@ -9,7 +9,7 @@ public:
 	virtual ~Database();
 	// save the request and the current status of device to database
 	// this routine will add USER and DATE_TIME to table
-	bool Save(const Upp::Value& req, const Upp::Value& device_status);
+	bool Save(const Upp::Value& req, const Upp::String& device_status);
 	//
 private:
 	Upp::Sqlite3Session mSqlite3;

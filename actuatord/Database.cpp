@@ -51,12 +51,12 @@ static inline String _SysTime()
 		t.year, t.month, t.day, t.hour, t.minute, t.second);
 }
 
-bool Database::Save(const Upp::Value& req, const Upp::Value& device_status)
+bool Database::Save(const Upp::Value& req, const Upp::String& device_status)
 {
 	try {
 	    String user = req["userName"].ToString();
 	    SQL & Insert(DEVICE_STATUS)(USER, user)(DATE_TIME, _SysTime())
-	        (REQUEST, AsJSON(req))(STATUS, AsJSON(device_status));
+	        (REQUEST, AsJSON(req))(STATUS, device_status);
 	    //
 	    return true;
 	} catch (const String& err) {

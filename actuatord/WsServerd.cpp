@@ -61,7 +61,7 @@ void WsServerd::Run(volatile bool* should_exit)
         for (auto& w : mWorkers) {
             w.Ws.AddTo(sel);
         }
-        sel.Wait(20);
+        sel.Wait(200);
         mLock.Enter();
         for (int i = mWorkers.GetCount() - 1; i >= 0; i--) {
             if (sel[i+1]) {

@@ -177,6 +177,10 @@ void HardwareSpec::Query(volatile bool* should_exit)
     } else {
         mDeviceReady = false;
     }
+    mDeviceStatus->Ro.waterTank = 100;
+    mDeviceStatus->Ro.waterWe = 50;
+    mDeviceStatus->Ro.leftPress = 32;
+    mWs->SendText(ToJSON(*mDeviceStatus, "Report"));
 }
 // Run command committed to command queue, and query status periodically
 void HardwareSpec::Run(volatile bool* should_exit)
