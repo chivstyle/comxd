@@ -106,7 +106,7 @@ void SerialConnVT520::ProcessG3_CS96(const std::string_view& p)
 void SerialConnVT520::ProcessDECRQM_ANSI(const std::string_view& p)
 {
     int ps = atoi(p.data());
-    std::string rsp = std::string("\E[") + std::to_string(ps) + ";";
+    std::string rsp = std::string("\033[") + std::to_string(ps) + ";";
     switch (ps) {
     case 1:
     case 5:
@@ -131,7 +131,7 @@ void SerialConnVT520::ProcessDECRQM_ANSI(const std::string_view& p)
 void SerialConnVT520::ProcessDECRQM_DECP(const std::string_view& p)
 {
     int ps = atoi(p.data());
-    std::string rsp = std::string("\E[?") + std::to_string(ps) + ";";
+    std::string rsp = std::string("\033[?") + std::to_string(ps) + ";";
     switch (ps) {
     // permanently reset
     case 34: Put(rsp + "4$y"); break;
@@ -184,7 +184,7 @@ void SerialConnVT520::ProcessDA(const std::string_view& p)
         // 44  PCTerm
         // 45  Soft key mapping
         // 46  ASCII terminal emulation
-        Put("\E[?7;9;22;23;24;42;44;45;46c");
+        Put("\033[?7;9;22;23;24;42;44;45;46c");
         break;
     default:
         SerialConnVT420::ProcessDA(p);
@@ -218,7 +218,7 @@ void SerialConnVT520::ProcessSecondaryDA(const std::string_view& p)
     case 0:
         // CSI > 64; Pv; 1 c , VT520
         // Pv - firmware version.
-        GetIo()->Write("\E[>64;20;1c");
+        GetIo()->Write("\033[>64;20;1c");
         break;
     default:
         SerialConnVT420::ProcessSecondaryDA(p);

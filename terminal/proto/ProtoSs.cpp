@@ -97,7 +97,7 @@ int ProtoSs::Transmit(const void* input, size_t input_size, std::string& errmsg)
     auto out = _Pack(input, input_size, errmsg);
     if (out.empty())
         return T_FAILED;
-    return mConn->GetIo()->Write(out);
+    return (int)mConn->GetIo()->Write(out);
 }
 
 }

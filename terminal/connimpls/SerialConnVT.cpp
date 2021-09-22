@@ -437,7 +437,7 @@ void SerialConnVT::RunParserBenchmark()
         if (fin.Open(filename)) {
             int64 filesz = fin.GetSize();
             char* buffer = new char[filesz + 1];
-            fin.Get(buffer, filesz);
+            fin.Get(buffer, (int)filesz);
             fin.Close();
             buffer[filesz] = '\0';
             std::deque<Seq> seqs;
@@ -1526,7 +1526,6 @@ void SerialConnVT::DrawCursor(Draw& draw)
 {
     if (!mShowCursor)
         return;
-	//
     int px = mPx - mSbH.Get();
     int py = mPy + (mSbV.GetTotal() - mSbV.Get() - mSbV.GetPage());
     Size usz = GetSize();

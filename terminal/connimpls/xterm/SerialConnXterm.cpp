@@ -65,11 +65,11 @@ void SerialConnXterm::LeftDown(Point p, dword keyflags)
             cb |= 0x10;
         }
         if (mModes.GetDecpMode(EnableSGRMouseMode, 0)) {
-            Put(std::string("\E[<") + std::to_string(cb) + ";" +
+            Put(std::string("\033[<") + std::to_string(cb) + ";" +
                 std::to_string(px) + ";" + std::to_string(py) +
                 "M");
         } else if (px <= 223 && py <= 223) {
-            std::string rsp("\E[M");
+            std::string rsp("\033[M");
             rsp.push_back(32 + cb);
             rsp.push_back(32 + px);
             rsp.push_back(32 + py);
@@ -93,11 +93,11 @@ void SerialConnXterm::RightDown(Point p, dword keyflags)
             cb |= 0x10;
         }
         if (mModes.GetDecpMode(EnableSGRMouseMode, 0)) {
-            Put(std::string("\E[<") + std::to_string(cb) + ";" +
+            Put(std::string("\033[<") + std::to_string(cb) + ";" +
                 std::to_string(px) + ";" + std::to_string(py) +
                 "M");
         } else if (px <= 223 && py <= 223) {
-            std::string rsp("\E[M");
+            std::string rsp("\033[M");
             rsp.push_back(32 + cb);
             rsp.push_back(32 + px);
             rsp.push_back(32 + py);
@@ -121,11 +121,11 @@ void SerialConnXterm::MiddleDown(Point p, dword keyflags)
             cb |= 0x10;
         }
         if (mModes.GetDecpMode(EnableSGRMouseMode, 0)) {
-            Put(std::string("\E[<") + std::to_string(cb) + ";" +
+            Put(std::string("\033[<") + std::to_string(cb) + ";" +
                 std::to_string(px) + ";" + std::to_string(py) +
                 "M");
         } else if (px <= 223 && py <= 223) {
-            std::string rsp("\E[M");
+            std::string rsp("\033[M");
             rsp.push_back(32 + cb);
             rsp.push_back(32 + px);
             rsp.push_back(32 + py);
@@ -149,11 +149,11 @@ void SerialConnXterm::LeftUp(Point p, dword keyflags)
             cb |= 0x10;
         }
         if (mModes.GetDecpMode(EnableSGRMouseMode, 0)) {
-            Put(std::string("\E[<") + std::to_string(cb) + ";" +
+            Put(std::string("\033[<") + std::to_string(cb) + ";" +
                 std::to_string(px) + ";" + std::to_string(py) +
                 "m");
         } else if (px <= 223 && py <= 223) {
-            std::string rsp("\E[M");
+            std::string rsp("\033[M");
             rsp.push_back(32 + cb);
             rsp.push_back(32 + px);
             rsp.push_back(32 + py);
@@ -177,11 +177,11 @@ void SerialConnXterm::RightUp(Point p, dword keyflags)
             cb |= 0x10;
         }
         if (mModes.GetDecpMode(EnableSGRMouseMode, 0)) {
-            Put(std::string("\E[<") + std::to_string(cb) + ";" +
+            Put(std::string("\033[<") + std::to_string(cb) + ";" +
                 std::to_string(px) + ";" + std::to_string(py) +
                 "m");
         } else if (px <= 223 && py <= 223) {
-            std::string rsp("\E[M");
+            std::string rsp("\033[M");
             rsp.push_back(32 + cb);
             rsp.push_back(32 + px);
             rsp.push_back(32 + py);
@@ -205,11 +205,11 @@ void SerialConnXterm::MiddleUp(Point p, dword keyflags)
             cb |= 0x10;
         }
         if (mModes.GetDecpMode(EnableSGRMouseMode, 0)) {
-            Put(std::string("\E[<") + std::to_string(cb) + ";" +
+            Put(std::string("\033[<") + std::to_string(cb) + ";" +
                 std::to_string(px) + ";" + std::to_string(py) +
                 "m");
         } else if (px <= 223 && py <= 223) {
-            std::string rsp("\E[M");
+            std::string rsp("\033[M");
             rsp.push_back(32 + cb);
             rsp.push_back(32 + px);
             rsp.push_back(32 + py);
@@ -233,11 +233,11 @@ void SerialConnXterm::MouseWheel(Upp::Point p, int zdelta, Upp::dword keyflags)
             cb |= 0x10;
         }
         if (mModes.GetDecpMode(EnableSGRMouseMode)) {
-            Put(std::string("\E[<") + std::to_string(cb) + ";" +
+            Put(std::string("\033[<") + std::to_string(cb) + ";" +
                 std::to_string(px) + ";" + std::to_string(py) +
                 "M");
         } else if (px <= 191 && py <= 191) {
-            std::string rsp("\E[M");
+            std::string rsp("\033[M");
             rsp.push_back(64 + cb);
             rsp.push_back(64 + px);
             rsp.push_back(64 + py);
@@ -250,14 +250,14 @@ void SerialConnXterm::MouseWheel(Upp::Point p, int zdelta, Upp::dword keyflags)
 void SerialConnXterm::GotFocus()
 {
     if (mModes.GetDecpMode(SendFocusInAndOut, 0)) {
-        Put("\E[I");
+        Put("\033[I");
     }
     SerialConnVT520::GotFocus();
 }
 void SerialConnXterm::LostFocus()
 {
     if (mModes.GetDecpMode(SendFocusInAndOut, 0)) {
-        Put("\E[O");
+        Put("\033[O");
     }
     SerialConnVT520::LostFocus();
 }
@@ -373,7 +373,7 @@ void SerialConnXterm::ProcessXTPOPSGR(const std::string_view&)
 }
 void SerialConnXterm::ProcessXTVERSION(const std::string_view&)
 {
-    Put("\EP|>chiv-xterm v1.0\E\\");
+    Put("\033P|>chiv-xterm v1.0\033\\");
 }
 void SerialConnXterm::ProcessXTRESTORE(const std::string_view&)
 {
@@ -391,41 +391,41 @@ void SerialConnXterm::ProcessXTWINOPS(const std::string_view& p)
     });
     switch (ps[0]) {
     case 13: if (1) { // report xterm window position, in pixels
-        Put("\E[3;0;0t");
+        Put("\033[3;0;0t");
     } break;
     case 14: if (1) {
-        std::string rsp = "\E[4;" + std::to_string(GetSize().cy) + ";" +
+        std::string rsp = "\033[4;" + std::to_string(GetSize().cy) + ";" +
             std::to_string(GetSize().cx) + "t";
         Put(rsp);
     } break;
     case 15: if (1) { // report size of the screen in pixels
-        std::string rsp = "\E[5;" + std::to_string(GetSize().cy) + ";" +
+        std::string rsp = "\033[5;" + std::to_string(GetSize().cy) + ";" +
             std::to_string(GetSize().cx) + "t";
         Put(rsp);
     } break;
     case 16: if (1) { // report xterm character cell size in pixels
-        std::string rsp = "\E[6;" + std::to_string(mFontH) + ";" +
+        std::string rsp = "\033[6;" + std::to_string(mFontH) + ";" +
             std::to_string(mFontW) + "t";
         Put(rsp);
     } break;
     case 18: if (1) { // Report the size of the text area in characters
         Size csz = GetConsoleSize();
-        std::string rsp = "\E[8;" + std::to_string(csz.cy) + ";" +
+        std::string rsp = "\033[8;" + std::to_string(csz.cy) + ";" +
             std::to_string(csz.cx) + "t";
         Put(rsp);
     } break;
     case 19: if (1) { // Report the size of the screen in characters.
         Size csz = GetConsoleSize();
-        std::string rsp = "\E[9;" + std::to_string(csz.cy) + ";" +
+        std::string rsp = "\033[9;" + std::to_string(csz.cy) + ";" +
             std::to_string(csz.cx) + "t";
         Put(rsp);
     } break;
     case 20: if (1) { // Report xterm window’s icon label
-        std::string rsp = "\E]L" + this->ConnName().ToStd() + "\E\\";
+        std::string rsp = "\033]L" + this->ConnName().ToStd() + "\033\\";
         Put(rsp);
     } break;
     case 21: if (1) { // Report xterm window’s title
-        std::string rsp = "\E]L" + this->GetTitle().ToString().ToStd() + "\E\\";
+        std::string rsp = "\033]L" + this->GetTitle().ToString().ToStd() + "\033\\";
         Put(rsp);
     } break;
     // Ignore others, such as "save xterm title", "restore xterm title", .etc
@@ -441,9 +441,9 @@ void SerialConnXterm::ProcessXTCHECKSUM(const std::string_view&)
 void SerialConnXterm::Paste()
 {
     if (mModes.GetDecpMode(SetBracketedPasteMode, 0)) {
-        Put("\E[200~");
+        Put("\033[200~");
         SerialConnVT520::Paste();
-        Put("\E[201~");
+        Put("\033[201~");
     } else {
         SerialConnVT520::Paste();
     }

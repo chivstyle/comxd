@@ -9,7 +9,12 @@
 #include "ProtoFactory.h"
 #include <thread>
 #include <mutex>
+#ifdef _MSC_VER
+#include <chrono>
+#else
+// clang 10, there's a bug in <chrono>, so we use <sys/time.h>, gettimeofday instead.
 #include <sys/time.h>
+#endif
 
 namespace proto {
 REGISTER_PROTO_INSTANCE("KERMIT", ProtoKermit);
@@ -67,7 +72,7 @@ namespace kermit {
         {
         }
     };
-    size_t Parse(const unsigned char* data, size_t data_sz, KermitMsg& msg)
+    int Parse(const unsigned char* data, size_t data_sz, KermitMsg& msg)
     {
         // SOH length mark data checksum
         if (data_sz > 0 && data[0] == xymodem::fSOH) {
@@ -237,7 +242,7 @@ static inline kermit::KermitMsg expect_resp(SerialIo* io, int timeout, volatile 
             if (pending) {
                 buff.push_back((char)c);
                 kermit::KermitMsg msg;
-                int ret = kermit::Parse((unsigned char*)buff.c_str(), buff.length(), msg);
+                int ret = kermit::Parse((unsigned char*)buff.c_str(), (int)buff.length(), msg);
                 if (ret > 0) {
                     return msg;
                 }
@@ -340,14 +345,22 @@ int ProtoKermit::TransmitFile(SerialIo* io, const std::string& fname, std::strin
                 auto data = fin.Take(kermit::kFrameSize);
                 if (data.empty()) break;
                 auto b_data = kermit::Pack('D', data.c_str(), data.length(), idx++);
+#ifdef _MSC_VER
+                auto t1 = std::chrono::high_resolution_clock::now();
+#else
                 struct timeval t1, t2;
                 gettimeofday(&t1, NULL);
+#endif
                 failed = _TransmitFrame(io, b_data, errmsg, msg, kermit::kTimeout, &should_stop);
                 // update progress bar
                 if (!failed) {
                     std::lock_guard<std::mutex> _(lock);
+#ifdef _MSC_VER
+                    ts += std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - t1).count();
+#else
                     gettimeofday(&t2, NULL);
                     ts += _diff(t2, t1); // t2 - t1
+#endif
                     rate = fin.BytesRead() / ts;
                     PostCallback([&]() {
                         std::lock_guard<std::mutex> _(lock);

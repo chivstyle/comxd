@@ -218,7 +218,7 @@ void SerialConnVT220::ProcessDECDSR(const std::string_view& p)
     int ps = atoi(p.data());
     switch (ps) {
     case 26:
-        Put("\E[?27;1n"); // set keyboard language to "North American"
+        Put("\033[?27;1n"); // set keyboard language to "North American"
         break;
     default:
         SerialConnVT100::ProcessDECDSR(p);
@@ -306,44 +306,44 @@ bool SerialConnVT220::ProcessKeyDown(Upp::dword key, Upp::dword flags)
         processed = true;
         switch (key) {
         case K_F6:
-            Put("\E[17~");
+            Put("\033[17~");
             break;
         case K_F7:
-            Put("\E[18~");
+            Put("\033[18~");
             break;
         case K_F8:
-            Put("\E[19~");
+            Put("\033[19~");
             break;
         case K_F9:
-            Put("\E[20~");
+            Put("\033[20~");
             break;
         case K_F10:
-            Put("\E[21~");
+            Put("\033[21~");
             break;
         case K_F11:
-            Put("\E[23~");
+            Put("\033[23~");
             break;
         case K_F12:
-            Put("\E[24~");
+            Put("\033[24~");
             break;
         // vt220 provides 6 key editing keypad.
         case K_HOME:
-            Put("\E[1~");
+            Put("\033[1~");
             break;
         case K_END:
-            Put("\E[4~");
+            Put("\033[4~");
             break;
         case K_DELETE:
-            Put("\E[3~");
+            Put("\033[3~");
             break; // vt220, Remove
         case K_INSERT:
-            Put("\E[2~");
+            Put("\033[2~");
             break; // vt220, Insert
         case K_PAGEUP:
-            Put("\E[5~");
+            Put("\033[5~");
             break; // vt220, prev screen
         case K_PAGEDOWN:
-            Put("\E[6~");
+            Put("\033[6~");
             break; // vt220, next screen
         default:
             processed = false;

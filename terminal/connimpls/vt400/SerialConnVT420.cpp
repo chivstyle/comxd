@@ -52,7 +52,7 @@ void SerialConnVT420::ProcessDECDC(const std::string_view& p)
     int top = mScrollingRegion.Top;
     int bot = mScrollingRegion.Bottom;
     if (bot < 0)
-        bot = mLines.size() - 1;
+        bot = (int)mLines.size() - 1;
     for (int k = top; k <= bot; ++k) {
         if (pn <= mLines[k].size()) {
             mLines[k].erase(mLines[k].begin() + pn - 1);
@@ -67,7 +67,7 @@ void SerialConnVT420::ProcessDECIC(const std::string_view& p)
     int top = mScrollingRegion.Top;
     int bot = mScrollingRegion.Bottom;
     if (bot < 0)
-        bot = mLines.size() - 1;
+        bot = (int)mLines.size() - 1;
     for (int k = top; k <= bot; ++k) {
         if (pn <= mLines[k].size()) {
             mLines[k].insert(mLines[k].begin() + pn - 1, mBlankChar);
@@ -97,12 +97,12 @@ void SerialConnVT420::ProcessDECSCL(const std::string_view& p)
 
 void SerialConnVT420::SetHostToS7C()
 {
-    Put("\E F");
+    Put("\033 F");
 }
 
 void SerialConnVT420::SetHostToS8C()
 {
-    Put("\E G");
+    Put("\033 G");
 }
 
 #define DO_SET_CHARSET96(g)                               \
@@ -139,7 +139,7 @@ void SerialConnVT420::ProcessDA(const std::string_view& p)
         // 9 - NRC sets, 15 - DEC technical set
         // 18 - user windows, 19 - two sessions
         // 21 - horizontal scrolling
-        GetIo()->Write("\E[?62,63,64;6;9;15;18c");
+        GetIo()->Write("\033[?62,63,64;6;9;15;18c");
         break;
     default:
         SerialConnVT320::ProcessDA(p);
@@ -153,7 +153,7 @@ void SerialConnVT420::ProcessSecondaryDA(const std::string_view& p)
     case 0:
         // CSI > 41; Pv; 1 c
         // Pv - firmware version.
-        GetIo()->Write("\E[>41;20;1c");
+        GetIo()->Write("\033[>41;20;1c");
         break;
     default:
         SerialConnVT320::ProcessSecondaryDA(p);
@@ -166,7 +166,7 @@ void SerialConnVT420::ProcessTertiaryDA(const std::string_view& p)
     switch (pn) {
     case 0:
         // DCS!|D...D ST
-        GetIo()->Write("\E\x50!|0\E\x5c");
+        GetIo()->Write("\033\x50!|0\033\x5c");
         break;
     default:
         break;
@@ -179,7 +179,7 @@ void SerialConnVT420::ProcessDECDSR(const std::string_view& p)
     switch (pn) {
     case 6:
         if (1) {
-            std::string rsp = std::string("\E[?") + std::to_string(mVy) + ";" + std::to_string(mVx) + ";0R";
+            std::string rsp = std::string("\033[?") + std::to_string(mVy) + ";" + std::to_string(mVx) + ";0R";
             GetIo()->Write(rsp);
         }
         break;

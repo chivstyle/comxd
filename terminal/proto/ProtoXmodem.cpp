@@ -7,8 +7,14 @@
 #include "xymodem.h"
 #include "Conn.h"
 #include "ProtoFactory.h"
+#ifdef _MSC_VER
+#include <chrono>
+#else
+// clang 10, there's a bug in <chrono>, so we use <sys/time.h>, gettimeofday instead.
 #include <sys/time.h>
+#endif
 #include <thread>
+#include <mutex>
 
 namespace proto {
 
@@ -186,8 +192,12 @@ int ProtoXmodem::TransmitFile(SerialIo* io, const std::string& filename, std::st
             char chunk[1024];
             while (!should_stop && !failed && !fin.IsEof()) {
                 auto frmsz = fin.Get(chunk, mXmodemK ? 1024 : 128);
+#ifdef _MSC_VER
+                auto t1 = std::chrono::high_resolution_clock::now();
+#else
                 struct timeval t1, t2;
                 gettimeofday(&t1, NULL);
+#endif
                 if (mXmodemK) {
                     if (_TransmitFrame1024(io, chunk, frmsz, cs_type, idx++, xymodem::kTimeout, &should_stop, errmsg) < 0) {
                         failed = true;
@@ -200,9 +210,13 @@ int ProtoXmodem::TransmitFile(SerialIo* io, const std::string& filename, std::st
                 // update progress bar
                 if (!failed) {
                     std::lock_guard<std::mutex> _(lock);
-                    gettimeofday(&t2, NULL);
                     count += frmsz;
+#ifdef _MSC_VER
+                    ts += std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - t1).count();
+#else
+                    gettimeofday(&t2, NULL);
                     ts += _diff(t2, t1); // t2 - t1
+#endif
                     rate = count / ts;
                     PostCallback([&]() {
                         std::lock_guard<std::mutex> _(lock);

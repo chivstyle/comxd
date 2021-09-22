@@ -8,7 +8,7 @@
 ///        - >0 End of pn
 static inline int ParsePs(const std::string_view& seq, size_t p_begin)
 {
-    while (seq[p_begin] >= '0' && seq[p_begin] <= '9') {
+    while (p_begin < seq.length() && seq[p_begin] >= '0' && seq[p_begin] <= '9') {
         p_begin++;
     }
     if (p_begin == seq.length())
@@ -41,7 +41,7 @@ static inline int ParsePs(const std::string_view& seq, size_t p_begin, int pn_co
             return p;
         }
     } else {
-        while (seq[p_begin] >= '0' && seq[p_begin] <= '9' || seq[p_begin] == ';') {
+        while (p_begin < seq.length() && (seq[p_begin] >= '0' && seq[p_begin] <= '9' || seq[p_begin] == ';')) {
             p_begin++;
         }
         if (p_begin == seq.length())
@@ -56,7 +56,7 @@ static inline int ParsePs(const std::string_view& seq, size_t p_begin, int pn_co
 ///        - >0 End of pn
 static inline int ParsePn(const std::string_view& seq, size_t p_begin)
 {
-    while (seq[p_begin] >= '0' && seq[p_begin] <= '9') {
+    while (p_begin < seq.length() && seq[p_begin] >= '0' && seq[p_begin] <= '9') {
         p_begin++;
     }
     if (p_begin == seq.length())
@@ -89,7 +89,7 @@ static inline int ParsePn(const std::string_view& seq, size_t p_begin, int pn_co
             return p;
         }
     } else {
-        while (seq[p_begin] >= '0' && seq[p_begin] <= '9' || seq[p_begin] == ';') {
+        while (p_begin < seq.length() && (seq[p_begin] >= '0' && seq[p_begin] <= '9' || seq[p_begin] == ';')) {
             p_begin++;
         }
         if (p_begin == seq.length())
@@ -103,10 +103,14 @@ static inline int ParsePn(const std::string_view& seq, size_t p_begin, int pn_co
 static inline int ParseGs(const std::string_view& seq, size_t p_begin)
 {
     // we should accept anything except the ASCII control chars
-    while ((unsigned char)seq[p_begin] >= 0x20 && seq[p_begin] != 0x7f) {
+    while (p_begin < seq.length() && (unsigned char)seq[p_begin] >= 0x20 && seq[p_begin] != 0x7f) {
         p_begin++;
     }
-    return (int)p_begin;
+    if (p_begin == seq.length())
+        return 0; // Need more
+    else {
+        return (int)p_begin;
+    }
 }
 //
 static inline int ParseGn(const std::string_view& seq, size_t p_begin, int pn)

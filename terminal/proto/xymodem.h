@@ -61,7 +61,7 @@ namespace xymodem {
         out[2] = ~pkt_idx;
         switch (cs_type) {
         case CRC16:if (1) {
-            unsigned short crc = (unsigned short)calcrc(out.data() + 3, pkt_sz);
+            unsigned short crc = (unsigned short)calcrc(out.data() + 3, (int)pkt_sz);
             out.push_back((unsigned char)(crc >> 8));
             out.push_back((unsigned char)(crc & 0xff));
         } break;

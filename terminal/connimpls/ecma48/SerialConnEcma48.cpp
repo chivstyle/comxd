@@ -1439,33 +1439,33 @@ static std::string S8CToS7C(const std::string& s)
 {
     static const char* s7c[] = {
         "", "", "", "",
-        "\E\x44", // IND
-        "\E\x45", // NEL
-        "\E\x46", // SSA
-        "\E\x47", // ESA
-        "\E\x48", // HTS
-        "\E\x49", // HTJ
-        "\E\x4a", // VTS
-        "\E\x4b", // PLD
-        "\E\x4c", // PLU
-        "\E\x4d", // RI
-        "\E\x4e", // SS2
-        "\E\x4f", // SS3
-        "\E\x50", // DCS
-        "\E\x51", // PU1
-        "\E\x52", // PU2
-        "\E\x53", // STS
-        "\E\x54", // CCH
-        "\E\x55", // MW
-        "\E\x56", // SPA
-        "\E\x57", // EPA
+        "\033\x44", // IND
+        "\033\x45", // NEL
+        "\033\x46", // SSA
+        "\033\x47", // ESA
+        "\033\x48", // HTS
+        "\033\x49", // HTJ
+        "\033\x4a", // VTS
+        "\033\x4b", // PLD
+        "\033\x4c", // PLU
+        "\033\x4d", // RI
+        "\033\x4e", // SS2
+        "\033\x4f", // SS3
+        "\033\x50", // DCS
+        "\033\x51", // PU1
+        "\033\x52", // PU2
+        "\033\x53", // STS
+        "\033\x54", // CCH
+        "\033\x55", // MW
+        "\033\x56", // SPA
+        "\033\x57", // EPA
         "", "",
-        "\E\x5a", // DECID
-        "\E\x5b", // CSI
-        "\E\x5c", // ST
-        "\E\x5d", // OSC
-        "\E\x5e", // PM
-        "\E\x5f" // APC
+        "\033\x5a", // DECID
+        "\033\x5b", // CSI
+        "\033\x5c", // ST
+        "\033\x5d", // OSC
+        "\033\x5e", // PM
+        "\033\x5f" // APC
     };
     std::string out;
     for (size_t k = 0; k < s.length(); ++k) {
@@ -1482,7 +1482,7 @@ static std::string S7CToS8C(const std::string& s)
 {
     std::string out;
     for (size_t k = 0; k < s.length();) {
-        if (s[k] == '\E') {
+        if (s[k] == '\033') {
             if (k + 1 < s.length()) {
                 k++;
                 switch ((uint8_t)s[k]) {

@@ -17,7 +17,7 @@ void TransmitProgressDialog::SetTotal(size_t total)
 
 void TransmitProgressDialog::Update(size_t count, double tx_rate)
 {
-    mProgress.Set(count, mTotal);
+    mProgress.Set((int)count, (int)mTotal);
     // tx rate
     char buff[256]; // 256 is large enough for double.2
     sprintf(buff, "%.2lf", tx_rate / 1024);

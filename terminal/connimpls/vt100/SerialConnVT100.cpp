@@ -76,7 +76,7 @@ void SerialConnVT100::ProcessDA(const std::string_view& p)
     switch (ps) {
     case 0:
         // https://www.vt100.net/docs/vt100-ug/chapter3.html#DA
-        Put("\E[?1;2c"); // Advanced video option
+        Put("\033[?1;2c"); // Advanced video option
         break;
     }
 }
@@ -131,82 +131,82 @@ bool SerialConnVT100::ProcessKeyDown(Upp::dword key, Upp::dword flags)
         switch (key) {
         case K_UP:
             if (mModes.GetDecpMode(DECCKM) == 0) {
-                Put("\E[A");
+                Put("\033[A");
             } else {
-                Put("\EOA");
+                Put("\033OA");
             }
             break;
         case K_DOWN:
             if (mModes.GetDecpMode(DECCKM) == 0) {
-                Put("\E[B");
+                Put("\033[B");
             } else {
-                Put("\EOB");
+                Put("\033OB");
             }
             break;
         case K_LEFT:
             if (mModes.GetDecpMode(DECCKM) == 0) {
-                Put("\E[D");
+                Put("\033[D");
             } else {
-                Put("\EOD");
+                Put("\033OD");
             }
             break;
         case K_RIGHT:
             if (mModes.GetDecpMode(DECCKM) == 0) {
-                Put("\E[C");
+                Put("\033[C");
             } else {
-                Put("\EOC");
+                Put("\033OC");
             }
             break;
         /*! PF1 ~ PF4 */
         case K_F1:
             if (mModes.GetDecpMode(DECANM) == 1) {
-                Put("\EOP");
+                Put("\033OP");
             } else {
-                Put("\EP");
+                Put("\033P");
             }
             break;
         case K_F2:
             if (mModes.GetDecpMode(DECANM) == 1) {
-                Put("\EOQ");
+                Put("\033OQ");
             } else {
-                Put("\EQ");
+                Put("\033Q");
             }
             break;
         case K_F3:
             if (mModes.GetDecpMode(DECANM) == 1) {
-                Put("\EOR");
+                Put("\033OR");
             } else {
-                Put("\ER");
+                Put("\033R");
             }
             break;
         case K_F4:
             if (mModes.GetDecpMode(DECANM) == 1) {
-                Put("\EOS");
+                Put("\033OS");
             } else {
-                Put("\ES");
+                Put("\033S");
             }
             break;
         /*! keys below, I'm not sure, from libncurse */
         case K_F5:
-            Put("\EOt");
+            Put("\033Ot");
             break;
         case K_F6:
-            Put("\EOu");
+            Put("\033Ou");
             break;
         case K_F7:
-            Put("\EOv");
+            Put("\033Ov");
             break;
         case K_F8:
-            Put("\EOl");
+            Put("\033Ol");
             break;
         case K_F9:
-            Put("\EOw");
+            Put("\033Ow");
             break;
         case K_F10:
-            Put("\EOx");
+            Put("\033Ox");
             break;
         case K_HOME:
-            Put("\E[H");
+            Put("\033[H");
             break;
         default:
             processed = false;
@@ -258,7 +258,7 @@ void SerialConnVT100::ProcessDECDSR(const std::string_view& p)
     int ps = atoi(p.data());
     switch (ps) {
     case 15:
-        Put("\E[?13n"); // No printer
+        Put("\033[?13n"); // No printer
         break;
     }
 }
