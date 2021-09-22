@@ -91,6 +91,7 @@ bool Hardwared::SendFrame(const std::vector<unsigned char>& frame,
                           std::vector<unsigned char>& response,
                           int timeout, volatile bool* should_exit)
 {
+	std::unique_lock<std::mutex> _lock_io(mIoLock);
     std::unique_lock<std::mutex> _(mLock);
     mResponseCount = 0;
     mIo->write(frame);

@@ -58,6 +58,7 @@ private:
     serial::Serial* mIo;
     size_t mResponseCount;
     std::vector<unsigned char> mResponse;
+    std::mutex mIoLock;
     std::mutex mLock;
     std::condition_variable mCond;
 };
