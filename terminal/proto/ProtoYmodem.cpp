@@ -87,13 +87,13 @@ static inline bool expect_seqs(SerialIo* io, int timeout, volatile bool* should_
     }
     return false;
 }
-
-static inline int _TransmitFrame1024(SerialIo* io, const void* frm, size_t frm_size, int cs_type, unsigned char frm_idx,
+template <int FSZ = 1024, int FLAG = xymodem::fSTX>
+static inline int _TransmitFrame(SerialIo* io, const void* frm, size_t frm_size, int cs_type, unsigned char frm_idx,
     int timeout, volatile bool* should_stop, std::string& errmsg)
 {
     bool failed = false;
-    size_t blksz = std::min(frm_size, size_t(1024));
-    auto pkt = xymodem::Pack(frm, blksz, 1024, xymodem::fSTX, xymodem::fEOF, cs_type, frm_idx);
+    size_t blksz = std::min(frm_size, size_t(FSZ));
+    auto pkt = xymodem::Pack(frm, blksz, FSZ, (unsigned char)FLAG, xymodem::fEOF, cs_type, frm_idx);
     int retry = 3;
     while (retry--) {
         io->Write(pkt);
@@ -149,32 +149,39 @@ int ProtoYmodem::TransmitFile(SerialIo* io, const std::string& filename, std::st
         auto job = [&]() {
             unsigned char idx = 1; // xymodem begins from 1
             // wait for sync
-            int resp = expect_resp(io, xymodem::kSyncTimeout, &should_stop, { 'C' });
+            int resp = expect_resp(io, xymodem::kSyncTimeout, &should_stop, { 'C', xymodem::fCAN });
             switch (resp) {
             case 'C': break;
             case -1: failed = true; errmsg = "Sync Timeout!"; break;
+            case xymodem::fCAN: failed = true; errmsg = "Canceled by remote peer!"; break;
             default: failed = true; errmsg = "Unrecognized sync character!"; break;
             }
             // send filename
             auto filename_ = xymodem::_Filename(filename);
-            auto hdr = xymodem::Pack(filename_.c_str(), std::min(size_t(127), filename_.length()), 128,
+            std::vector<unsigned char> finfo;
+            finfo.insert(finfo.end(), filename_.begin(), filename_.end());
+            finfo.push_back('\0');
+            std::string fsz_ = std::to_string(filesz);
+            finfo.insert(finfo.end(), fsz_.begin(), fsz_.end());
+            auto hdr = xymodem::Pack(finfo.data(), std::min(size_t(127), finfo.size()), 128,
                 xymodem::fSOH, '\0', xymodem::CRC16, 0);
             io->Write(hdr);
-            if (!expect_seqs(io, xymodem::kTimeout, &should_stop, { xymodem::fACK, 'C' })) {
+            if (!expect_seqs(io, xymodem::kSyncTimeout, &should_stop, { xymodem::fACK, 'C' })) {
                 failed = true;
                 errmsg = "Failed to transmit filename";
             }
-            //
-            char chunk[1024];
+            // kFSZ = 128, kFLAG = xymodem::fSOH also works, but 1024.STX is better.
+            const int kFSZ = 1024, kFLAG = xymodem::fSTX;
+            char chunk[kFSZ];
             while (!should_stop && !failed && !fin.IsEof()) {
-                auto frmsz = fin.Get(chunk, 1024);
+                auto frmsz = fin.Get(chunk, kFSZ);
 #ifdef _MSC_VER
                 auto t1 = std::chrono::high_resolution_clock::now();
 #else
                 struct timeval t1, t2;
                 gettimeofday(&t1, NULL);
 #endif
-                if (_TransmitFrame1024(io, chunk, frmsz, xymodem::CRC16, idx++, xymodem::kTimeout, &should_stop, errmsg) < 0) {
+                if (_TransmitFrame<kFSZ>(io, chunk, frmsz, xymodem::CRC16, idx++, xymodem::kTimeout, &should_stop, errmsg) < 0) {
                     failed = true;
                     break;
                 }
@@ -198,25 +205,19 @@ int ProtoYmodem::TransmitFile(SerialIo* io, const std::string& filename, std::st
             if (!failed) {
                 failed = true;
                 io->Write((unsigned char*)&xymodem::fEOT, 1);
-                if (expect_resp(io, xymodem::kTimeout, &should_stop, {xymodem::fNAK}) != xymodem::fNAK) {
-                    failed = true;
-                    errmsg = "EOT 1 was not responsed by NAK";
-                } else {
-                    io->Write((unsigned char*)&xymodem::fEOT, 1);
-                    if (expect_seqs(io, xymodem::kTimeout, &should_stop, {xymodem::fACK})) {
-                        failed = false;
-                        if (last_one) {
-                            io->Write(xymodem::Pack(nullptr, 0, 128, xymodem::fSOH, '\0', xymodem::CRC16, 0));
-                            if (expect_seqs(io, xymodem::kTimeout, &should_stop, {xymodem::fACK})) {
-                                failed = false;
-                            } else {
-                                failed = true;
-                                errmsg = "TAIL was not responsed by ACK";
-                            }
+                if (expect_seqs(io, xymodem::kSyncTimeout, &should_stop, {xymodem::fACK, 'C'})) {
+                    failed = false;
+                    if (last_one) {
+                        io->Write(xymodem::Pack(nullptr, 0, 128, xymodem::fSOH, '\0', xymodem::CRC16, 0));
+                        if (expect_seqs(io, xymodem::kTimeout, &should_stop, {xymodem::fACK})) {
+                            failed = false;
+                        } else {
+                            failed = true;
+                            errmsg = "TAIL was not responsed by ACK";
                         }
-                    } else {
-                        errmsg = "EOT 2 was not responsed by ACK";
                     }
+                } else {
+                    errmsg = "EOT was not responsed by ACK.C";
                 }
             }
             if (should_stop == true) io->Write(std::vector<unsigned char>({xymodem::fCAN}));

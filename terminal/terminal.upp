@@ -3,7 +3,7 @@ description "virtual terminal\377";
 uses
 	Core/SSH;
 
-link(MSVC) /NODE333333FAULTLIB:LIBCMT;
+link(MSVC) /NODEFAULTLIB:LIBCMT;
 
 include
 	.;

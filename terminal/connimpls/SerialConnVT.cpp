@@ -1362,7 +1362,7 @@ void SerialConnVT::DoLayout()
         }
         int overflow_cnt = (int)vline.size() - csz.cx;
         if (overflow_cnt > 0) {
-#if 0
+#if 1
             while (overflow_cnt--)
                 vline.pop_back();
 #else
