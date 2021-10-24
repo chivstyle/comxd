@@ -1,0 +1,34 @@
+description "Another serialbus tool\377";
+
+uses
+	CtrlLib,
+	serial,
+	terminal,
+	Painter;
+
+link(MSVC) /NODEFAULTLIB:LIBCMT;
+
+include
+	.;
+
+file
+	comxd.rc,
+	comxd.tpp,
+	comxd.t,
+	comxd.iml,
+	comxd.lay,
+	resource.cpp,
+	resource.h,
+	ioimpls/SerialPort.cpp,
+	ioimpls/SerialPort.h,
+	ioimpls/SSHPort.cpp,
+	ioimpls/SSHPort.h,
+	ioimpls/SSHDevsDialog.h,
+	ioimpls/SSHDevsDialog.cpp,
+	ioimpls/SerialDevsDialog.h,
+	ioimpls/SerialDevsDialog.cpp,
+	main.cpp;
+
+mainconfig
+	"" = "GUI MT SSE2";
+
