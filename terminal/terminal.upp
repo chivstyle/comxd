@@ -31,6 +31,8 @@ file
 	proto/ss.cpp,
 	proto\ProtoKermit.cpp,
 	proto\ProtoKermit.h,
+	proto\ProtoStandardYmodem.cpp,
+	proto\ProtoStandardYmodem.h,
 	proto\ProtoYmodem.cpp,
 	proto\ProtoYmodem.h,
 	proto\ProtoXmodem.cpp,
