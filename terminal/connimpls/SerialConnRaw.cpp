@@ -31,6 +31,8 @@ SerialConnRaw::SerialConnRaw(std::shared_ptr<SerialIo> io)
     : mRxShouldStop(false)
     , mTxProto(nullptr)
     , mStopUpdateRx(false)
+    , mNumBytesTx(0)
+    , mNumBytesRx(0)
 {
     this->mIo = io; //!< Important, let this as the first sentence.
     //
@@ -53,6 +55,8 @@ SerialConnRaw::SerialConnRaw(std::shared_ptr<SerialIo> io)
     this->mLineBreaks.Add(LineBreak_::LF, "LF");
     this->mLineBreaks.Add(LineBreak_::CRLF, "CRLF");
     this->mLineBreaks.SetIndex(1); //<! default: LF
+    this->mRxBytes.SetText("0");
+    this->mTxBytes.SetText("0");
     //------------------------------------------------------------------------
     mProtos.Add(t_("None"));
     mProtos.SetIndex(0);
@@ -137,6 +141,15 @@ void SerialConnRaw::InstallActions()
         std::lock_guard<std::mutex> _(mRxBufferLock);
         mRxBuffer.clear();
         mRx.Clear();
+        mNumBytesRx = 0; mRxBytes.SetText("0");
+    };
+    // clear statistics
+    this->mBtnClearNumTx.WhenAction = [=]() {
+        mNumBytesTx = 0; mTxBytes.SetText("0");
+    };
+    this->mBtnClearNumRx.WhenAction = [=]() {
+        std::lock_guard<std::mutex> _(mRxBufferLock);
+        mNumBytesRx = 0; mRxBytes.SetText("0");
     };
     // pause rx
     this->mBtnPauseRx.WhenAction = [&]() {
@@ -147,7 +160,7 @@ void SerialConnRaw::InstallActions()
         if (mTxPeriod.Get()) {
             mTxInterval.SetReadOnly();
             SetTimeCallback(
-                -mTxInterval.GetData().To<int>(), [=]() { OnSend(); },
+                -mTxInterval.GetData().To<int>(), [=]() { Upp::EnterGuiMutex(); OnSend(); Upp::LeaveGuiMutex(); },
                 kPeriodicTimerId); // ID-0
         } else {
             mTxInterval.SetEditable(true);
@@ -413,23 +426,8 @@ static inline std::string ReplaceLineBreak_(const std::string& text, int lb)
 void SerialConnRaw::Set_TxInHex()
 {
     std::string tx = mTx.GetData().ToString().ToStd();
-#if 0
-    std::string errmsg;
-    if (mTxProto) {
-        auto out = mTxProto->Pack(tx, errmsg);
-        if (!out.empty()) {
-            mTx.Set(ToHexString_(out));
-        }
-    } else {
-        if (this->mEnableEscape.Get()) {
-            tx = TranslateEscapeChars(tx);
-        }
-        mTx.Set(ToHexString_(tx));
-    }
-    this->mTmpStatus.SetText(errmsg.c_str());
-#else
-    mTx.Set(ToHexString_(tx));
-#endif
+    mTx.Set(ToHexString_(TranslateEscapeChars(tx)));
+    // use filter to disable invalid chars.
     mTx.SetFilter(_HexFilter);
     //
     mTx.MoveEnd();
@@ -439,20 +437,7 @@ void SerialConnRaw::Set_TxInTxt()
 {
     std::string tx = mTx.GetData().ToString().ToStd();
     std::vector<unsigned char> out = ToHex_(tx);
-#if 0
-    std::string errmsg;
-    if (mTxProto) {
-        std::string json = mTxProto->Unpack(out, errmsg);
-        if (!json.empty()) {
-            mTx.Set(json);
-        }
-    } else {
-        mTx.Set(FromHex_(out));
-    }
-    this->mTmpStatus.SetText(errmsg.c_str());
-#else
     mTx.Set(FromHex_(out));
-#endif
     mTx.SetFilter(nullptr);
     //
     mTx.MoveEnd();
@@ -460,15 +445,16 @@ void SerialConnRaw::Set_TxInTxt()
 
 void SerialConnRaw::OnSend()
 {
+    int ret = 0;
     std::string errmsg;
     std::string tx = mTx.GetData().ToString().ToStd();
     if (mTxHex.Get()) {
         // write as hex.
         auto hex_ = ToHex_(tx);
         if (mTxProto) {
-            mTxProto->TransmitData(hex_.data(), hex_.size(), errmsg);
+            ret = mTxProto->TransmitData(hex_.data(), hex_.size(), errmsg);
         } else {
-            GetIo()->Write(hex_);
+            ret = (int)GetIo()->Write(hex_);
         }
     } else {
         std::string text = tx;
@@ -476,13 +462,17 @@ void SerialConnRaw::OnSend()
             text = TranslateEscapeChars(text);
         }
         if (mTxProto) {
-            mTxProto->TransmitData(text.c_str(), text.length(), errmsg);
+            ret = mTxProto->TransmitData(text.c_str(), text.length(), errmsg);
         } else {
             auto tmp = ReplaceLineBreak_(text, mLineBreaks.GetKey(mLineBreaks.GetIndex()).To<int>());
-            GetIo()->Write(GetCodec()->TranscodeFromUTF8((const unsigned char*)tmp.c_str(), tmp.length()));
+            ret = (int)GetIo()->Write(GetCodec()->TranscodeFromUTF8((const unsigned char*)tmp.c_str(), tmp.length()));
         }
     }
     this->mTmpStatus.SetText(errmsg.c_str());
+    if (ret > 0)
+        mNumBytesTx += ret;
+    // update
+    mTxBytes.SetText(std::to_string(mNumBytesTx).c_str());
 }
 //
 static const char* kC0_Names[] = {
@@ -571,6 +561,7 @@ void SerialConnRaw::Update()
         if (sel) {
             mRx.SetSelection(l, h);
         }
+        mRxBytes.SetText(std::to_string(mNumBytesRx).c_str());
     }
 }
 
@@ -594,6 +585,7 @@ void SerialConnRaw::RxProc()
                     size_t hd = mRxBuffer.size() - max_buffer_sz;
                     mRxBuffer.erase(mRxBuffer.begin(), mRxBuffer.begin() + hd);
                 }
+                mNumBytesRx += buf.size();
             }
             mRxBufferLock.unlock();
             //

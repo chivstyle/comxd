@@ -42,6 +42,8 @@ protected:
     void Update();
     //
 private:
+    size_t mNumBytesTx;
+    size_t mNumBytesRx;
     Upp::LineEdit mRx;
     Upp::LineEdit mTx;
     Proto* mTxProto;

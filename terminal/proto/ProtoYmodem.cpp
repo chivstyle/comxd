@@ -17,10 +17,12 @@
 #include <mutex>
 
 namespace proto {
-REGISTER_PROTO_INSTANCE("YMODEM", ProtoYmodem);
+
+REGISTER_PROTO_INSTANCE("YMODEM-1K", ProtoYmodem);
 
 ProtoYmodem::ProtoYmodem(SerialConn* conn)
     : Proto(conn)
+    , mType(eYmodem1K)
 {
     WhenUsrBar = [=](Bar& bar) {
         bar.Add(t_("About"), terminal::help(), [=]() {
@@ -38,7 +40,17 @@ ProtoYmodem::~ProtoYmodem()
 
 std::string ProtoYmodem::GetDescription() const
 {
-    return t_("Standard YMODEM-1K/CRC");
+    std::string desc;
+    switch (mType) {
+    case eStandardYmodem:
+        desc = t_("Standard YMODEM/CRC");
+        break;
+    default:
+        mType = eYmodem1K;
+        desc = t_("Standard YMODEM-1K/CRC");
+        break;
+    }
+    return desc;
 }
 // find token from response, return the first token
 static inline int expect_resp(SerialIo* io, int timeout, volatile bool* should_stop, const std::vector<char>& tks)
@@ -170,20 +182,30 @@ int ProtoYmodem::TransmitFile(SerialIo* io, const std::string& filename, std::st
                 failed = true;
                 errmsg = "Failed to transmit filename";
             }
-            // kFSZ = 128, kFLAG = xymodem::fSOH also works, but 1024.STX is better.
-            const int kFSZ = 1024, kFLAG = xymodem::fSTX;
-            char chunk[kFSZ];
             while (!should_stop && !failed && !fin.IsEof()) {
-                auto frmsz = fin.Get(chunk, kFSZ);
+                int64 frmsz = 0;
 #ifdef _MSC_VER
                 auto t1 = std::chrono::high_resolution_clock::now();
 #else
                 struct timeval t1, t2;
                 gettimeofday(&t1, NULL);
 #endif
-                if (_TransmitFrame<kFSZ>(io, chunk, frmsz, xymodem::CRC16, idx++, xymodem::kTimeout, &should_stop, errmsg) < 0) {
-                    failed = true;
-                    break;
+                if (mType == eStandardYmodem) {
+                    char chunk[128];
+                    frmsz = fin.Get(chunk, 128);
+                    if (_TransmitFrame<128, xymodem::fSOH>(io, chunk, frmsz, xymodem::CRC16, idx++, xymodem::kTimeout,
+                        &should_stop, errmsg) < 0) {
+                        failed = true;
+                        break;
+                    }
+                } else {
+                    char chunk[1024];
+                    frmsz = fin.Get(chunk, 1024);
+                    if (_TransmitFrame<1024, xymodem::fSTX>(io, chunk, frmsz, xymodem::CRC16, idx++, xymodem::kTimeout,
+                        &should_stop, errmsg) < 0) {
+                        failed = true;
+                        break;
+                    }
                 }
                 if (!failed) {
                     std::lock_guard<std::mutex> _(lock);

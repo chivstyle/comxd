@@ -15,10 +15,17 @@ public:
     int TransmitData(const void* input, size_t input_size, std::string& errmsg);
     int TransmitFile();
     //
+    enum Type {
+        eStandardYmodem,
+        eYmodem1K
+    };
+    //
 protected:
     int TransmitFile(const std::string& filename, std::string& errmsg, bool last_one = false);
     int TransmitFile(SerialIo* io, const std::string& filename, std::string& errmsg, bool last_one = false);
     int TransmitData(SerialIo* io, const void* input, size_t input_size, std::string& errmsg);
+    //
+    mutable int mType;
 };
 
 }

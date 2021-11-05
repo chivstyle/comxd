@@ -518,7 +518,8 @@ void SerialConnVT::RxProc()
                     } else
                         break; // break this loop, read new characters from I/O
                 } else if (type == SEQ_CORRUPTED || type == SEQ_NONE) {
-                    // Ignore unrecognized seq
+                    // Ignore unrecognized seq, display it on the vt
+                    texts += raw.substr(rawp + p_begin, p_sz).data();
                 } else {
                     mSeqs.emplace_back(type, raw.substr(rawp + p_begin, p_sz));
                 }

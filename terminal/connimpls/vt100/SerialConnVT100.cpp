@@ -53,7 +53,9 @@ void SerialConnVT100::InstallFunctions()
     //
     mFunctions[DECREQTPARM] = [=](const std::string_view& p) { ProcessDECREQTPARM(p); };
     mFunctions[DECSTBM] = [=](const std::string_view& p) { ProcessDECSTBM(p); };
-    mFunctions[DECSC] = [=](const std::string_view& p) { ProcessDECSC(p); };
+    mFunctions[DECSC] = [=](const std::string_view& p) {
+        ProcessDECSC(p);
+    };
     mFunctions[DECRC] = [=](const std::string_view& p) { ProcessDECRC(p); };
     mFunctions[DECALN] = [=](const std::string_view& p) { ProcessDECALN(p); };
     mFunctions[DECTST] = [=](const std::string_view& p) { ProcessDECTST(p); };
