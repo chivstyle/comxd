@@ -2,3 +2,9 @@ V2.2.2a
 
  1. Parse and render seqs in the same thread
  2. SSH will block forever on exitting tab
+
+v2.2.3a
+
+ 1. I place all render seqs to parser thread, it's more complicated than before
+ 2. Upp/SSH process data in GUI-thread, so we should make sure all works were completed before
+    the GUI resources were released.
