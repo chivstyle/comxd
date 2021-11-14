@@ -17,7 +17,7 @@ public:
     virtual ~SerialConn() { }
     // start the conn
     virtual bool Start() { return true; }
-    virtual void Stop();
+    virtual void Stop() {}
     //
     void SetCodec(const char* codec_name);
     //

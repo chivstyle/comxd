@@ -89,6 +89,7 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
 SerialConnVT::~SerialConnVT()
 {
     Stop();
+    //
     delete mSeqsFactory;
 }
 //
@@ -101,8 +102,6 @@ bool SerialConnVT::Start()
 }
 void SerialConnVT::Stop()
 {
-    SerialConn::Stop();
-    //
     mRxShouldStop = true;
     if (mRxThr.joinable()) {
         mRxThr.join();

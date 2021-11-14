@@ -50,8 +50,9 @@ public:
                 // the callback will execute in the main thread (i.e GUI-thread), so
                 // we should save the conn and tab_bar in the instance of TabCloseBtn.
                 Upp::PostCallback([=]() {
-                    mTabbar->Remove(*mConn);
+                    static_cast<SerialConn*>(mConn)->GetIo()->Stop();
                     static_cast<SerialConn*>(mConn)->Stop();
+                    mTabbar->Remove(*mConn);
                     delete mConn;
                     delete this; // delete myself.
                 });

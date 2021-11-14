@@ -16,7 +16,7 @@ SSHPort::SSHPort(std::shared_ptr<Upp::SshSession> session, String name, String t
     mShell->Timeout(Null);
     mShell->SetReadWindowSize(1024);
     mShell->WhenOutput = [=](const void* out, int out_len) {
-        if (out_len > 0) {
+        if (out_len > 0 && mShouldExit == false) {
             std::unique_lock<std::mutex> _(mLock);
             mCondWrite.wait(_, [=]() {
                 // limit stream to 1024
@@ -37,7 +37,6 @@ SSHPort::SSHPort(std::shared_ptr<Upp::SshSession> session, String name, String t
 
 SSHPort::~SSHPort()
 {
-    mShouldExit = true;
     //
     mJob.Finish();
     //
@@ -46,6 +45,9 @@ SSHPort::~SSHPort()
 
 void SSHPort::Stop()
 {
+    mShouldExit = true;
+    mCondWrite.notify_all();
+    //
     mShell->Close();
 }
 
