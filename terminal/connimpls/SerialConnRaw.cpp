@@ -88,6 +88,8 @@ bool SerialConnRaw::Start()
 
 void SerialConnRaw::Stop()
 {
+    SerialConn::Stop();
+    //
     mRxShouldStop = true;
     if (mRxThr.joinable()) {
         mRxThr.join();

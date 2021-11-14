@@ -19,6 +19,23 @@
 #include <queue>
 #include <thread>
 
+namespace Upp {
+    class AutoLocker {
+    public:
+        AutoLocker(Mutex& mutex)
+            : mMtx(mutex)
+        {
+            mMtx.Enter();
+        }
+        ~AutoLocker()
+        {
+            mMtx.Leave();
+        }
+    private:
+        Mutex& mMtx;
+    };
+}
+
 class ControlSeqFactory;
 class SerialConnVT : public SerialConn {
 public:
@@ -89,12 +106,21 @@ protected:
     virtual void MouseMove(Upp::Point p, Upp::dword keyflags);
     virtual void RightUp(Upp::Point p, Upp::dword keyflags);
     virtual Upp::Image CursorImage(Upp::Point p, Upp::dword keyflags);
-    //
+    // virtual screen resources
     VTChar mBlankChar;
+    Upp::Font mFont;
+    int mFontW, mFontH;
+    VTStyle mStyle; // current style
+    VTColorTable mColorTbl;
+    bool mBlinkSignal; // 0,1,0,1,0,1, 2 Hz
     std::deque<VTLine> mLinesBuffer;
     std::deque<VTLine> mLines; //<! Text on current screen, treat is as virtual screen
-    //-------------------------------------------------------------------------------------
-    std::mutex mLockSeqs;
+    Upp::Size          mVtSize;
+    Upp::Size GetConsoleSize() const { return mVtSize; }
+    //-------------------------------------------------------------------------------------------
+    Upp::Mutex mLockVt;   // protect virtual screen, before accessing VtSize, Lines, .etc
+                          // you must acquire the LockVt.
+    //--------------------------------------------------------------------------------------------
     //
     struct Seq {
         enum SeqType {
@@ -125,13 +151,11 @@ protected:
             Type = NULL_SEQ;
         }
     };
-    // double buffer
-    std::deque<Seq> mSeqs;
     //
-    size_t ParseSeqs(const std::string_view& raw, std::deque<struct Seq>& seqs);
+    size_t ParseSeqs(const std::string_view& raw, std::vector<struct Seq>& seqs);
     //
-    virtual void RenderSeqs();
-    virtual void RenderSeqs(const std::deque<Seq>& seqs);
+    virtual void RenderSeq(const Seq& seq);
+    virtual void RenderSeqs(const std::vector<Seq>& seqs);
     //
     virtual void Put(const std::string& s);
     //-------------------------------------------------------------------------------------
@@ -189,15 +213,10 @@ protected:
     //  2. Size of client region
     // after this function, the ScrollBar and display region were changed.
     virtual void DoLayout();
-    // font of console
-    Upp::Font mFont;
-    int mFontW, mFontH;
-    VTStyle mStyle; // current style
-    VTColorTable mColorTbl;
+    //
     void UseStyle(const VTChar& c, Upp::Font& font, Upp::Color& fg_color, Upp::Color& bg_color,
         bool& blink, bool& visible);
     //
-    bool mBlinkSignal; // 0,1,0,1,0,1, 2 Hz
     Upp::TimeCallback mBlinkTimer;
     // scroll bar
     Upp::VScrollBar mSbV;
@@ -206,8 +225,6 @@ protected:
     virtual int GetCharWidth(const VTChar& c) const;
     // vy - absolute position
     virtual int GetLineHeight(int vy) const;
-    // calculate the size of console
-    virtual Upp::Size GetConsoleSize() const;
     // VTChar contains the codepoint, UTF32->UTF8
     // used by Drawing functions
     virtual Upp::WString TranscodeToUTF16(const VTChar& cc) const;

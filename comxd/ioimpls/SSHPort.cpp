@@ -14,12 +14,13 @@ SSHPort::SSHPort(std::shared_ptr<Upp::SshSession> session, String name, String t
 {
     mShell = new SshShell(*mSession.get());
     mShell->Timeout(Null);
+    mShell->SetReadWindowSize(1024);
     mShell->WhenOutput = [=](const void* out, int out_len) {
         if (out_len > 0) {
             std::unique_lock<std::mutex> _(mLock);
             mCondWrite.wait(_, [=]() {
-                // limit stream to 16K
-                return mRxBuffer.size() < 16384 || mShouldExit;
+                // limit stream to 1024
+                return mRxBuffer.size() < 1024 || mShouldExit;
             });
             if (!mShouldExit) {
                 mRxBuffer.insert(mRxBuffer.end(), (unsigned char*)out, (unsigned char*)out + out_len);
@@ -27,13 +28,16 @@ SSHPort::SSHPort(std::shared_ptr<Upp::SshSession> session, String name, String t
             }
         }
     };
+    mShell->WhenWait = [=]() {
+        PostCallback([=]() {
+            Ctrl::ProcessEvents();
+        });
+    };
 }
 
 SSHPort::~SSHPort()
 {
     mShouldExit = true;
-    //
-    mShell->Close();
     //
     mJob.Finish();
     //
@@ -42,6 +46,7 @@ SSHPort::~SSHPort()
 
 void SSHPort::Stop()
 {
+    mShell->Close();
 }
 
 bool SSHPort::Start()

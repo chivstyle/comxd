@@ -50,25 +50,20 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
     mSbH.Set(0);
     AddFrame(mSbH);
     mSbH.WhenScroll = [=]() {
-        UpdatePresentationPos();
         Refresh();
     };
 #endif
     // vertical
-    mSbV.SetTotal(0);
     mSbV.SetLine(mFontH);
     mSbV.Set(0);
-    mSbV.SetTotal(0);
     AddFrame(mSbV);
     mSbV.WhenScroll = [=]() {
-        int lposy = mSbV.Get();
-        if (lposy + GetSize().cy >= mSbV.GetTotal()) {
+        if (mSbV.Get() >= mSbV.GetTotal() - GetSize().cy) {
             mScrollToEnd = true;
+            mSbV.End();
         } else {
             mScrollToEnd = false;
         }
-        UpdateHScrollbar();
-        UpdatePresentationPos();
         Refresh();
     };
 #if ENABLE_BLINK_TEXT
@@ -81,6 +76,7 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
     // initialize size
     VTLine vline = VTLine(80, mBlankChar).SetHeight(mFontH);
     mLines.insert(mLines.begin(), 30, vline);
+    mVtSize = Size(80, 30);
     //
     InstallUserActions();
     //
@@ -105,6 +101,8 @@ bool SerialConnVT::Start()
 }
 void SerialConnVT::Stop()
 {
+    SerialConn::Stop();
+    //
     mRxShouldStop = true;
     if (mRxThr.joinable()) {
         mRxThr.join();
@@ -122,6 +120,8 @@ void SerialConnVT::ShowVTOptions()
     opt.SetOptions(options);
     int ret = opt.Run();
     if (ret == IDOK) {
+        AutoLocker _(mLockVt);
+        //
         options = opt.GetOptions();
         this->mFont = options.Font;
         this->mMaxLinesBufferSize = options.LinesBufferSize;
@@ -194,10 +194,17 @@ void SerialConnVT::InstallUserActions()
            // copy to clipboard
            Copy();
         }).Image(CtrlImg::copy()).Key(K_CTRL | K_SHIFT | K_C);
+        bar.Add(has_sel, t_("Copy"), [=] {
+           // copy to clipboard
+           Copy();
+        }).Image(CtrlImg::copy()).Key(K_SHIFT | K_INSERT);
         String text = ReadClipboardUnicodeText().ToString();
         bar.Add(text.GetCount() > 0, t_("Paste"), [=] { Paste(); })
             .Image(CtrlImg::paste())
             .Key(K_CTRL | K_SHIFT | K_V);
+        bar.Add(text.GetCount() > 0, t_("Paste"), [=] { Paste(); })
+            .Image(CtrlImg::paste())
+            .Key(K_CTRL | K_INSERT);
         bar.Add(true, t_("Select all"), [=]() { SelectAll(); })
             .Key(K_CTRL | K_SHIFT | K_A);
         //--------------------------------------------------------------------------------------
@@ -225,6 +232,8 @@ void SerialConnVT::SetShowCursor(bool b)
 //
 void SerialConnVT::SaveScr(ScreenData& sd)
 {
+    AutoLocker _(mLockVt);
+    //
     sd.Vx = mVx;
     sd.Vy = mVy;
     sd.Style = mStyle;
@@ -235,20 +244,24 @@ void SerialConnVT::SaveScr(ScreenData& sd)
 
 void SerialConnVT::SwapScr(ScreenData& sd)
 {
+    AutoLocker _(mLockVt);
+    //
     std::swap(sd.Vx, mVx);
     std::swap(sd.Vy, mVy);
     std::swap(sd.Style, mStyle);
     std::swap(sd.Lines, mLines);
     std::swap(sd.LinesBuffer, mLinesBuffer);
     std::swap(sd.SelSpan, mSelectionSpan);
-    //
-    DoLayout();
-    //
-    UpdatePresentation();
+    PostCallback([=]() {
+        DoLayout();
+        UpdatePresentation();
+    });
 }
 
 void SerialConnVT::LoadScr(const ScreenData& sd)
 {
+    AutoLocker _(mLockVt);
+    //
     mLinesBuffer = sd.LinesBuffer;
     mLines = sd.Lines;
     mVx = sd.Vx;
@@ -256,19 +269,24 @@ void SerialConnVT::LoadScr(const ScreenData& sd)
     mStyle = sd.Style;
     mSelectionSpan = sd.SelSpan;
     //
-    DoLayout();
-    //
-    UpdatePresentation();
+    PostCallback([=]() {
+        DoLayout();
+        UpdatePresentation();
+    });
 }
 //
 void SerialConnVT::SetDefaultStyle()
 {
+    AutoLocker _(mLockVt);
+    //
     mStyle = VTStyle(); // default.
     mColorTbl.SetToDefault();
 }
 //
 void SerialConnVT::Clear()
 {
+    AutoLocker _(mLockVt);
+    //
     SetDefaultStyle();
     mLinesBuffer.clear();
     mLines.clear();
@@ -281,7 +299,9 @@ void SerialConnVT::Clear()
     //
     mScrollToEnd = true;
     //
-    UpdatePresentation();
+    PostCallback([=]() {
+        UpdatePresentation();
+    });
 }
 //
 int SerialConnVT::IsControlSeq(const std::string_view& seq, size_t& p_begin, size_t& p_sz, size_t& s_end)
@@ -299,80 +319,66 @@ bool SerialConnVT::ProcessControlSeq(int seq_type, const std::string_view& p)
     }
     return false;
 }
-//
-void SerialConnVT::RenderSeqs(const std::deque<Seq>& seqs)
+void SerialConnVT::RenderSeq(const Seq& seq)
 {
-    for (auto it = seqs.begin(); it != seqs.end(); ++it) {
-        auto seq = *it;
-        int flags = 0;
-        //--------------------------------------------------------------------------------------
-        int px = mPx, py = mPy, vx = mVx, vy = mVy;
-        switch (seq.Type) {
-        case Seq::CTRL_SEQ:
-            ProcessControlSeq(seq.Ctrl.first, seq.Ctrl.second); // will change vx,vy,px,py
-            break;
-        case Seq::TEXT_SEQ:
-            if (1) {
-                int cx = (int)mLines[mVy].size();
-                RenderText(seq.Text); // will change vx
-                if (mVx > cx)
-                    flags |= 0x2; // the line was extended
-            }
-            break;
+    int flags = 0;
+    //--------------------------------------------------------------------------------------
+    int px = mPx, py = mPy, vx = mVx, vy = mVy;
+    switch (seq.Type) {
+    case Seq::CTRL_SEQ:
+        ProcessControlSeq(seq.Ctrl.first, seq.Ctrl.second); // will change vx,vy,px,py
+        break;
+    case Seq::TEXT_SEQ:
+        if (1) {
+            int cx = (int)mLines[mVy].size();
+            RenderText(seq.Text); // will change vx
+            if (mVx > cx)
+                flags |= 0x2; // the line was extended
         }
-        //--------------------------------------------------------------------------------------
-        if (ProcessOverflowLines(seq)) {
-            flags |= 0x1;
-        }
-        if (ProcessOverflowChars(seq)) {
-            flags |= 0x2;
-        } // fix vx/vy
-#if 0
-        if (flags & 0x1) { UpdateVScrollbar(); }
-        if (flags & 0x2) { UpdateHScrollbar(); }
-#endif
-        // Update vx/vy
-        if (mPx != px && mPy != py) {
-            UpdateDataPos();
-            vx = mVx;
-            vy = mVy;
-            flags |= 0x4;
-        } else if (mPx != px) {
-            UpdateDataPos(0x1);
-            vx = mVx;
-            flags |= 0x4;
-        } else if (mPy != py) {
-            UpdateDataPos(0x2);
-            vy = mVy;
-            flags |= 0x4;
-        }
-        // update px/py
-        if (mVx != vx && mVy != vy) {
-            UpdatePresentationPos();
-            flags |= 0x4;
-        } else if (mVx != vx) {
-            UpdatePresentationPos(0x1);
-            flags |= 0x4;
-        } else if (mVy != vy) {
-            UpdatePresentationPos(0x2);
-            flags |= 0x4;
-        }
+        break;
+    }
+    //--------------------------------------------------------------------------------------
+    if (ProcessOverflowLines(seq)) {
+        flags |= 0x1;
+    }
+    if (ProcessOverflowChars(seq)) {
+        flags |= 0x2;
+    } // fix vx/vy
+    // Update vx/vy
+    if (mPx != px && mPy != py) {
+        UpdateDataPos();
+        vx = mVx;
+        vy = mVy;
+        flags |= 0x4;
+    } else if (mPx != px) {
+        UpdateDataPos(0x1);
+        vx = mVx;
+        flags |= 0x4;
+    } else if (mPy != py) {
+        UpdateDataPos(0x2);
+        vy = mVy;
+        flags |= 0x4;
+    }
+    // update px/py
+    if (mVx != vx && mVy != vy) {
+        UpdatePresentationPos();
+        flags |= 0x4;
+    } else if (mVx != vx) {
+        UpdatePresentationPos(0x1);
+        flags |= 0x4;
+    } else if (mVy != vy) {
+        UpdatePresentationPos(0x2);
+        flags |= 0x4;
     }
 }
 //
-void SerialConnVT::RenderSeqs()
+void SerialConnVT::RenderSeqs(const std::vector<Seq>& seqs)
 {
-    mLockSeqs.lock();
-    {
-        RenderSeqs(mSeqs);
-        mSeqs.clear();
+    AutoLocker _(mLockVt);
+    //
+    for (auto it = seqs.begin(); it != seqs.end(); ++it) {
+        RenderSeq(*it);
     }
-    mLockSeqs.unlock();
-    //
-    UpdateVScrollbar();
-    UpdateHScrollbar();
-    //
-    Refresh();
 }
 //
 bool SerialConnVT::IsControlSeqPrefix(uint8_t c)
@@ -390,7 +396,7 @@ void SerialConnVT::Put(const std::string& s)
     GetIo()->Write(s);
 }
 //
-size_t SerialConnVT::ParseSeqs(const std::string_view& raw, std::deque<struct Seq>& seqs)
+size_t SerialConnVT::ParseSeqs(const std::string_view& raw, std::vector<struct Seq>& seqs)
 {
     std::string texts;
     size_t rawp = 0;
@@ -440,7 +446,7 @@ void SerialConnVT::RunParserBenchmark()
             fin.Get(buffer, (int)filesz);
             fin.Close();
             buffer[filesz] = '\0';
-            std::deque<Seq> seqs;
+            std::vector<Seq> seqs;
             if (1) {
                 auto t1 = std::chrono::high_resolution_clock::now();
                 size_t ns = ParseSeqs(buffer, seqs);
@@ -459,8 +465,7 @@ void SerialConnVT::RunParserBenchmark()
                 auto ts = std::chrono::duration<double>(t2 - t1).count();
                 auto ps = ns / ts;
                 //
-                UpdateVScrollbar();
-                UpdateHScrollbar();
+                UpdatePresentation();
                 //
                 std::string report = std::to_string(ps) + " seqs per second - Renderer";
                 PromptOK(report.c_str());
@@ -473,6 +478,7 @@ void SerialConnVT::RxProc()
 {
     std::string raw, texts; // before the loop, define these two vars firstly.
     texts.reserve(32768);
+    std::vector<Seq> seqs;
     while (!mRxShouldStop) {
         int sz = GetIo()->Available();
         if (sz < 0) {
@@ -490,8 +496,7 @@ void SerialConnVT::RxProc()
         }
         RefineTheInput(raw);
         //
-        size_t rawp = 0;
-        std::lock_guard<std::mutex> _(mLockSeqs);
+        size_t rawp = 0; const size_t kSeqsPoolSz = 1000;
         while (rawp < raw.length() && !mRxShouldStop) {
             if (IsControlSeqPrefix((uint8_t)raw[rawp])) { // is prefix of some control sequence
                 if (!texts.empty()) {
@@ -505,7 +510,7 @@ void SerialConnVT::RxProc()
                     }
 #endif
                     if (!s.empty()) {
-                        mSeqs.emplace_back(std::move(s));
+                        seqs.emplace_back(std::move(s));
                     }
                     texts.clear();
                 }
@@ -521,12 +526,15 @@ void SerialConnVT::RxProc()
                     // Ignore unrecognized seq, display it on the vt
                     texts += raw.substr(rawp + p_begin, p_sz).data();
                 } else {
-                    mSeqs.emplace_back(type, raw.substr(rawp + p_begin, p_sz));
+                    seqs.emplace_back(type, raw.substr(rawp + p_begin, p_sz));
                 }
                 rawp += s_end;
             } else {
                 texts.push_back(raw[rawp]);
                 rawp++;
+            }
+            if (seqs.size() >= kSeqsPoolSz) {
+                RenderSeqs(seqs); seqs.clear();
             }
         }
         if (!texts.empty()) {
@@ -534,12 +542,15 @@ void SerialConnVT::RxProc()
             auto s = this->TranscodeToUTF32(texts, ep);
             texts = texts.substr(ep);
             if (!s.empty()) {
-                mSeqs.emplace_back(std::move(s));
+                seqs.emplace_back(std::move(s));
             }
         }
-        PostCallback([=]() { RenderSeqs(); });
         //
         raw = raw.substr(rawp);
+        if (!seqs.empty()) {
+            RenderSeqs(seqs); seqs.clear();
+        }
+        PostCallback([=]() { this->UpdatePresentation(); });
     }
 }
 // This routine guarantee that the width of any char is integral multiple
@@ -566,17 +577,6 @@ int SerialConnVT::GetCharWidth(const VTChar& c) const
         break;
     }
     return cx;
-}
-
-Size SerialConnVT::GetConsoleSize() const
-{
-    Size usz = GetSize();
-    if (usz.cx <= 0 || usz.cy <= 0) {
-        int cx = mLines.empty() ? 0 : (int)mLines[0].size();
-        int cy = (int)mLines.size();
-        return Size(cx, cy);
-    }
-    return Size(usz.cx / mFontW, usz.cy / mFontH);
 }
 //
 VTLine* SerialConnVT::GetVTLine(int vy)
@@ -911,6 +911,7 @@ void SerialConnVT::RenderText(const std::vector<uint32_t>& s)
 {
     Size csz = GetConsoleSize();
     int cs = 0;
+    VTLine* vline = &mLines[mVy];
     for (size_t k = 0; k < s.size(); ++k) {
         VTChar chr = RemapCharacter(s[k], mCharset);
         chr.SetStyle(mStyle);
@@ -925,29 +926,26 @@ void SerialConnVT::RenderText(const std::vector<uint32_t>& s)
                 mVy++;
                 mVx = 0;
                 if (this->ProcessOverflowLines()) {
-                    this->UpdateVScrollbar();
-                    this->UpdatePresentationPos();
+                    // do nothing here.
                 }
+                vline = &mLines[mVy];
             }
         }
-        VTLine& vline = mLines[mVy];
-        if (mVx < vline.size()) {
-            vline[mVx] = chr;
+        //
+        if (mVx < vline->size()) {
+            vline->at(mVx) = chr;
         } else {
             // padding blanks if needed.
-            for (int n = (int)vline.size() - 1; n < mVx - 1; ++n) {
-                vline.push_back(mBlankChar);
+            for (int n = (int)vline->size() - 1; n < mVx - 1; ++n) {
+                vline->push_back(mBlankChar);
             }
             // extend the vline
-            vline.push_back(chr);
+            vline->push_back(chr);
         }
         mVx++;
-        if (mVx >= (int)vline.size()) {
+        if (mVx >= (int)vline->size()) {
             // extend vline
-            vline.insert(vline.end(), 8, mBlankChar);
-        }
-        if (mWrapLine) {
-            UpdatePresentationPos(0x1);
+            vline->insert(vline->end(), 8, mBlankChar);
         }
     }
 }
@@ -980,6 +978,7 @@ int SerialConnVT::GetLineHeight(int vy) const
 
 void SerialConnVT::MouseMove(Point p, dword)
 {
+    AutoLocker _(mLockVt);
     if (mPressed) {
         // scroll over
         if (p.y < 0) {
@@ -1009,6 +1008,8 @@ void SerialConnVT::MouseMove(Point p, dword)
 
 void SerialConnVT::LeftDown(Point p, dword)
 {
+    AutoLocker _(mLockVt);
+    //
     mPressed = true;
     int lx = mSbH.Get() + p.x, ly = mSbV.Get() + p.y;
     int px, next_px, py, next_py;
@@ -1038,6 +1039,7 @@ void SerialConnVT::LeftDown(Point p, dword)
 
 void SerialConnVT::LeftDouble(Point p, dword)
 {
+    AutoLocker _(mLockVt);
     // Select the word under the caret
     int lx = mSbH.Get() + p.x, ly = mSbV.Get() + p.y;
     int px, next_px, py, next_py;
@@ -1069,6 +1071,8 @@ void SerialConnVT::LeftDouble(Point p, dword)
 
 void SerialConnVT::LeftTriple(Point p, dword)
 {
+    AutoLocker _(mLockVt);
+    //
     int lx = mSbH.Get() + p.x, ly = mSbV.Get() + p.y;
     int px, next_px, py, next_py;
     Point vpos = LogicToVirtual(lx, ly, px, next_px, py, next_py);
@@ -1103,11 +1107,15 @@ void SerialConnVT::Paste()
 
 void SerialConnVT::Copy()
 {
+    AutoLocker _(mLockVt);
+    //
     WriteClipboardText(GetSelectedText());
 }
 
 void SerialConnVT::SelectAll()
 {
+    AutoLocker _(mLockVt);
+    //
     if (!mLines.empty()) {
         mSelectionSpan.X0 = 0;
         mSelectionSpan.X1 = 0;
@@ -1288,8 +1296,7 @@ int SerialConnVT::CalculateNumberOfBlankCharsFromEnd(const VTLine& vline) const
     }
     return cn;
 }
-//
-//
+// Invoked by DoLayout
 void SerialConnVT::ExtendVirtualScreen(int cx, int cy)
 {
     // extend virtual screen
@@ -1317,7 +1324,7 @@ void SerialConnVT::ExtendVirtualScreen(int cx, int cy)
         mLines.push_back(VTLine(cx, mBlankChar).SetHeight(mFontH));
     }
 }
-
+// invoked by DoLayout
 void SerialConnVT::ShrinkVirtualScreen(int cx, int cy)
 {
     // shrink virtual screen
@@ -1350,7 +1357,13 @@ void SerialConnVT::ShrinkVirtualScreen(int cx, int cy)
 //
 void SerialConnVT::DoLayout()
 {
-    Size csz = GetConsoleSize();
+    AutoLocker _(mLockVt);
+    //
+    Size viewsz = GetSize();
+    Size csz = { viewsz.cx / mFontW, viewsz.cy / mFontH };
+    // update vt size
+    mVtSize = csz;
+    // update page of scroll bar
     mSbV.SetPage(mFontH * csz.cy);
     mSbH.SetPage(mFontW * csz.cx);
     if (csz.cx <= 0 || csz.cy <= 0)
@@ -1522,7 +1535,7 @@ bool SerialConnVT::IsCharInSelectionSpan(int vx, int vy) const
 {
     return IsCharInSelectionSpan(vx, vy, this->mSelectionSpan);
 }
-
+// invoked by Render
 void SerialConnVT::DrawCursor(Draw& draw)
 {
     if (!mShowCursor)
@@ -1681,10 +1694,13 @@ void SerialConnVT::UpdatePresentationPos(int flags)
         }
     }
 }
-
+//
 void SerialConnVT::UpdateVScrollbar()
 {
-    mSbV.SetTotal((int)(GetVTLinesHeight(mLines) + GetVTLinesHeight(mLinesBuffer)));
+    AutoLocker _(mLockVt);
+    //
+    int vmax = (int)(GetVTLinesHeight(mLines) + GetVTLinesHeight(mLinesBuffer));
+    this->mSbV.SetTotal(vmax);
     if (mScrollToEnd) {
         mSbV.End();
     }
@@ -1692,6 +1708,7 @@ void SerialConnVT::UpdateVScrollbar()
 
 void SerialConnVT::UpdateHScrollbar()
 {
+    AutoLocker _(mLockVt);
 #if ENABLE_H_SCROLLBAR
     int lx = 0, ly = mSbV.Get();
     int px, next_px, py, next_py;
@@ -1738,16 +1755,14 @@ void SerialConnVT::UpdateHScrollbar()
     mSbH.SetTotal(longest_linesz);
 #endif
 }
-
+//
 void SerialConnVT::UpdatePresentation()
 {
-    UpdateVScrollbar();
-    UpdateHScrollbar();
-    UpdatePresentationPos();
-    //
-    Refresh();
+    this->UpdateVScrollbar();
+    this->UpdateHScrollbar();
+    this->Refresh();
 }
-
+// invoked by Render
 void SerialConnVT::DrawVT(Draw& draw)
 {
     // calculate offset
@@ -1787,6 +1802,7 @@ void SerialConnVT::DrawVT(Draw& draw)
 
 void SerialConnVT::Render(Draw& draw)
 {
+    AutoLocker _(mLockVt);
     // draw background
     draw.DrawRect(GetRect(), mColorTbl.GetColor(VTColorTable::kColorId_Paper));
     //
