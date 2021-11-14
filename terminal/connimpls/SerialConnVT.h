@@ -63,6 +63,20 @@ public:
         {
         }
     };
+    //
+    void SetWrapLine(bool b);
+    void SetShowCursor(bool b);
+    //
+    Upp::Event<Upp::Bar&> WhenBar;
+
+protected:
+    ControlSeqFactory* mSeqsFactory;
+    std::map<int, std::function<void(const std::string_view&)>> mFunctions;
+    //
+    void RunParserBenchmark();
+    //
+    void ShowVTOptions();
+    //
     // public methods
     struct ScreenData {
         std::deque<VTLine> LinesBuffer;
@@ -80,19 +94,6 @@ public:
     void LoadScr(const ScreenData& sd);
     // swap current scr and sd
     void SwapScr(ScreenData& sd);
-    //
-    void SetWrapLine(bool b);
-    void SetShowCursor(bool b);
-    //
-    Upp::Event<Upp::Bar&> WhenBar;
-
-protected:
-    ControlSeqFactory* mSeqsFactory;
-    std::map<int, std::function<void(const std::string_view&)>> mFunctions;
-    //
-    void RunParserBenchmark();
-    //
-    void ShowVTOptions();
     //------------------------------------------------------------------------------------------
     // Font
     virtual void Paint(Upp::Draw& draw);
@@ -121,6 +122,7 @@ protected:
     Upp::Mutex mLockVt;   // protect virtual screen, before accessing VtSize, Lines, .etc
                           // you must acquire the LockVt.
     //--------------------------------------------------------------------------------------------
+    void ClearVt();
     //
     struct Seq {
         enum SeqType {
@@ -212,7 +214,7 @@ protected:
     //  1. Font
     //  2. Size of client region
     // after this function, the ScrollBar and display region were changed.
-    virtual void DoLayout();
+    virtual void ResizeVt(const Upp::Size& csz);
     //
     void UseStyle(const VTChar& c, Upp::Font& font, Upp::Color& fg_color, Upp::Color& bg_color,
         bool& blink, bool& visible);

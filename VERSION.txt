@@ -1,0 +1,4 @@
+V2.2.2a
+
+ 1. Parse and render seqs in the same thread
+ 2. SSH will block forever on exitting tab

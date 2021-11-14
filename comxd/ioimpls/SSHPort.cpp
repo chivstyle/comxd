@@ -37,9 +37,9 @@ SSHPort::SSHPort(std::shared_ptr<Upp::SshSession> session, String name, String t
 
 SSHPort::~SSHPort()
 {
-    //
-    mJob.Finish();
-    //
+    if (mJob.joinable()) {
+        mJob.join();
+    }
     delete mShell;
 }
 
@@ -54,9 +54,9 @@ void SSHPort::Stop()
 bool SSHPort::Start()
 {
     mShouldExit = false;
-    mJob& [=]() {
+    mJob = std::thread([=]() {
         mShell->Run(mTerm, 80, 34, Null);
-    };
+    });
     return true;
 }
 

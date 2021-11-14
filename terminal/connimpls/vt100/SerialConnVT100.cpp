@@ -366,9 +366,6 @@ void SerialConnVT100::LoadCursorData(const CursorDataVT100& cd)
     mPy = cd.Py;
     mCharset = cd.Charset;
     mStyle = cd.Style;
-    //
-    DoLayout();
-    UpdatePresentationPos();
 }
 void SerialConnVT100::ProcessDECSC(const std::string_view&)
 {

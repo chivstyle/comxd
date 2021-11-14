@@ -486,7 +486,7 @@ void SerialConnXterm::ProcessDECSM(const std::string_view& p)
             }
             this->SwapScr(mAlternateScr);
             if (pn == 1049) {
-                Clear();
+                ClearVt();
             }
         }
         mModes.SetDecpMode(pn, 1);

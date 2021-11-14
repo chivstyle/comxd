@@ -110,6 +110,11 @@ public:
                 int cnt = mDevsTab.GetCount();
                 for (int i = 0; i < cnt; ++i) {
                     TabCtrl::Item& item = mDevsTab.GetItem(i);
+                    auto conn = dynamic_cast<SerialConn*>(mDevsTab.GetItem(mDevsTab.Get()).GetSlave());
+                    if (conn) {
+                        conn->GetIo()->Stop();
+                        conn->Stop();
+                    }
                     delete item.GetCtrl();
                     delete item.GetSlave();
                 }

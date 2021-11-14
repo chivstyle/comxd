@@ -36,5 +36,5 @@ private:
     mutable std::mutex mLock;
     std::vector<unsigned char> mRxBuffer;
     volatile bool mShouldExit;
-    Upp::CoWorkNX mJob;
+    std::thread mJob;
 };

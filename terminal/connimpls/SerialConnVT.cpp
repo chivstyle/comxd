@@ -77,13 +77,13 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
     VTLine vline = VTLine(80, mBlankChar).SetHeight(mFontH);
     mLines.insert(mLines.begin(), 30, vline);
     mVtSize = Size(80, 30);
+    PostCallback([=] {
+        SetFocus();
+        Layout();
+    });
     //
     InstallUserActions();
     //
-    this->PostCallback([=]() {
-        this->SetFocus();
-        this->DoLayout();
-    });
 }
 
 SerialConnVT::~SerialConnVT()
@@ -150,7 +150,9 @@ void SerialConnVT::ShowVTOptions()
             vscr_modified = true;
         }
         if (vscr_modified) {
-            DoLayout();
+            Size vsz = GetSize();
+            ResizeVt(Size(vsz.cx / mFontW, vsz.cy / mFontH));
+            WhenSizeChanged(GetConsoleSize());
             UpdatePresentation();
         }
     }
@@ -231,8 +233,6 @@ void SerialConnVT::SetShowCursor(bool b)
 //
 void SerialConnVT::SaveScr(ScreenData& sd)
 {
-    AutoLocker _(mLockVt);
-    //
     sd.Vx = mVx;
     sd.Vy = mVy;
     sd.Style = mStyle;
@@ -243,24 +243,18 @@ void SerialConnVT::SaveScr(ScreenData& sd)
 
 void SerialConnVT::SwapScr(ScreenData& sd)
 {
-    AutoLocker _(mLockVt);
-    //
     std::swap(sd.Vx, mVx);
     std::swap(sd.Vy, mVy);
     std::swap(sd.Style, mStyle);
     std::swap(sd.Lines, mLines);
     std::swap(sd.LinesBuffer, mLinesBuffer);
     std::swap(sd.SelSpan, mSelectionSpan);
-    PostCallback([=]() {
-        DoLayout();
-        UpdatePresentation();
-    });
+    //
+    ResizeVt(mVtSize);
 }
 
 void SerialConnVT::LoadScr(const ScreenData& sd)
 {
-    AutoLocker _(mLockVt);
-    //
     mLinesBuffer = sd.LinesBuffer;
     mLines = sd.Lines;
     mVx = sd.Vx;
@@ -268,39 +262,37 @@ void SerialConnVT::LoadScr(const ScreenData& sd)
     mStyle = sd.Style;
     mSelectionSpan = sd.SelSpan;
     //
-    PostCallback([=]() {
-        DoLayout();
-        UpdatePresentation();
-    });
+    ResizeVt(mVtSize);
 }
 //
 void SerialConnVT::SetDefaultStyle()
 {
-    AutoLocker _(mLockVt);
-    //
     mStyle = VTStyle(); // default.
     mColorTbl.SetToDefault();
+}
+void SerialConnVT::ClearVt()
+{
+    SetDefaultStyle();
+    mLinesBuffer.clear();
+    mLines.clear();
+    //
+    ResizeVt(mVtSize);
+    //
+    mVx = 0;
+    mVy = 0;
+    mPx = 0;
+    mPy = 0;
 }
 //
 void SerialConnVT::Clear()
 {
     AutoLocker _(mLockVt);
     //
-    SetDefaultStyle();
-    mLinesBuffer.clear();
-    mLines.clear();
-    DoLayout();
-    //
-    mVx = 0;
-    mVy = 0;
-    mPx = 0;
-    mPy = 0;
+    ClearVt();
     //
     mScrollToEnd = true;
     //
-    PostCallback([=]() {
-        UpdatePresentation();
-    });
+    UpdatePresentation();
 }
 //
 int SerialConnVT::IsControlSeq(const std::string_view& seq, size_t& p_begin, size_t& p_sz, size_t& s_end)
@@ -1354,17 +1346,10 @@ void SerialConnVT::ShrinkVirtualScreen(int cx, int cy)
     }
 }
 //
-void SerialConnVT::DoLayout()
+void SerialConnVT::ResizeVt(const Size& csz)
 {
-    AutoLocker _(mLockVt);
-    //
-    Size viewsz = GetSize();
-    Size csz = { viewsz.cx / mFontW, viewsz.cy / mFontH };
-    // update vt size
     mVtSize = csz;
     // update page of scroll bar
-    mSbV.SetPage(mFontH * csz.cy);
-    mSbH.SetPage(mFontW * csz.cx);
     if (csz.cx <= 0 || csz.cy <= 0)
         return;
     // check and fix
@@ -1397,16 +1382,26 @@ void SerialConnVT::DoLayout()
         ShrinkVirtualScreen(csz.cx, csz.cy);
     }
     ProcessOverflowChars(Seq());
+    //
+    UpdatePresentationPos();
     // screen size was changed
     mScrollingRegion.Top = 0;
     mScrollingRegion.Bottom = -1;
-    //
-    WhenSizeChanged(GetConsoleSize());
 }
 
 void SerialConnVT::Layout()
 {
-    DoLayout();
+    AutoLocker _(mLockVt);
+    //
+    Size vsz = GetSize();
+    Size csz = Size(vsz.cx / mFontW, vsz.cy / mFontH);
+    //
+    mSbV.SetPage(mFontH * csz.cy);
+    mSbH.SetPage(mFontW * csz.cx);
+    //
+    ResizeVt(csz);
+    //
+    WhenSizeChanged(GetConsoleSize());
     //
     UpdatePresentation();
 }
@@ -1699,6 +1694,8 @@ void SerialConnVT::UpdateVScrollbar()
     AutoLocker _(mLockVt);
     //
     int vmax = (int)(GetVTLinesHeight(mLines) + GetVTLinesHeight(mLinesBuffer));
+    Size csz = GetConsoleSize();
+    this->mSbV.SetPage(mFontH * csz.cy);
     this->mSbV.SetTotal(vmax);
     if (mScrollToEnd) {
         mSbV.End();
@@ -1751,6 +1748,8 @@ void SerialConnVT::UpdateHScrollbar()
     if (vline) {
         longest_linesz = std::max(this->GetLogicWidth(*vline, mVx, false), longest_linesz);
     }
+    Size csz = GetConsoleSize();
+    mSbH.SetPage(mFontW * csz.cx);
     mSbH.SetTotal(longest_linesz);
 #endif
 }
