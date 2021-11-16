@@ -13,6 +13,7 @@
 #define ENABLE_H_SCROLLBAR 1
 #define ENABLE_BLINK_TEXT 1
 #define ENABLE_FIXED_LINE_HEIGHT 1
+#define ENABLE_BLANK_LINES_HINT_IN_SELECTION 1
 // register
 using namespace Upp;
 //----------------------------------------------------------------------------------------------
@@ -1653,12 +1654,17 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
     //
     Size csz = GetConsoleSize();
     int x = lxoff, y = lyoff, i = 0, r_margin = mFontW * csz.cx;
+    const Color& paper_color = mColorTbl.GetColor(VTColorTable::kColorId_Paper);
+#if ENABLE_BLANK_LINES_HINT_IN_SELECTION && ENABLE_FIXED_LINE_HEIGHT
+	if (vline.empty()) {
+		if (IsCharInSelectionSpan(0, vy)) {
+			draw.DrawRect(x, y, mFontW, mFontH, mColorTbl.GetColor(VTColorTable::kColorId_Texts));
+		}
+		return;
+	}
+#endif
     bool tail_selected = IsCharInSelectionSpan((int)vline.size() - 1, vy);
     bool line_selected = IsCharInSelectionSpan(0, vy) && tail_selected; // line was selected.
-    // draw blank chars
-    int abc_cnt = (int)vline.size() - this->CalculateNumberOfPureBlankCharsFromEnd(vline);
-    // style
-    const Color& paper_color = mColorTbl.GetColor(VTColorTable::kColorId_Paper);
     Color bg_color, fg_color;
     bool blink, visible;
     for (i = vx; i < (int)vline.size() && x < r_margin; ++i) {
@@ -1700,6 +1706,14 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
             std::swap(bg_color, fg_color);
         }
     }
+#if ENABLE_BLANK_LINES_HINT_IN_SELECTION && ENABLE_FIXED_LINE_HEIGHT
+	if (i < csz.cx) {
+		if (IsCharInSelectionSpan(i, vy)) {
+			draw.DrawRect(x, y, mFontW, mFontH, mColorTbl.GetColor(VTColorTable::kColorId_Texts));
+		}
+		return;
+	}
+#endif
 }
 
 void SerialConnVT::UpdateDataPos(int flags)
