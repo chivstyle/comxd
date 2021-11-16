@@ -36,7 +36,7 @@ SerialConnRaw::SerialConnRaw(std::shared_ptr<SerialIo> io)
 {
     this->mIo = io; //!< Important, let this as the first sentence.
     //
-    this->SetConnDescription("A common serial tool by chiv, v1.0a");
+    this->SetConnDescription("A common serial tool by chiv, v1.1a");
     //
     this->mRx.SetFrame(FieldFrame());
     this->mTx.SetFrame(FieldFrame());
@@ -452,7 +452,11 @@ void SerialConnRaw::OnSend()
         // write as hex.
         auto hex_ = ToHex_(tx);
         if (mTxProto) {
-            ret = mTxProto->TransmitData(hex_.data(), hex_.size(), errmsg);
+            if (mTxProto->SupportTransmitData()) {
+                ret = mTxProto->TransmitData(hex_.data(), hex_.size(), errmsg);
+            } else {
+                errmsg = mTxProto->GetName() + " dose not support TransmitData";
+            }
         } else {
             ret = (int)GetIo()->Write(hex_);
         }
@@ -462,13 +466,18 @@ void SerialConnRaw::OnSend()
             text = TranslateEscapeChars(text);
         }
         if (mTxProto) {
-            ret = mTxProto->TransmitData(text.c_str(), text.length(), errmsg);
+            if (mTxProto->SupportTransmitData()) {
+                ret = mTxProto->TransmitData(text.c_str(), text.length(), errmsg);
+            } else {
+                errmsg = mTxProto->GetName() + " dose not support TransmitData";
+            }
         } else {
             auto tmp = ReplaceLineBreak_(text, mLineBreaks.GetKey(mLineBreaks.GetIndex()).To<int>());
             ret = (int)GetIo()->Write(GetCodec()->TranscodeFromUTF8((const unsigned char*)tmp.c_str(), tmp.length()));
         }
     }
-    this->mTmpStatus.SetText(errmsg.c_str());
+    WhenWarning(errmsg.c_str());
+    //
     if (ret > 0)
         mNumBytesTx += ret;
     // update

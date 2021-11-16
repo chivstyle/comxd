@@ -13,7 +13,7 @@ public:
     std::string GetDescription() const;
     //
     bool SupportTransmitData() const { return true; }
-    int Transmit(const void* input, size_t input_size, std::string& errmsg);
+    int TransmitData(const void* input, size_t input_size, std::string& errmsg);
 };
 
 }

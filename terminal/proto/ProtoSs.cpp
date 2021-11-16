@@ -92,7 +92,7 @@ std::string _Pack(const void* input, size_t input_size, std::string& errmsg)
     return out;
 }
 
-int ProtoSs::Transmit(const void* input, size_t input_size, std::string& errmsg)
+int ProtoSs::TransmitData(const void* input, size_t input_size, std::string& errmsg)
 {
     auto out = _Pack(input, input_size, errmsg);
     if (out.empty())

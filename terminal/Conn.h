@@ -34,7 +34,8 @@ public:
     // terminal size changed
     Upp::Event<Upp::Size> WhenSizeChanged;
     Upp::Event<Upp::Bar&> WhenUsrBar;
-
+    Upp::Event<Upp::String> WhenTitle;
+    Upp::Event<Upp::String> WhenWarning;
 protected:
     std::shared_ptr<SerialIo> mIo;
     std::shared_ptr<Codec> mCodec;

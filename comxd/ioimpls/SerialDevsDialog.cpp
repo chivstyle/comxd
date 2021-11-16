@@ -5,6 +5,21 @@
 #include "SerialDevsDialog.h"
 #include "CodecFactory.h"
 #include "ConnFactory.h"
+#include "ConnCreateFactory.h"
+
+namespace {
+class __class_to_create_conn_serial {
+public:
+    __class_to_create_conn_serial()
+    {
+        ConnCreateFactory::Inst()->RegisterInstanceFunc("Serial", "Serial Port", comxd::new_serial(), [=]() {
+            SerialDevsDialog d;
+            return d.RequestConn();
+        });
+    }
+};
+__class_to_create_conn_serial __serial_conn_create;
+}
 
 static int kBaudrates[] = { 921600, 460800, 256000, 230400, 153600,
     128000, 115200, 38400, 76800, 57600, 28800, 19200, 14400,

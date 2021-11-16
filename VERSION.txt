@@ -13,3 +13,10 @@ v2.2.4a
  1. Add ENABLE_CHECK_THREAD for debug
  2. Remove C++17/string_view
  3. I reinstall upp, and recompile the comxd, got better performace
+ 
+v2.2.5a
+ 1. Use Factory in comxd, ConnCreateFactory
+ 2. Use new icons for Serial and SSH
+ 3. Fix bugs in ProtoSs
+ 4. Place warning into statusbar
+ 5. Update conn "Assistant" to v1.1a

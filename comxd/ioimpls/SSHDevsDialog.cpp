@@ -6,8 +6,23 @@
 #include "CodecFactory.h"
 #include "ConnFactory.h"
 #include "SSHPort.h"
+#include "ConnCreateFactory.h"
 
 using namespace Upp;
+
+namespace {
+class __class_to_create_conn_ssh {
+public:
+    __class_to_create_conn_ssh()
+    {
+        ConnCreateFactory::Inst()->RegisterInstanceFunc("SSH", "SSH Shell", comxd::new_ssh(), [=]() {
+            SSHDevsDialog d;
+            return d.RequestConn();
+        });
+    }
+};
+__class_to_create_conn_ssh __ssh_conn_create;
+}
 
 SSHDevsDialog::SSHDevsDialog()
 {

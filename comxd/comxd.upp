@@ -27,6 +27,8 @@ file
 	ioimpls/SSHDevsDialog.cpp,
 	ioimpls/SerialDevsDialog.h,
 	ioimpls/SerialDevsDialog.cpp,
+	ConnCreateFactory.cpp,
+	ConnCreateFactory.h,
 	main.cpp;
 
 mainconfig

@@ -2,9 +2,8 @@
 // (C) 2020 chiv
 //
 #include "resource.h"
-// dialogs or forms
-#include "ioimpls/SSHDevsDialog.h"
-#include "ioimpls/SerialDevsDialog.h"
+//
+#include "ConnCreateFactory.h"
 // main window
 class MainWindow : public WithMainWindow<TopWindow> {
     typedef MainWindow CLASSNAME;
@@ -63,31 +62,6 @@ public:
         Ctrl* mConn;
         TabCtrl* mTabbar;
     };
-    // create a new connection
-    void NewSerialConn()
-    {
-        SerialDevsDialog d;
-        auto conn = d.RequestConn();
-        if (conn) {
-            auto btn_close = new TabCloseBtn(conn, &mDevsTab);
-            btn_close->SetImage(comxd::close_little());
-            btn_close->SetRect(0, 0, 16, 16);
-            mDevsTab.Add(conn->SizePos(), conn->ConnName()).SetCtrl(btn_close);
-            mDevsTab.Set(*conn);
-        }
-    }
-    void NewSSHConn()
-    {
-        SSHDevsDialog d;
-        auto conn = d.RequestConn();
-        if (conn) {
-            auto btn_close = new TabCloseBtn(conn, &mDevsTab);
-            btn_close->SetImage(comxd::close_little());
-            btn_close->SetRect(0, 0, 16, 16);
-            mDevsTab.Add(conn->SizePos(), conn->ConnName()).SetCtrl(btn_close);
-            mDevsTab.Set(*conn);
-        }
-    }
     //
     void OnDevsTabSet()
     {
@@ -132,8 +106,28 @@ protected:
     // Add a toolbar for window
     void MainToolbar(Bar& bar)
     {
-        bar.Add(t_("New Serial"), comxd::new_serial(), THISBACK(NewSerialConn));
-        bar.Add(t_("New SSH"), comxd::new_ssh(), THISBACK(NewSSHConn));
+        auto& conns = ConnCreateFactory::Inst()->GetSupportedConnIntroductions();
+        for (auto it = conns.begin(); it != conns.end(); ++it) {
+            bar.Add(it->second.Name, it->second.Icon, [=]() {
+                // If we run codes here diretly, the program will crash, so we
+                // put these codes to PostCallback
+                PostCallback([=]() {
+                    auto conn = it->second.Create();
+                    if (conn) {
+                        conn->WhenWarning = [=](Upp::String warning) {
+                            mStatusbar.Set(1, warning, 500);
+                        };
+                        auto btn_close = new TabCloseBtn(conn, &mDevsTab);
+                        btn_close->SetImage(comxd::close_little());
+                        btn_close->SetRect(0, 0, 16, 16);
+                        mDevsTab.Add(conn->SizePos(), conn->ConnName()).SetCtrl(btn_close);
+                        // set current to conn
+                        mDevsTab.Set(*conn);
+                    }
+                });
+            }).Tip(it->second.Desc);
+        }
+        //
         bar.ToolSeparator();
         //
         OndemandToolbar(bar);

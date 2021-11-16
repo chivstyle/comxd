@@ -269,7 +269,7 @@ int ProtoYmodem::TransmitData(const void* input, size_t input_size, std::string&
 {
     (void)input;
     (void)input_size;
-    errmsg = "XMODEM only support file(s) transmit!";
+    errmsg = "YMODEM only support file(s) transmit!";
     return T_NOT_SUPPORTED;
 }
 
