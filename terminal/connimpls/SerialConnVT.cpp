@@ -52,6 +52,7 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
     mSbH.Set(0);
     AddFrame(mSbH);
     mSbH.WhenScroll = [=]() {
+        this->UpdatePresentation();
         Refresh();
     };
 #endif
@@ -66,6 +67,7 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
         } else {
             mScrollToEnd = false;
         }
+        this->UpdatePresentation();
         Refresh();
     };
 #if ENABLE_BLINK_TEXT
