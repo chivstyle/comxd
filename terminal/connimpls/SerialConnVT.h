@@ -18,32 +18,91 @@
 #include <mutex>
 #include <queue>
 #include <thread>
-
+////////////////////////////////////////////////////////////////////////////////////////////////
+//                   IMPORTANT INFORMATION
+//  1. DO NOT INVOKE ANY FUNCTIONS IN THE HANDLERs OF VT Sequences
+//  2. Before accessing any resources of VT, please Acquire the LOCK firstly
+//     VT resources includes :
+//       a. Lines
+//       b. BufferLines
+//       c. Style
+//       d. Vx,Vy, Px,Py
+//       e. ColorTable
+//       f. ScrollRegion
+//     In the Handlers, you can access these resources freely without lock them.
+//
+////////////////////////////////////////////////////////////////////////////////////////////////
 namespace Upp {
-    class AutoLocker {
+    class DebugMutex : public NoCopy {
     public:
-        AutoLocker(Mutex& mutex)
-            : mMtx(mutex)
+        class Lock {
+        public:
+            Lock(DebugMutex& mtx)
+                : mMtx(mtx)
+            {
+                mtx.Enter();
+            }
+            virtual ~Lock()
+            {
+                mMtx.Leave();
+            }
+        private:
+            DebugMutex& mMtx;
+        };
+        
+        void Enter()
         {
             mMtx.Enter();
+            mOwnerId = std::this_thread::get_id();
         }
-        ~AutoLocker()
+        void Leave()
         {
             mMtx.Leave();
+            // stands for There's no thread owning this lock
+            mOwnerId = std::thread::id();
         }
+        
+        std::thread::id GetOwnerId() const { return mOwnerId; }
+        
     private:
-        Mutex& mMtx;
+        Mutex mMtx;
+        //
+        std::thread::id mOwnerId;
     };
 }
-
+#define ENABLE_THREAD_CHECK 0
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+#if ENABLE_THREAD_CHECK
+#define CHECK_GUI_THREAD() do { \
+    if (GetOwnerId() != std::this_thread::get_id()) { \
+        std::string report = std::string("You must invoke ") + __FUNCTION__ + " from GUI thread"; \
+        PromptOK(DeQtf(report.c_str())); \
+        abort(); \
+    } \
+} while (0)
+// This codes maybe run in Non GUI thread, in that case, the Framework will report an error, or
+// the program will block forever on acquiring Gui Lock...
+#define CHECK_LOCK_VT() do { \
+    if (mLockVt.GetOwnerId() != std::this_thread::get_id()) { \
+        std::string report = std::string("You must acuire the LockVt before invoking ") + __FUNCTION__; \
+        PromptOK(DeQtf(report.c_str())); \
+        abort(); \
+    } \
+} while (0)
+#else
+#define CHECK_GUI_THREAD()
+#define CHECK_LOCK_VT()
+#endif
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
 class ControlSeqFactory;
 class SerialConnVT : public SerialConn {
 public:
     using Superclass = SerialConn;
     SerialConnVT(std::shared_ptr<SerialIo> io);
     virtual ~SerialConnVT();
-    //
+    // start the works
     virtual bool Start();
+    // stop the works
     virtual void Stop();
     // clear screen and buffer, restore default, .etc, you can override it
     virtual void Clear();
@@ -71,7 +130,7 @@ public:
 
 protected:
     ControlSeqFactory* mSeqsFactory;
-    std::map<int, std::function<void(const std::string_view&)>> mFunctions;
+    std::map<int, std::function<void(const std::string&)>> mFunctions;
     //
     void RunParserBenchmark();
     //
@@ -119,8 +178,8 @@ protected:
     Upp::Size          mVtSize;
     Upp::Size GetConsoleSize() const { return mVtSize; }
     //-------------------------------------------------------------------------------------------
-    Upp::Mutex mLockVt;   // protect virtual screen, before accessing VtSize, Lines, .etc
-                          // you must acquire the LockVt.
+    Upp::DebugMutex mLockVt;   // protect virtual screen, before accessing VtSize, Lines, .etc
+                               // you must acquire the LockVt.
     //--------------------------------------------------------------------------------------------
     void ClearVt();
     //
@@ -133,10 +192,15 @@ protected:
         int Type;
         std::pair<int, std::string> Ctrl;
         std::vector<uint32_t> Text;
-        Seq(int seq_type, const std::string_view& p)
+        Seq(int seq_type, const char* p)
         {
             Type = CTRL_SEQ;
             Ctrl = std::make_pair(seq_type, p);
+        }
+        Seq(int seq_type, const char* p, size_t sz)
+        {
+            Type = CTRL_SEQ;
+            Ctrl = std::make_pair(seq_type, std::string(p, p + sz));
         }
         Seq(std::vector<uint32_t>&& seq)
         {
@@ -154,10 +218,10 @@ protected:
         }
     };
     //
-    size_t ParseSeqs(const std::string_view& raw, std::vector<struct Seq>& seqs);
+    size_t ParseSeqs(const char* input, size_t input_sz, std::deque<struct Seq>& seqs);
     //
     virtual void RenderSeq(const Seq& seq);
-    virtual void RenderSeqs(const std::vector<Seq>& seqs);
+    virtual void RenderSeqs(const std::deque<Seq>& seqs);
     //
     virtual void Put(const std::string& s);
     //-------------------------------------------------------------------------------------
@@ -259,11 +323,11 @@ protected:
     ///   it will be processed later.
     ///   If IsControlSeq returns true, it should set the p_begin, p_sz to tell the receiver
     ///   the location and size of the parameter.
-    virtual int IsControlSeq(const std::string_view& seq, size_t& p_begin, size_t& p_sz, size_t& s_end);
+    virtual int IsControlSeq(const char* input, size_t input_sz, size_t& p_begin, size_t& p_sz, size_t& s_end);
     /// process the seq
     /// @param seq_type Type of sequence
     /// @param p Parameter of this sequence
-    virtual bool ProcessControlSeq(int seq_type, const std::string_view& p);
+    virtual bool ProcessControlSeq(int seq_type, const std::string& p);
     // with K_DELTA
     virtual bool ProcessKeyDown(Upp::dword key, Upp::dword flags);
     virtual bool ProcessKeyUp(Upp::dword key, Upp::dword flags);
@@ -313,6 +377,8 @@ protected:
     int mTabWidth;
     //------------------------------------------------------------------------------------------
     bool IsCharInSelectionSpan(int vx, int vy, const SelectionSpan& selection_span) const;
+    //
+    std::thread::id GetOwnerId() const { return mOwnerId; }
 private:
     bool mWrapLine;
     bool mScrollToEnd;
@@ -320,6 +386,8 @@ private:
     bool mShowCursor;
     int mBackgroundColorId;
     int mForegroundColorId;
+    //
+    std::thread::id mOwnerId;
     // receiver
     volatile bool mRxShouldStop;
     void RxProc();

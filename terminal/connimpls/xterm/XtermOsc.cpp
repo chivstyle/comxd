@@ -25,7 +25,7 @@ static inline Color XParseColor(const std::string& spec)
                      (int)strtol(ps[3].c_str(), nullptr, 16));
     } else if (ps[0] == "CIEXYZ") {
     } else if (ps[0] == "CIEuvY") {
-    } else if (ps[0] == "CIExyY") { 
+    } else if (ps[0] == "CIExyY") {
     } else if (ps[0] == "CIELab") {
     } else if (ps[0] == "CIELuv") {
     } else if (ps[0] == "TekHVC") {
@@ -34,7 +34,7 @@ static inline Color XParseColor(const std::string& spec)
     return Color(rand() % 255, rand() % 255, rand() % 255);
 }
 
-void SerialConnXterm::ProcessOSC(const std::string_view& p)
+void SerialConnXterm::ProcessOSC(const std::string& p)
 {
     std::string ps[16];
     int idx = 0;

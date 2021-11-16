@@ -15,8 +15,9 @@ public:
     explicit SerialConn(std::shared_ptr<SerialIo> io);
     SerialConn() { }
     virtual ~SerialConn() { }
-    // start the conn
+    // start the works
     virtual bool Start() { return true; }
+    // stop the works
     virtual void Stop() {}
     //
     void SetCodec(const char* codec_name);

@@ -6,33 +6,33 @@
 /// return - <0 Failed
 ///        - =0 Need more
 ///        - >0 End of pn
-static inline int ParsePs(const std::string_view& seq, size_t p_begin)
+static inline int ParsePs(const char* input, size_t input_sz, size_t p_begin)
 {
-    while (p_begin < seq.length() && seq[p_begin] >= '0' && seq[p_begin] <= '9') {
+    while (p_begin < input_sz && input[p_begin] >= '0' && input[p_begin] <= '9') {
         p_begin++;
     }
-    if (p_begin == seq.length())
+    if (p_begin == input_sz)
         return 0; // Need more
     else {
         return (int)p_begin;
     }
 }
 //
-static inline int ParsePs(const std::string_view& seq, size_t p_begin, int pn_count)
+static inline int ParsePs(const char* input, size_t input_sz, size_t p_begin, int pn_count)
 {
     if (pn_count > 0) {
-        int p = ParsePs(seq, p_begin);
+        int p = ParsePs(input, input_sz, p_begin);
         if (p == 0)
             return 0;
         else {
             pn_count--;
             while (pn_count--) {
-                if (seq[p] == ';') {
+                if (input[p] == ';') {
                     p++;
-                    if (p >= seq.length())
+                    if (p >= input_sz)
                         return 0; // need more
                     //
-                    p = ParsePs(seq, p);
+                    p = ParsePs(input, input_sz, p);
                     if (p == 0)
                         return 0;
                 } else
@@ -41,10 +41,10 @@ static inline int ParsePs(const std::string_view& seq, size_t p_begin, int pn_co
             return p;
         }
     } else {
-        while (p_begin < seq.length() && (seq[p_begin] >= '0' && seq[p_begin] <= '9' || seq[p_begin] == ';')) {
+        while (p_begin < input_sz && (input[p_begin] >= '0' && input[p_begin] <= '9' || input[p_begin] == ';')) {
             p_begin++;
         }
-        if (p_begin == seq.length())
+        if (p_begin == input_sz)
             return 0; // Need more
         else {
             return (int)p_begin;
@@ -54,33 +54,33 @@ static inline int ParsePs(const std::string_view& seq, size_t p_begin, int pn_co
 /// return - <0 Failed
 ///        - =0 Need more
 ///        - >0 End of pn
-static inline int ParsePn(const std::string_view& seq, size_t p_begin)
+static inline int ParsePn(const char* input, size_t input_sz, size_t p_begin)
 {
-    while (p_begin < seq.length() && seq[p_begin] >= '0' && seq[p_begin] <= '9') {
+    while (p_begin < input_sz && input[p_begin] >= '0' && input[p_begin] <= '9') {
         p_begin++;
     }
-    if (p_begin == seq.length())
+    if (p_begin == input_sz)
         return 0; // Need more
     else {
         return (int)p_begin;
     }
 }
 
-static inline int ParsePn(const std::string_view& seq, size_t p_begin, int pn_count)
+static inline int ParsePn(const char* input, size_t input_sz, size_t p_begin, int pn_count)
 {
     if (pn_count > 0) {
-        int p = ParsePn(seq, p_begin);
+        int p = ParsePn(input, input_sz, p_begin);
         if (p == 0)
             return 0;
         else {
             pn_count--;
             while (pn_count--) {
-                if (seq[p] == ';') {
+                if (input[p] == ';') {
                     p++;
-                    if (p >= seq.length())
+                    if (p >= input_sz)
                         return 0; // need more
                     //
-                    p = ParsePn(seq, p);
+                    p = ParsePn(input, input_sz, p);
                     if (p == 0)
                         return 0;
                 } else
@@ -89,10 +89,10 @@ static inline int ParsePn(const std::string_view& seq, size_t p_begin, int pn_co
             return p;
         }
     } else {
-        while (p_begin < seq.length() && (seq[p_begin] >= '0' && seq[p_begin] <= '9' || seq[p_begin] == ';')) {
+        while (p_begin < input_sz && (input[p_begin] >= '0' && input[p_begin] <= '9' || input[p_begin] == ';')) {
             p_begin++;
         }
-        if (p_begin == seq.length())
+        if (p_begin == input_sz)
             return 0; // Need more
         else {
             return (int)p_begin;
@@ -100,43 +100,44 @@ static inline int ParsePn(const std::string_view& seq, size_t p_begin, int pn_co
     }
 }
 // Valid chars, from 0x20~0x74
-static inline int ParseGs(const std::string_view& seq, size_t p_begin)
+static inline int ParseGs(const char* input, size_t input_sz, size_t p_begin)
 {
     // we should accept anything except the ASCII control chars
-    while (p_begin < seq.length() && (unsigned char)seq[p_begin] >= 0x20 && seq[p_begin] != 0x7f) {
+    while (p_begin < input_sz && (unsigned char)input[p_begin] >= 0x20 && input[p_begin] != 0x7f) {
         p_begin++;
     }
-    if (p_begin == seq.length())
+    if (p_begin == input_sz)
         return 0; // Need more
     else {
         return (int)p_begin;
     }
 }
 //
-static inline int ParseGn(const std::string_view& seq, size_t p_begin, int pn)
+static inline int ParseGn(const char* input, size_t input_sz, size_t p_begin, int pn)
 {
+	(void)input; // unused
     int cn = 0;
-    for (size_t k = p_begin; k < seq.length() && cn < pn; ++k) {
+    for (size_t k = p_begin; k < input_sz && cn < pn; ++k) {
         cn++;
     }
     return cn < pn ? 0 : (int)p_begin + cn;
 }
 
-int ControlSeqFactory::IsControlSeq(const std::string_view& seq, size_t& p_begin, size_t& p_sz, size_t& s_end)
+int ControlSeqFactory::IsControlSeq(const char* input, size_t input_sz, size_t& p_begin, size_t& p_sz, size_t& s_end)
 {
     int type = SEQ_NONE;
-    s_end = seq.length();
+    s_end = input_sz;
     size_t head_max = 0;
     for (auto it = mSeqs.begin(); it != mSeqs.end(); ++it) {
         // match head.
         if (head_max > 0 && it->Head.length() < head_max)
             continue;
         size_t k = 0;
-        for (; k < seq.length() && k < it->Head.length(); ++k) {
-            if (seq[k] != it->Head[k])
+        for (; k < input_sz && k < it->Head.length(); ++k) {
+            if (input[k] != it->Head[k])
                 break;
         }
-        if (k == seq.length() && k < it->Head.length()) {
+        if (k == input_sz && k < it->Head.length()) {
             type = SEQ_PENDING; // Need more chars
             break;
         } else if (k < it->Head.length()) {
@@ -154,16 +155,16 @@ int ControlSeqFactory::IsControlSeq(const std::string_view& seq, size_t& p_begin
         int ret = -1; // 0 - Need more, >0 the end of parameter, <0 parameter was wrong
         switch (it->Ptyp) {
         case ControlSeq::Pn:
-            ret = ParsePn(seq, p_begin, it->Pnum);
+            ret = ParsePn(input, input_sz, p_begin, it->Pnum);
             break;
         case ControlSeq::Ps:
-            ret = ParsePn(seq, p_begin, it->Pnum);
+            ret = ParsePn(input, input_sz, p_begin, it->Pnum);
             break;
         case ControlSeq::Gs:
-            ret = ParseGs(seq, p_begin);
+            ret = ParseGs(input, input_sz, p_begin);
             break;
         case ControlSeq::Gn:
-            ret = ParseGn(seq, p_begin, it->Pnum);
+            ret = ParseGn(input, input_sz, p_begin, it->Pnum);
             break;
         case ControlSeq::No:
             ret = (int)p_begin;
@@ -177,11 +178,11 @@ int ControlSeqFactory::IsControlSeq(const std::string_view& seq, size_t& p_begin
         else if (ret == 0)
             return SEQ_PENDING;
         else {
-            if (ret >= (int)seq.length() && !it->Tail.empty())
+            if (ret >= (int)input_sz && !it->Tail.empty())
                 return SEQ_PENDING;
-            size_t ln = std::min(seq.length() - (size_t)ret, it->Tail.length()), i = 0;
+            size_t ln = std::min(input_sz - (size_t)ret, it->Tail.length()), i = 0;
             for (; i < ln; ++i) {
-                if (seq[ret + i] != it->Tail[i])
+                if (input[ret + i] != it->Tail[i])
                     break;
             }
             if (i == it->Tail.length()) {

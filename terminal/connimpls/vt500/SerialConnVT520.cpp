@@ -32,13 +32,13 @@ void SerialConnVT520::LoadDefaultModes()
 
 void SerialConnVT520::InstallFunctions()
 {
-    mFunctions[DECAC] = [=](const std::string_view& p) { ProcessDECAC(p); };
-    mFunctions[DECRQM_ANSI] = [=](const std::string_view& p) { ProcessDECRQM_ANSI(p); };
-    mFunctions[DECRQM_DECP] = [=](const std::string_view& p) { ProcessDECRQM_DECP(p); };
-    mFunctions[DECST8C] = [=](const std::string_view& p) { ProcessDECST8C(p); };
+    mFunctions[DECAC] = [=](const std::string& p) { ProcessDECAC(p); };
+    mFunctions[DECRQM_ANSI] = [=](const std::string& p) { ProcessDECRQM_ANSI(p); };
+    mFunctions[DECRQM_DECP] = [=](const std::string& p) { ProcessDECRQM_DECP(p); };
+    mFunctions[DECST8C] = [=](const std::string& p) { ProcessDECST8C(p); };
 }
 
-void SerialConnVT520::ProcessDECST8C(const std::string_view&)
+void SerialConnVT520::ProcessDECST8C(const std::string&)
 {
     this->mTabWidth = 8;
 }
@@ -74,36 +74,36 @@ void SerialConnVT520::ProcessDECST8C(const std::string_view&)
         } else                                            \
             SerialConnVT420::ProcessG##g##_CS96(p);       \
     } while (0)
-void SerialConnVT520::ProcessG0_CS(const std::string_view& p)
+void SerialConnVT520::ProcessG0_CS(const std::string& p)
 {
     DO_SET_CHARSET(0);
 }
-void SerialConnVT520::ProcessG1_CS(const std::string_view& p)
+void SerialConnVT520::ProcessG1_CS(const std::string& p)
 {
     DO_SET_CHARSET(1);
 }
-void SerialConnVT520::ProcessG2_CS(const std::string_view& p)
+void SerialConnVT520::ProcessG2_CS(const std::string& p)
 {
     DO_SET_CHARSET(2);
 }
-void SerialConnVT520::ProcessG3_CS(const std::string_view& p)
+void SerialConnVT520::ProcessG3_CS(const std::string& p)
 {
     DO_SET_CHARSET(3);
 }
-void SerialConnVT520::ProcessG1_CS96(const std::string_view& p)
+void SerialConnVT520::ProcessG1_CS96(const std::string& p)
 {
     DO_SET_CHARSET96(1);
 }
-void SerialConnVT520::ProcessG2_CS96(const std::string_view& p)
+void SerialConnVT520::ProcessG2_CS96(const std::string& p)
 {
     DO_SET_CHARSET96(2);
 }
-void SerialConnVT520::ProcessG3_CS96(const std::string_view& p)
+void SerialConnVT520::ProcessG3_CS96(const std::string& p)
 {
     DO_SET_CHARSET96(3);
 }
 
-void SerialConnVT520::ProcessDECRQM_ANSI(const std::string_view& p)
+void SerialConnVT520::ProcessDECRQM_ANSI(const std::string& p)
 {
     int ps = atoi(p.data());
     std::string rsp = std::string("\033[") + std::to_string(ps) + ";";
@@ -128,7 +128,7 @@ void SerialConnVT520::ProcessDECRQM_ANSI(const std::string_view& p)
         break;
     }
 }
-void SerialConnVT520::ProcessDECRQM_DECP(const std::string_view& p)
+void SerialConnVT520::ProcessDECRQM_DECP(const std::string& p)
 {
     int ps = atoi(p.data());
     std::string rsp = std::string("\033[?") + std::to_string(ps) + ";";
@@ -141,7 +141,7 @@ void SerialConnVT520::ProcessDECRQM_DECP(const std::string_view& p)
     }
 }
 
-void SerialConnVT520::ProcessDECAC(const std::string_view& p)
+void SerialConnVT520::ProcessDECAC(const std::string& p)
 {
     int ps[3] = {0}, idx = 0;
     SplitString(p.data(), ";", [=, &ps, &idx](const char* token) {
@@ -161,7 +161,7 @@ void SerialConnVT520::ProcessDECAC(const std::string_view& p)
     }
 }
 
-void SerialConnVT520::ProcessDA(const std::string_view& p)
+void SerialConnVT520::ProcessDA(const std::string& p)
 {
     int ps = atoi(p.data());
     switch (ps) {
@@ -192,7 +192,7 @@ void SerialConnVT520::ProcessDA(const std::string_view& p)
     }
 }
 
-void SerialConnVT520::ProcessDECSCL(const std::string_view& p)
+void SerialConnVT520::ProcessDECSCL(const std::string& p)
 {
     int idx = 0;
     int ps[2] = {0, 0};
@@ -211,7 +211,7 @@ void SerialConnVT520::ProcessDECSCL(const std::string_view& p)
         SerialConnVT420::ProcessDECSCL(p);
 }
 
-void SerialConnVT520::ProcessSecondaryDA(const std::string_view& p)
+void SerialConnVT520::ProcessSecondaryDA(const std::string& p)
 {
     int pn = atoi(p.data());
     switch (pn) {

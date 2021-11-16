@@ -14,7 +14,7 @@ SSHPort::SSHPort(std::shared_ptr<Upp::SshSession> session, String name, String t
 {
     mShell = new SshShell(*mSession.get());
     mShell->Timeout(Null);
-    mShell->SetReadWindowSize(1024);
+    //mShell->SetReadWindowSize(1024);
     mShell->WhenOutput = [=](const void* out, int out_len) {
         if (out_len > 0 && mShouldExit == false) {
             std::unique_lock<std::mutex> _(mLock);

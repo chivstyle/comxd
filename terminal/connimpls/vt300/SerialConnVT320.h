@@ -12,28 +12,28 @@ public:
 
 protected:
     // vt320
-    virtual void ProcessDECSASD(const std::string_view&);
-    virtual void ProcessDECSSDT(const std::string_view&);
-    virtual void ProcessDECRQTSR(const std::string_view&);
-    virtual void ProcessDECRQPSR(const std::string_view&);
-    virtual void ProcessDECRQM(const std::string_view&);
-    virtual void ProcessANSIRQM(const std::string_view&);
-    virtual void ProcessDECRPM(const std::string_view&);
-    virtual void ProcessDECRQUPSS(const std::string_view&);
-    virtual void ProcessG1_CS96(const std::string_view&);
-    virtual void ProcessG2_CS96(const std::string_view&);
-    virtual void ProcessG3_CS96(const std::string_view&);
+    virtual void ProcessDECSASD(const std::string&);
+    virtual void ProcessDECSSDT(const std::string&);
+    virtual void ProcessDECRQTSR(const std::string&);
+    virtual void ProcessDECRQPSR(const std::string&);
+    virtual void ProcessDECRQM(const std::string&);
+    virtual void ProcessANSIRQM(const std::string&);
+    virtual void ProcessDECRPM(const std::string&);
+    virtual void ProcessDECRQUPSS(const std::string&);
+    virtual void ProcessG1_CS96(const std::string&);
+    virtual void ProcessG2_CS96(const std::string&);
+    virtual void ProcessG3_CS96(const std::string&);
     // override vt220
-    void ProcessDECSCL(const std::string_view&);
-    void ProcessDECSEL(const std::string_view&);
-    void ProcessDECSED(const std::string_view&);
-    void ProcessDA(const std::string_view&);
-    void ProcessSecondaryDA(const std::string_view&);
+    void ProcessDECSCL(const std::string&);
+    void ProcessDECSEL(const std::string&);
+    void ProcessDECSED(const std::string&);
+    void ProcessDA(const std::string&);
+    void ProcessSecondaryDA(const std::string&);
     // override cs
-    void ProcessG0_CS(const std::string_view&);
-    void ProcessG1_CS(const std::string_view&);
-    void ProcessG2_CS(const std::string_view&);
-    void ProcessG3_CS(const std::string_view&);
+    void ProcessG0_CS(const std::string&);
+    void ProcessG1_CS(const std::string&);
+    void ProcessG2_CS(const std::string&);
+    void ProcessG3_CS(const std::string&);
     //
 private:
 	void LoadDefaultModes();

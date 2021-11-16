@@ -12,20 +12,20 @@ public:
 
 protected:
     // override vt320
-    void ProcessDECSCL(const std::string_view& p);
-    void ProcessDA(const std::string_view&);
-    void ProcessSecondaryDA(const std::string_view&);
-    void ProcessDECDSR(const std::string_view& p);
+    void ProcessDECSCL(const std::string& p);
+    void ProcessDA(const std::string&);
+    void ProcessSecondaryDA(const std::string&);
+    void ProcessDECDSR(const std::string& p);
     // vt400
-    virtual void ProcessTertiaryDA(const std::string_view&);
-    virtual void ProcessDECBI(const std::string_view&);
-    virtual void ProcessDECFI(const std::string_view&);
-    virtual void ProcessDECDC(const std::string_view&);
-    virtual void ProcessDECIC(const std::string_view&);
+    virtual void ProcessTertiaryDA(const std::string&);
+    virtual void ProcessDECBI(const std::string&);
+    virtual void ProcessDECFI(const std::string&);
+    virtual void ProcessDECDC(const std::string&);
+    virtual void ProcessDECIC(const std::string&);
     // override cs
-    void ProcessG1_CS96(const std::string_view&);
-    void ProcessG2_CS96(const std::string_view&);
-    void ProcessG3_CS96(const std::string_view&);
+    void ProcessG1_CS96(const std::string&);
+    void ProcessG2_CS96(const std::string&);
+    void ProcessG3_CS96(const std::string&);
     //
     void SetHostToS7C();
     void SetHostToS8C();

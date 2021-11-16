@@ -32,20 +32,20 @@ void SerialConnVT420::LoadDefaultModes()
 
 void SerialConnVT420::InstallFunctions()
 {
-    mFunctions[TertiaryDA] = [=](const std::string_view& p) { ProcessTertiaryDA(p); };
-    mFunctions[DECDC] = [=](const std::string_view& p) { ProcessDECDC(p); };
+    mFunctions[TertiaryDA] = [=](const std::string& p) { ProcessTertiaryDA(p); };
+    mFunctions[DECDC] = [=](const std::string& p) { ProcessDECDC(p); };
 }
 
-void SerialConnVT420::ProcessDECFI(const std::string_view& p)
+void SerialConnVT420::ProcessDECFI(const std::string& p)
 {
     mPx -= mFontW;
 }
-void SerialConnVT420::ProcessDECBI(const std::string_view& p)
+void SerialConnVT420::ProcessDECBI(const std::string& p)
 {
     mPx += mFontW;
 }
 
-void SerialConnVT420::ProcessDECDC(const std::string_view& p)
+void SerialConnVT420::ProcessDECDC(const std::string& p)
 {
     int pn = atoi(p.data());
     if (pn <= 0) pn = 1;
@@ -60,7 +60,7 @@ void SerialConnVT420::ProcessDECDC(const std::string_view& p)
         }
     }
 }
-void SerialConnVT420::ProcessDECIC(const std::string_view& p)
+void SerialConnVT420::ProcessDECIC(const std::string& p)
 {
     int pn = atoi(p.data());
     if (pn <= 0) pn = 1;
@@ -75,7 +75,7 @@ void SerialConnVT420::ProcessDECIC(const std::string_view& p)
     }
 }
 
-void SerialConnVT420::ProcessDECSCL(const std::string_view& p)
+void SerialConnVT420::ProcessDECSCL(const std::string& p)
 {
     int idx = 0;
     int ps[2] = {0, 0};
@@ -113,20 +113,20 @@ void SerialConnVT420::SetHostToS8C()
             SerialConnVT320::ProcessG##g##_CS96(p);       \
     } while (0)
 //
-void SerialConnVT420::ProcessG1_CS96(const std::string_view& p)
+void SerialConnVT420::ProcessG1_CS96(const std::string& p)
 {
     DO_SET_CHARSET96(1);
 }
-void SerialConnVT420::ProcessG2_CS96(const std::string_view& p)
+void SerialConnVT420::ProcessG2_CS96(const std::string& p)
 {
     DO_SET_CHARSET96(2);
 }
-void SerialConnVT420::ProcessG3_CS96(const std::string_view& p)
+void SerialConnVT420::ProcessG3_CS96(const std::string& p)
 {
     DO_SET_CHARSET96(3);
 }
 
-void SerialConnVT420::ProcessDA(const std::string_view& p)
+void SerialConnVT420::ProcessDA(const std::string& p)
 {
     int pn = atoi(p.data());
     switch (pn) {
@@ -146,7 +146,7 @@ void SerialConnVT420::ProcessDA(const std::string_view& p)
     }
 }
 
-void SerialConnVT420::ProcessSecondaryDA(const std::string_view& p)
+void SerialConnVT420::ProcessSecondaryDA(const std::string& p)
 {
     int pn = atoi(p.data());
     switch (pn) {
@@ -160,7 +160,7 @@ void SerialConnVT420::ProcessSecondaryDA(const std::string_view& p)
     }
 }
 
-void SerialConnVT420::ProcessTertiaryDA(const std::string_view& p)
+void SerialConnVT420::ProcessTertiaryDA(const std::string& p)
 {
     int pn = atoi(p.data());
     switch (pn) {
@@ -173,7 +173,7 @@ void SerialConnVT420::ProcessTertiaryDA(const std::string_view& p)
     }
 }
 // TODO: https://vt100.net/docs/vt420-uu/chapter9.html, 12 VT420 Reports
-void SerialConnVT420::ProcessDECDSR(const std::string_view& p)
+void SerialConnVT420::ProcessDECDSR(const std::string& p)
 {
     int pn = atoi(p.data());
     switch (pn) {

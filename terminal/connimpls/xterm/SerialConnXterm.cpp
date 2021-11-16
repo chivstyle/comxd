@@ -18,8 +18,6 @@ SerialConnXterm::SerialConnXterm(std::shared_ptr<SerialIo> io)
     SetConnDescription("xterm emulator, by chiv, v1.0a");
     //
     AddXtermControlSeqs(this->mSeqsFactory);
-    // take a snap the current screen
-    this->SaveScr(mAlternateScr);
     //
     LoadDefaultModes();
     //
@@ -32,22 +30,22 @@ void SerialConnXterm::LoadDefaultModes()
 
 void SerialConnXterm::InstallFunctions()
 {
-    mFunctions[XTPUSHCOLORS] = [=](const std::string_view& p) { ProcessXTPUSHCOLORS(p); };
-    mFunctions[XTPOPCOLORS] = [=](const std::string_view& p) { ProcessXTPOPCOLORS(p); };
-    mFunctions[XTSMGRAPHICS] = [=](const std::string_view& p) { ProcessXTSMGRAPHICS(p); };
-    mFunctions[XTHIMOUSE] = [=](const std::string_view& p) { ProcessXTHIMOUSE(p); };
-    mFunctions[XTRMTITLE] = [=](const std::string_view& p) { ProcessXTRMTITLE(p); };
-    mFunctions[XTMODKEYS] = [=](const std::string_view& p) { ProcessXTMODKEYS(p); };
-    mFunctions[XTSMPOINTER] = [=](const std::string_view& p) { ProcessXTSMPOINTER(p); };
-    mFunctions[XTPUSHSGR] = [=](const std::string_view& p) { ProcessXTPUSHSGR(p); };
-    mFunctions[XTPOPSGR] = [=](const std::string_view& p) { ProcessXTPOPSGR(p); };
-    mFunctions[XTVERSION] = [=](const std::string_view& p) { ProcessXTVERSION(p); };
-    mFunctions[XTRESTORE] = [=](const std::string_view& p) { ProcessXTRESTORE(p); };
-    mFunctions[XTSAVE] = [=](const std::string_view& p) { ProcessXTSAVE(p); };
-    mFunctions[XTWINOPS] = [=](const std::string_view& p) { ProcessXTWINOPS(p); };
-    mFunctions[XTSMTITLE] = [=](const std::string_view& p) { ProcessXTSMTITLE(p); };
-    mFunctions[XTCHECKSUM] = [=](const std::string_view& p) { ProcessXTCHECKSUM(p); };
-    mFunctions[XTDISABLEMODOPTS] = [=](const std::string_view& p) { ProcessXTDISABLEMODOPTS(p); };
+    mFunctions[XTPUSHCOLORS] = [=](const std::string& p) { ProcessXTPUSHCOLORS(p); };
+    mFunctions[XTPOPCOLORS] = [=](const std::string& p) { ProcessXTPOPCOLORS(p); };
+    mFunctions[XTSMGRAPHICS] = [=](const std::string& p) { ProcessXTSMGRAPHICS(p); };
+    mFunctions[XTHIMOUSE] = [=](const std::string& p) { ProcessXTHIMOUSE(p); };
+    mFunctions[XTRMTITLE] = [=](const std::string& p) { ProcessXTRMTITLE(p); };
+    mFunctions[XTMODKEYS] = [=](const std::string& p) { ProcessXTMODKEYS(p); };
+    mFunctions[XTSMPOINTER] = [=](const std::string& p) { ProcessXTSMPOINTER(p); };
+    mFunctions[XTPUSHSGR] = [=](const std::string& p) { ProcessXTPUSHSGR(p); };
+    mFunctions[XTPOPSGR] = [=](const std::string& p) { ProcessXTPOPSGR(p); };
+    mFunctions[XTVERSION] = [=](const std::string& p) { ProcessXTVERSION(p); };
+    mFunctions[XTRESTORE] = [=](const std::string& p) { ProcessXTRESTORE(p); };
+    mFunctions[XTSAVE] = [=](const std::string& p) { ProcessXTSAVE(p); };
+    mFunctions[XTWINOPS] = [=](const std::string& p) { ProcessXTWINOPS(p); };
+    mFunctions[XTSMTITLE] = [=](const std::string& p) { ProcessXTSMTITLE(p); };
+    mFunctions[XTCHECKSUM] = [=](const std::string& p) { ProcessXTCHECKSUM(p); };
+    mFunctions[XTDISABLEMODOPTS] = [=](const std::string& p) { ProcessXTDISABLEMODOPTS(p); };
 }
 
 void SerialConnXterm::LeftDown(Point p, dword keyflags)
@@ -262,7 +260,7 @@ void SerialConnXterm::LostFocus()
     SerialConnVT520::LostFocus();
 }
 
-void SerialConnXterm::ProcessSGR(const std::string_view& p)
+void SerialConnXterm::ProcessSGR(const std::string& p)
 {
     std::vector<int> ps;
     SplitString(p.data(), ":;", [=, &ps](const char* token) {
@@ -319,22 +317,22 @@ void SerialConnXterm::ProcessSGR(const std::string_view& p)
     }
 }
 
-void SerialConnXterm::ProcessXTPUSHCOLORS(const std::string_view&)
+void SerialConnXterm::ProcessXTPUSHCOLORS(const std::string&)
 {
 }
-void SerialConnXterm::ProcessXTPOPCOLORS(const std::string_view&)
+void SerialConnXterm::ProcessXTPOPCOLORS(const std::string&)
 {
 }
-void SerialConnXterm::ProcessXTSMGRAPHICS(const std::string_view&)
+void SerialConnXterm::ProcessXTSMGRAPHICS(const std::string&)
 {
 }
-void SerialConnXterm::ProcessXTHIMOUSE(const std::string_view&)
+void SerialConnXterm::ProcessXTHIMOUSE(const std::string&)
 {
 }
-void SerialConnXterm::ProcessXTRMTITLE(const std::string_view&)
+void SerialConnXterm::ProcessXTRMTITLE(const std::string&)
 {
 }
-void SerialConnXterm::ProcessXTDISABLEMODOPTS(const std::string_view& p)
+void SerialConnXterm::ProcessXTDISABLEMODOPTS(const std::string& p)
 {
     SplitString(p.data(), ";", [=](const char* token) {
         switch (atoi(token)) {
@@ -345,7 +343,7 @@ void SerialConnXterm::ProcessXTDISABLEMODOPTS(const std::string_view& p)
         }
     });
 }
-void SerialConnXterm::ProcessXTMODKEYS(const std::string_view& p)
+void SerialConnXterm::ProcessXTMODKEYS(const std::string& p)
 {
     std::string ps[2] = {"", ""};
     int idx = 0;
@@ -361,27 +359,27 @@ void SerialConnXterm::ProcessXTMODKEYS(const std::string_view& p)
     case 4: mRcs["modifyOtherKeys"] = ps[1]; break;
     }
 }
-void SerialConnXterm::ProcessXTSMPOINTER(const std::string_view&)
+void SerialConnXterm::ProcessXTSMPOINTER(const std::string&)
 {
     // Ignore this Seq.
 }
-void SerialConnXterm::ProcessXTPUSHSGR(const std::string_view&)
+void SerialConnXterm::ProcessXTPUSHSGR(const std::string&)
 {
 }
-void SerialConnXterm::ProcessXTPOPSGR(const std::string_view&)
+void SerialConnXterm::ProcessXTPOPSGR(const std::string&)
 {
 }
-void SerialConnXterm::ProcessXTVERSION(const std::string_view&)
+void SerialConnXterm::ProcessXTVERSION(const std::string&)
 {
     Put("\033P|>chiv-xterm v1.0\033\\");
 }
-void SerialConnXterm::ProcessXTRESTORE(const std::string_view&)
+void SerialConnXterm::ProcessXTRESTORE(const std::string&)
 {
 }
-void SerialConnXterm::ProcessXTSAVE(const std::string_view&)
+void SerialConnXterm::ProcessXTSAVE(const std::string&)
 {
 }
-void SerialConnXterm::ProcessXTWINOPS(const std::string_view& p)
+void SerialConnXterm::ProcessXTWINOPS(const std::string& p)
 {
     int ps[3] = {-1, -1, -1};
     int idx = 0;
@@ -431,10 +429,10 @@ void SerialConnXterm::ProcessXTWINOPS(const std::string_view& p)
     // Ignore others, such as "save xterm title", "restore xterm title", .etc
     }
 }
-void SerialConnXterm::ProcessXTSMTITLE(const std::string_view&)
+void SerialConnXterm::ProcessXTSMTITLE(const std::string&)
 {
 }
-void SerialConnXterm::ProcessXTCHECKSUM(const std::string_view&)
+void SerialConnXterm::ProcessXTCHECKSUM(const std::string&)
 {
 }
 
@@ -449,7 +447,7 @@ void SerialConnXterm::Paste()
     }
 }
 
-void SerialConnXterm::ProcessSD(const std::string_view& p)
+void SerialConnXterm::ProcessSD(const std::string& p)
 {
     // If there are 5 parameters in p, it's a XTHIMOUSE, otherwise it's SD
     int idx = 0;
@@ -466,7 +464,7 @@ void SerialConnXterm::ProcessSD(const std::string_view& p)
     }
 }
 
-void SerialConnXterm::ProcessDECSM(const std::string_view& p)
+void SerialConnXterm::ProcessDECSM(const std::string& p)
 {
     int pn = atoi(p.data());
     switch (pn) {
@@ -497,7 +495,7 @@ void SerialConnXterm::ProcessDECSM(const std::string_view& p)
     }
 }
 
-void SerialConnXterm::ProcessDECRM(const std::string_view& p)
+void SerialConnXterm::ProcessDECRM(const std::string& p)
 {
     int pn = atoi(p.data());
     switch (pn) {

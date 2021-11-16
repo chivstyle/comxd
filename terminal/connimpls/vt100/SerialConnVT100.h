@@ -13,31 +13,31 @@ public:
     SerialConnVT100(std::shared_ptr<SerialIo> io);
 protected:
     // override ECMA48
-    void ProcessDA(const std::string_view& p);
-    void ProcessCUP(const std::string_view& p);
-    void ProcessHVP(const std::string_view& p);
-    void ProcessSI(const std::string_view& p);
-    void ProcessSO(const std::string_view& p);
+    void ProcessDA(const std::string& p);
+    void ProcessCUP(const std::string& p);
+    void ProcessHVP(const std::string& p);
+    void ProcessSI(const std::string& p);
+    void ProcessSO(const std::string& p);
     // VT100 modes, DEC private
-    virtual void ProcessDECSM(const std::string_view& p);
-    virtual void ProcessDECRM(const std::string_view& p);
+    virtual void ProcessDECSM(const std::string& p);
+    virtual void ProcessDECRM(const std::string& p);
     // DEC private
-    virtual void ProcessDECDSR(const std::string_view& p);
-    virtual void ProcessDECIND(const std::string_view& p);
+    virtual void ProcessDECDSR(const std::string& p);
+    virtual void ProcessDECIND(const std::string& p);
     // VT100 specific, DEC private
     // DECID was ignored, according to vt100 specification
-    virtual void ProcessDECREQTPARM(const std::string_view& p);
-    virtual void ProcessDECSTBM(const std::string_view& p);
-    virtual void ProcessDECSC(const std::string_view& p);
-    virtual void ProcessDECRC(const std::string_view& p);
-    virtual void ProcessDECALN(const std::string_view& p);
-    virtual void ProcessDECTST(const std::string_view& p);
-    virtual void ProcessDECLL(const std::string_view& p);
-    virtual void ProcessDECKPNM(const std::string_view&);
-    virtual void ProcessDECKPAM(const std::string_view&);
+    virtual void ProcessDECREQTPARM(const std::string& p);
+    virtual void ProcessDECSTBM(const std::string& p);
+    virtual void ProcessDECSC(const std::string& p);
+    virtual void ProcessDECRC(const std::string& p);
+    virtual void ProcessDECALN(const std::string& p);
+    virtual void ProcessDECTST(const std::string& p);
+    virtual void ProcessDECLL(const std::string& p);
+    virtual void ProcessDECKPNM(const std::string&);
+    virtual void ProcessDECKPAM(const std::string&);
     // charset
-    virtual void ProcessG0_CS(const std::string_view& p);
-    virtual void ProcessG1_CS(const std::string_view& p);
+    virtual void ProcessG0_CS(const std::string& p);
+    virtual void ProcessG1_CS(const std::string& p);
     virtual uint32_t RemapCharacter(uint32_t uc, int charset);
     //
     virtual bool ProcessKeyDown(Upp::dword key, Upp::dword flags);

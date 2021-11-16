@@ -39,19 +39,19 @@ void SerialConnVT220::LoadDefaultModes()
 
 void SerialConnVT220::InstallFunctions()
 {
-    mFunctions[DECSCL] = [=](const std::string_view& p) { ProcessDECSCL(p); };
-    mFunctions[G2_CS] = [=](const std::string_view& p) { ProcessG2_CS(p); };
-    mFunctions[G3_CS] = [=](const std::string_view& p) { ProcessG3_CS(p); };
-    mFunctions[S7C1T] = [=](const std::string_view& p) { ProcessS7C1T(p); };
-    mFunctions[S8C1T] = [=](const std::string_view& p) { ProcessS8C1T(p); };
-    mFunctions[DECSCA] = [=](const std::string_view& p) { ProcessDECSCA(p); };
-    mFunctions[DECSEL] = [=](const std::string_view& p) { ProcessDECSEL(p); };
-    mFunctions[DECSED] = [=](const std::string_view& p) { ProcessDECSED(p); };
-    mFunctions[DECSTR] = [=](const std::string_view& p) { ProcessDECSTR(p); };
-    mFunctions[SecondaryDA] = [=](const std::string_view& p) { ProcessSecondaryDA(p); };
+    mFunctions[DECSCL] = [=](const std::string& p) { ProcessDECSCL(p); };
+    mFunctions[G2_CS] = [=](const std::string& p) { ProcessG2_CS(p); };
+    mFunctions[G3_CS] = [=](const std::string& p) { ProcessG3_CS(p); };
+    mFunctions[S7C1T] = [=](const std::string& p) { ProcessS7C1T(p); };
+    mFunctions[S8C1T] = [=](const std::string& p) { ProcessS8C1T(p); };
+    mFunctions[DECSCA] = [=](const std::string& p) { ProcessDECSCA(p); };
+    mFunctions[DECSEL] = [=](const std::string& p) { ProcessDECSEL(p); };
+    mFunctions[DECSED] = [=](const std::string& p) { ProcessDECSED(p); };
+    mFunctions[DECSTR] = [=](const std::string& p) { ProcessDECSTR(p); };
+    mFunctions[SecondaryDA] = [=](const std::string& p) { ProcessSecondaryDA(p); };
 }
 // compatible level
-void SerialConnVT220::ProcessDECSCL(const std::string_view& p)
+void SerialConnVT220::ProcessDECSCL(const std::string& p)
 {
     int idx = 0;
     int ps[2] = {0, 0};
@@ -104,42 +104,42 @@ void SerialConnVT220::ProcessDECSCL(const std::string_view& p)
         }                                           \
         mCharset = mCharsets[g];                    \
     } while (0)
-void SerialConnVT220::ProcessG0_CS(const std::string_view& p)
+void SerialConnVT220::ProcessG0_CS(const std::string& p)
 {
     DO_SET_CHARSET(0);
 }
-void SerialConnVT220::ProcessG1_CS(const std::string_view& p)
+void SerialConnVT220::ProcessG1_CS(const std::string& p)
 {
     DO_SET_CHARSET(1);
 }
-void SerialConnVT220::ProcessG2_CS(const std::string_view& p)
+void SerialConnVT220::ProcessG2_CS(const std::string& p)
 {
     DO_SET_CHARSET(2);
 }
-void SerialConnVT220::ProcessG3_CS(const std::string_view& p)
+void SerialConnVT220::ProcessG3_CS(const std::string& p)
 {
     DO_SET_CHARSET(3);
 }
 // S8C will break the UTF-8 sequences, so we do not support S8C.
-void SerialConnVT220::ProcessS7C1T(const std::string_view&)
+void SerialConnVT220::ProcessS7C1T(const std::string&)
 {
     SetUseS8C(false);
 }
-void SerialConnVT220::ProcessS8C1T(const std::string_view&)
+void SerialConnVT220::ProcessS8C1T(const std::string&)
 {
     SetUseS8C(true);
 }
 
-void SerialConnVT220::ProcessDECSC(const std::string_view&)
+void SerialConnVT220::ProcessDECSC(const std::string&)
 {
     SaveCursorData(mCursorData);
 }
-void SerialConnVT220::ProcessDECRC(const std::string_view&)
+void SerialConnVT220::ProcessDECRC(const std::string&)
 {
     LoadCursorData(mCursorData);
 }
 
-void SerialConnVT220::ProcessDECSCA(const std::string_view& p)
+void SerialConnVT220::ProcessDECSCA(const std::string& p)
 {
     int ps = atoi(p.data());
     switch (ps) {
@@ -157,7 +157,7 @@ void SerialConnVT220::ProcessDECSCA(const std::string_view& p)
         break;
     }
 }
-void SerialConnVT220::ProcessDECSEL(const std::string_view&)
+void SerialConnVT220::ProcessDECSEL(const std::string&)
 {
     if (mCursorData.SelectiveErase) {
         VTLine& vline = mLines[mVy];
@@ -166,7 +166,7 @@ void SerialConnVT220::ProcessDECSEL(const std::string_view&)
         }
     }
 }
-void SerialConnVT220::ProcessDECSED(const std::string_view&)
+void SerialConnVT220::ProcessDECSED(const std::string&)
 {
     if (mCursorData.SelectiveErase) {
         // erase char, do not erase the style
@@ -181,7 +181,7 @@ void SerialConnVT220::ProcessDECSED(const std::string_view&)
         }
     }
 }
-void SerialConnVT220::ProcessDECSTR(const std::string_view&)
+void SerialConnVT220::ProcessDECSTR(const std::string&)
 {
     // default state
     SetShowCursor(true);
@@ -192,7 +192,7 @@ void SerialConnVT220::ProcessDECSTR(const std::string_view&)
     //
     Clear();
 }
-void SerialConnVT220::ProcessSecondaryDA(const std::string_view& p)
+void SerialConnVT220::ProcessSecondaryDA(const std::string& p)
 {
     int ps = atoi(p.data());
     switch (ps) {
@@ -213,7 +213,7 @@ void SerialConnVT220::LoadCursorData(const CursorDataVT220& cd)
     mCursorData.SelectiveErase = cd.SelectiveErase;
 }
 
-void SerialConnVT220::ProcessDECDSR(const std::string_view& p)
+void SerialConnVT220::ProcessDECDSR(const std::string& p)
 {
     int ps = atoi(p.data());
     switch (ps) {
@@ -226,7 +226,7 @@ void SerialConnVT220::ProcessDECDSR(const std::string_view& p)
     }
 }
 
-void SerialConnVT220::ProcessDECSM(const std::string_view& p)
+void SerialConnVT220::ProcessDECSM(const std::string& p)
 {
     int ps = atoi(p.data());
     switch (ps) {
@@ -239,7 +239,7 @@ void SerialConnVT220::ProcessDECSM(const std::string_view& p)
         break;
     }
 }
-void SerialConnVT220::ProcessDECRM(const std::string_view& p)
+void SerialConnVT220::ProcessDECRM(const std::string& p)
 {
     int ps = atoi(p.data());
     switch (ps) {
@@ -252,34 +252,34 @@ void SerialConnVT220::ProcessDECRM(const std::string_view& p)
         break;
     }
 }
-void SerialConnVT220::ProcessSS2(const std::string_view&)
+void SerialConnVT220::ProcessSS2(const std::string&)
 {
     mCharset = mCharsets[2];
 }
-void SerialConnVT220::ProcessSS3(const std::string_view&)
+void SerialConnVT220::ProcessSS3(const std::string&)
 {
     mCharset = mCharsets[3];
 }
-void SerialConnVT220::ProcessLS2(const std::string_view&)
+void SerialConnVT220::ProcessLS2(const std::string&)
 {
     mCharset = mCharsets[2];
 }
-void SerialConnVT220::ProcessLS3(const std::string_view&)
+void SerialConnVT220::ProcessLS3(const std::string&)
 {
     mCharset = mCharsets[3];
 }
 // for 0x80-0xff, we call them extended cs, we do not use them actually,
 // because we treat all of inputs as UTF-8 default. Programs who did not
 // support UTF-8 were too old to support well.
-void SerialConnVT220::ProcessLS1R(const std::string_view&)
+void SerialConnVT220::ProcessLS1R(const std::string&)
 {
     mExtendedCharset = mCharsets[1];
 }
-void SerialConnVT220::ProcessLS2R(const std::string_view&)
+void SerialConnVT220::ProcessLS2R(const std::string&)
 {
     mExtendedCharset = mCharsets[2];
 }
-void SerialConnVT220::ProcessLS3R(const std::string_view&)
+void SerialConnVT220::ProcessLS3R(const std::string&)
 {
     mExtendedCharset = mCharsets[3];
 }

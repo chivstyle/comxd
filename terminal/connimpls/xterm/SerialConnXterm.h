@@ -12,28 +12,28 @@ public:
     SerialConnXterm(std::shared_ptr<SerialIo> io);
 
 protected:
-    virtual void ProcessXTPUSHCOLORS(const std::string_view&);
-    virtual void ProcessXTPOPCOLORS(const std::string_view&);
-    virtual void ProcessXTSMGRAPHICS(const std::string_view&);
-    virtual void ProcessXTHIMOUSE(const std::string_view&);
-    virtual void ProcessXTRMTITLE(const std::string_view&);
-    virtual void ProcessXTMODKEYS(const std::string_view&);
-    virtual void ProcessXTSMPOINTER(const std::string_view&);
-    virtual void ProcessXTPUSHSGR(const std::string_view&);
-    virtual void ProcessXTPOPSGR(const std::string_view&);
-    virtual void ProcessXTVERSION(const std::string_view&);
-    virtual void ProcessXTRESTORE(const std::string_view&);
-    virtual void ProcessXTSAVE(const std::string_view&);
-    virtual void ProcessXTWINOPS(const std::string_view&);
-    virtual void ProcessXTSMTITLE(const std::string_view&);
-    virtual void ProcessXTCHECKSUM(const std::string_view&);
-    virtual void ProcessXTDISABLEMODOPTS(const std::string_view&);
+    virtual void ProcessXTPUSHCOLORS(const std::string&);
+    virtual void ProcessXTPOPCOLORS(const std::string&);
+    virtual void ProcessXTSMGRAPHICS(const std::string&);
+    virtual void ProcessXTHIMOUSE(const std::string&);
+    virtual void ProcessXTRMTITLE(const std::string&);
+    virtual void ProcessXTMODKEYS(const std::string&);
+    virtual void ProcessXTSMPOINTER(const std::string&);
+    virtual void ProcessXTPUSHSGR(const std::string&);
+    virtual void ProcessXTPOPSGR(const std::string&);
+    virtual void ProcessXTVERSION(const std::string&);
+    virtual void ProcessXTRESTORE(const std::string&);
+    virtual void ProcessXTSAVE(const std::string&);
+    virtual void ProcessXTWINOPS(const std::string&);
+    virtual void ProcessXTSMTITLE(const std::string&);
+    virtual void ProcessXTCHECKSUM(const std::string&);
+    virtual void ProcessXTDISABLEMODOPTS(const std::string&);
     // override vt520
-    void ProcessDECSM(const std::string_view& p);
-    void ProcessDECRM(const std::string_view& p);
-    void ProcessSD(const std::string_view& p);
-    void ProcessSGR(const std::string_view& p);
-    void ProcessOSC(const std::string_view& p);
+    void ProcessDECSM(const std::string& p);
+    void ProcessDECRM(const std::string& p);
+    void ProcessSD(const std::string& p);
+    void ProcessSGR(const std::string& p);
+    void ProcessOSC(const std::string& p);
     // override Paste to support bracketed paste.
     void Paste();
     void LeftDown(Upp::Point p, Upp::dword keyflags);

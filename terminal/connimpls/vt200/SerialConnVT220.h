@@ -13,32 +13,32 @@ public:
     //
 protected:
     // override ecma48
-    void ProcessSS2(const std::string_view&);
-    void ProcessSS3(const std::string_view&);
-    void ProcessLS2(const std::string_view&);
-    void ProcessLS3(const std::string_view&);
-    void ProcessLS1R(const std::string_view&);
-    void ProcessLS2R(const std::string_view&);
-    void ProcessLS3R(const std::string_view&);
+    void ProcessSS2(const std::string&);
+    void ProcessSS3(const std::string&);
+    void ProcessLS2(const std::string&);
+    void ProcessLS3(const std::string&);
+    void ProcessLS1R(const std::string&);
+    void ProcessLS2R(const std::string&);
+    void ProcessLS3R(const std::string&);
     // override vt100
-    void ProcessDECSM(const std::string_view&);
-    void ProcessDECRM(const std::string_view&);
-    void ProcessDECDSR(const std::string_view&);
-    void ProcessDECSC(const std::string_view&);
-    void ProcessDECRC(const std::string_view&);
-    void ProcessG0_CS(const std::string_view&);
-    void ProcessG1_CS(const std::string_view&);
+    void ProcessDECSM(const std::string&);
+    void ProcessDECRM(const std::string&);
+    void ProcessDECDSR(const std::string&);
+    void ProcessDECSC(const std::string&);
+    void ProcessDECRC(const std::string&);
+    void ProcessG0_CS(const std::string&);
+    void ProcessG1_CS(const std::string&);
     // vt200
-    virtual void ProcessDECSCL(const std::string_view&);
-    virtual void ProcessG2_CS(const std::string_view&);
-    virtual void ProcessG3_CS(const std::string_view&);
-    virtual void ProcessS7C1T(const std::string_view&);
-    virtual void ProcessS8C1T(const std::string_view&);
-    virtual void ProcessDECSCA(const std::string_view&);
-    virtual void ProcessDECSEL(const std::string_view&);
-    virtual void ProcessDECSED(const std::string_view&);
-    virtual void ProcessDECSTR(const std::string_view&);
-    virtual void ProcessSecondaryDA(const std::string_view&);
+    virtual void ProcessDECSCL(const std::string&);
+    virtual void ProcessG2_CS(const std::string&);
+    virtual void ProcessG3_CS(const std::string&);
+    virtual void ProcessS7C1T(const std::string&);
+    virtual void ProcessS8C1T(const std::string&);
+    virtual void ProcessDECSCA(const std::string&);
+    virtual void ProcessDECSEL(const std::string&);
+    virtual void ProcessDECSED(const std::string&);
+    virtual void ProcessDECSTR(const std::string&);
+    virtual void ProcessSecondaryDA(const std::string&);
     // override
     uint32_t RemapCharacter(uint32_t uc, int charset);
     // key

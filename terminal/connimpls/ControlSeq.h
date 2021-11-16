@@ -100,7 +100,7 @@ public:
     ///     SEQ_NONE
     ///     SEQ_PENDING
     ///     Valid Sequence Type
-    int IsControlSeq(const std::string_view& seq, size_t& p_begin, size_t& p_sz, size_t& s_end);
+    int IsControlSeq(const char* input, size_t input_sz, size_t& p_begin, size_t& p_sz, size_t& s_end);
     //
     void Add(int type, const std::string& head, int ptyp, int pnum, const std::string& tail)
     {

@@ -25,15 +25,15 @@ SerialConnAnsi::SerialConnAnsi(std::shared_ptr<SerialIo> io)
 
 void SerialConnAnsi::InstallFunctions()
 {
-    mFunctions[ANSI_RCP] = [=](const std::string_view& p) { ProcessDECRC(p); };
-    mFunctions[ANSI_SCP] = [=](const std::string_view& p) { ProcessDECSC(p); };
+    mFunctions[ANSI_RCP] = [=](const std::string& p) { ProcessDECRC(p); };
+    mFunctions[ANSI_SCP] = [=](const std::string& p) { ProcessDECSC(p); };
 }
 
-void SerialConnAnsi::ProcessSS2(const std::string_view&)
+void SerialConnAnsi::ProcessSS2(const std::string&)
 {
     mCharset = mCharsets[2];
 }
-void SerialConnAnsi::ProcessSS3(const std::string_view&)
+void SerialConnAnsi::ProcessSS3(const std::string&)
 {
     mCharset = mCharsets[3];
 }

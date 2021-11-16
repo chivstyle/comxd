@@ -50,8 +50,8 @@ public:
                 // the callback will execute in the main thread (i.e GUI-thread), so
                 // we should save the conn and tab_bar in the instance of TabCloseBtn.
                 Upp::PostCallback([=]() {
+                    // before release the conn, we must stop the Io firstly
                     static_cast<SerialConn*>(mConn)->GetIo()->Stop();
-                    static_cast<SerialConn*>(mConn)->Stop();
                     mTabbar->Remove(*mConn);
                     delete mConn;
                     delete this; // delete myself.
@@ -110,10 +110,10 @@ public:
                 int cnt = mDevsTab.GetCount();
                 for (int i = 0; i < cnt; ++i) {
                     TabCtrl::Item& item = mDevsTab.GetItem(i);
-                    auto conn = dynamic_cast<SerialConn*>(mDevsTab.GetItem(mDevsTab.Get()).GetSlave());
+                    auto conn = dynamic_cast<SerialConn*>(item.GetSlave());
                     if (conn) {
+                        // before release the conn, we must stop the Io firstly
                         conn->GetIo()->Stop();
-                        conn->Stop();
                     }
                     delete item.GetCtrl();
                     delete item.GetSlave();

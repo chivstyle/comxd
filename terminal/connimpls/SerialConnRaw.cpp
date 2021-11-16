@@ -526,8 +526,6 @@ void SerialConnRaw::UpdateAsTxt()
         text = GetCodec()->TranscodeToUTF8(buf.data(), buf.size());
     }
     mRx.Set(text);
-    mRx.MoveEnd();
-    mRx.ScrollEnd();
 }
 
 void SerialConnRaw::UpdateAsHex()
@@ -547,8 +545,6 @@ void SerialConnRaw::UpdateAsHex()
     }
     //
     mRx.SetData(text);
-    mRx.MoveEnd();
-    mRx.ScrollEnd();
 }
 
 void SerialConnRaw::Update()
@@ -557,10 +553,19 @@ void SerialConnRaw::Update()
         std::lock_guard<std::mutex> _(mRxBufferLock);
         Upp::int64 l, h;
         bool sel = mRx.GetSelection(l, h);
+        Point scroll_pos = mRx.GetScrollPos();
+        Size pgsz = mRx.GetPageSize();
+        bool scroll_to_end = pgsz.cy + scroll_pos.y >= mRx.GetLineCount();
         this->mRxHex.Get() ? UpdateAsHex() : UpdateAsTxt();
         if (sel) {
             mRx.SetSelection(l, h);
         }
+        if (scroll_to_end) {
+            scroll_pos.x = 0;
+            scroll_pos.y = mRx.GetLineCount() - pgsz.cy;
+        }
+        mRx.SetScrollPos(scroll_pos);
+        //
         mRxBytes.SetText(std::to_string(mNumBytesRx).c_str());
     }
 }

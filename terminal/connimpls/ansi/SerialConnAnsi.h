@@ -11,8 +11,8 @@ public:
     SerialConnAnsi(std::shared_ptr<SerialIo> io);
 
 protected:
-    void ProcessSS2(const std::string_view&);
-    void ProcessSS3(const std::string_view&);
+    void ProcessSS2(const std::string&);
+    void ProcessSS3(const std::string&);
     // override
     uint32_t RemapCharacter(uint32_t uc, int charset);
     //

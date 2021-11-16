@@ -3,6 +3,8 @@ description "virtual terminal\377";
 uses
 	Core/SSH;
 
+options(MSVC) /std:c++17;
+
 link(MSVC) /NODEFAULTLIB:LIBCMT;
 
 include

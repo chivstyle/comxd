@@ -8,3 +8,8 @@ v2.2.3a
  1. I place all render seqs to parser thread, it's more complicated than before
  2. Upp/SSH process data in GUI-thread, so we should make sure all works were completed before
     the GUI resources were released.
+
+v2.2.4a
+ 1. Add ENABLE_CHECK_THREAD for debug
+ 2. Remove C++17/string_view
+ 3. I reinstall upp, and recompile the comxd, got better performace
