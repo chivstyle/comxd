@@ -129,10 +129,6 @@ void SerialConnRaw::InstallActions()
     this->mRxHex.WhenAction = [=]() {
         mRxHex.Get() ? UpdateAsHex() : UpdateAsTxt();
         mLineSz.SetEditable(mRxHex.Get() != 0);
-        this->mShowInvisibleChars.SetEditable(mRxHex.Get() == 0);
-    };
-    this->mShowInvisibleChars.WhenAction = [=]() {
-        UpdateAsTxt();
     };
     // clear rx
     this->mBtnClearRx.WhenAction = [=]() {
@@ -277,27 +273,6 @@ static inline int UTF8SeqLen_(const unsigned char* seq, size_t sz)
     }
     return (int)seqsz;
 }
-// make a UTF-8 string from data
-static inline std::string FromHex_(const std::vector<byte>& b)
-{
-    std::string out;
-    size_t p = 0;
-    while (p < b.size()) {
-        int len = UTF8SeqLen_(&b[p], b.size() - p);
-        if (len == 0) { // It's a isolate byte
-            char hex[8];
-            sprintf(hex, "\\x%02x", b[p]);
-            out += hex;
-            p += 1;
-        } else {
-            for (int i = 0; i < len; i++) {
-                out.push_back((char)b[p + i]);
-            }
-            p += len;
-        }
-    }
-    return out;
-}
 
 static inline bool IsCharInHex(const char cc)
 {
@@ -424,7 +399,9 @@ static inline std::string ReplaceLineBreak_(const std::string& text, int lb)
 void SerialConnRaw::Set_TxInHex()
 {
     std::string tx = mTx.GetData().ToString().ToStd();
-    mTx.Set(ToHexString_(TranslateEscapeChars(tx)));
+    std::string refine_tx = mEnableEscape.Get() ? TranslateEscapeChars(tx) : tx;
+    std::string tx_codec = GetCodec()->TranscodeFromUTF8((const unsigned char*)refine_tx.data(), refine_tx.length());
+    mTx.Set(ToHexString_(tx_codec));
     // use filter to disable invalid chars.
     mTx.SetFilter(_HexFilter);
     //
@@ -435,7 +412,8 @@ void SerialConnRaw::Set_TxInTxt()
 {
     std::string tx = mTx.GetData().ToString().ToStd();
     std::vector<unsigned char> out = ToHex_(tx);
-    mTx.Set(FromHex_(out));
+    mTx.Set(GetCodec()->TranscodeToUTF8(out.data(), out.size()));
+    //
     mTx.SetFilter(nullptr);
     //
     mTx.MoveEnd();
@@ -481,58 +459,11 @@ void SerialConnRaw::OnSend()
     // update
     mTxBytes.SetText(std::to_string(mNumBytesTx).c_str());
 }
-//
-static const char* kC0_Names[] = {
-    "<NUL>", "<SOH>", "<STX>", "<ETX>", "<EOT>",
-    "<ENQ>", "<ACK>", "<BEL>", "<BS>", "<HT>",
-    "<LN>", "<VT>", "<FF>", "<CR>", "<SO>",
-    "<SI>", "<DLE>", "<DC1>", "<DC2>", "<DC3>",
-    "<DC4>", "<NAK>", "<SYN>", "<ETB>", "<CAN>",
-    "<EM>", "<SUB>", "<ESC>", "<FS>", "<GS>",
-    "<RS>", "<US>"
-};
 
 void SerialConnRaw::UpdateAsTxt()
 {
-    String text;
     const auto& buf = mRxBuffer;
-    if (mShowInvisibleChars.Get()) {
-        size_t k = 0;
-        while (k < buf.size()) {
-            if (buf[k] == 0x7f || buf[k] >= 0 && buf[k] < 0x20) {
-                text += buf[k] == 0x7f ? "<DEL>" : kC0_Names[buf[k]];
-                switch (buf[k]) {
-                case 0x09:
-                case 0x0a:
-                case 0x0d:
-                    text << (char)buf[k];
-                default:
-                    break;
-                }
-                k += 1;
-            } else if (buf[k] >= 0x80) {
-                int len = UTF8SeqLen_(&buf[k], buf.size() - k);
-                if (len == 0) {
-                    char hex[8];
-                    sprintf(hex, "\\x%02x", buf[k]);
-                    text << hex;
-                    k += 1;
-                } else {
-                    for (int i = 0; i < len; ++i) {
-                        text << (char)buf[k + i];
-                    }
-                    k += len;
-                }
-            } else {
-                text << (char)buf[k];
-                k += 1;
-            }
-        }
-        text = GetCodec()->TranscodeToUTF8((const unsigned char*)text.Begin(), text.GetLength());
-    } else {
-        text = GetCodec()->TranscodeToUTF8(buf.data(), buf.size());
-    }
-    mRx.Set(text);
+    mRx.Set(GetCodec()->TranscodeToUTF8(buf.data(), buf.size()));
 }
 
 void SerialConnRaw::UpdateAsHex()

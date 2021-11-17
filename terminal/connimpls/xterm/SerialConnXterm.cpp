@@ -423,7 +423,7 @@ void SerialConnXterm::ProcessXTWINOPS(const std::string& p)
         Put(rsp);
     } break;
     case 21: if (1) { // Report xterm window’s title
-        std::string rsp = "\033]L" + GetTitle() + "\033\\";
+        std::string rsp = "\033]L" + GetTitle().ToStd() + "\033\\";
         Put(rsp);
     } break;
     // Ignore others, such as "save xterm title", "restore xterm title", .etc
