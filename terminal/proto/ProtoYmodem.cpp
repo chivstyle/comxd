@@ -154,7 +154,7 @@ int ProtoYmodem::TransmitFile(SerialIo* io, const std::string& filename, std::st
         bar.SetTotal(filesz);
         //
         std::mutex lock;
-        size_t count = 0;
+        int64 count = 0;
         double ts = 0;
         double rate = 0;
         // create the job
@@ -193,7 +193,7 @@ int ProtoYmodem::TransmitFile(SerialIo* io, const std::string& filename, std::st
                 if (mType == eStandardYmodem) {
                     char chunk[128];
                     frmsz = fin.Get(chunk, 128);
-                    if (_TransmitFrame<128, xymodem::fSOH>(io, chunk, frmsz, xymodem::CRC16, idx++, xymodem::kTimeout,
+                    if (_TransmitFrame<128, xymodem::fSOH>(io, chunk, (size_t)frmsz, xymodem::CRC16, idx++, xymodem::kTimeout,
                         &should_stop, errmsg) < 0) {
                         failed = true;
                         break;
@@ -201,7 +201,7 @@ int ProtoYmodem::TransmitFile(SerialIo* io, const std::string& filename, std::st
                 } else {
                     char chunk[1024];
                     frmsz = fin.Get(chunk, 1024);
-                    if (_TransmitFrame<1024, xymodem::fSTX>(io, chunk, frmsz, xymodem::CRC16, idx++, xymodem::kTimeout,
+                    if (_TransmitFrame<1024, xymodem::fSTX>(io, chunk, (size_t)frmsz, xymodem::CRC16, idx++, xymodem::kTimeout,
                         &should_stop, errmsg) < 0) {
                         failed = true;
                         break;
@@ -209,7 +209,7 @@ int ProtoYmodem::TransmitFile(SerialIo* io, const std::string& filename, std::st
                 }
                 if (!failed) {
                     std::lock_guard<std::mutex> _(lock);
-                    count += frmsz;
+                    count += (size_t)frmsz;
 #ifdef _MSC_VER
                     ts += std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - t1).count();
 #else

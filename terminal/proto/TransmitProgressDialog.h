@@ -10,10 +10,10 @@ class TransmitProgressDialog : public WithTransmitProgressDialog<Upp::TopWindow>
 public:
     typedef TransmitProgressDialog CLASSNAME;
     TransmitProgressDialog();
-    void SetTotal(size_t total);
+    void SetTotal(Upp::int64 total);
     // count - [0, total]
     // tx_rate - in KiB
-    void Update(size_t count, double tx_rate);
+    void Update(Upp::int64 count, double tx_rate);
 private:
-    size_t mTotal;
+    Upp::int64 mTotal;
 };

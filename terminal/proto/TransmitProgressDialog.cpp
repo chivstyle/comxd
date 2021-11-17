@@ -4,18 +4,20 @@
 #include "terminal_rc.h"
 #include "TransmitProgressDialog.h"
 
+using namespace Upp;
+
 TransmitProgressDialog::TransmitProgressDialog()
     : mTotal(1)
 {
     CtrlLayout(*this);
     mProgress.Percent(true);
 }
-void TransmitProgressDialog::SetTotal(size_t total)
+void TransmitProgressDialog::SetTotal(int64 total)
 {
     mTotal = total;
 }
 
-void TransmitProgressDialog::Update(size_t count, double tx_rate)
+void TransmitProgressDialog::Update(int64 count, double tx_rate)
 {
     mProgress.Set((int)count, (int)mTotal);
     // tx rate

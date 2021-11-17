@@ -456,14 +456,18 @@ void SerialConnVT::RunParserBenchmark()
         FileIn fin;
         if (fin.Open(filename)) {
             int64 filesz = fin.GetSize();
-            char* buffer = new char[filesz + 1];
+            if (filesz > 1024*1024*16) {
+                PromptOK("File size is too large, max size is 16MiB");
+                return;
+            }
+            char* buffer = new char[(size_t)filesz + 1];
             fin.Get(buffer, (int)filesz);
             fin.Close();
-            buffer[filesz] = '\0';
+            buffer[(size_t)filesz] = '\0';
             std::deque<Seq> seqs;
             if (1) {
                 auto t1 = std::chrono::high_resolution_clock::now();
-                size_t ns = ParseSeqs(buffer, filesz, seqs);
+                size_t ns = ParseSeqs(buffer, (size_t)filesz, seqs);
                 auto t2 = std::chrono::high_resolution_clock::now();
                 auto ts = std::chrono::duration<double>(t2 - t1).count();
                 auto ps = ns / ts;
@@ -907,7 +911,7 @@ bool SerialConnVT::ProcessOverflowLines()
         if (top == 0) {
             this->PushToLinesBufferAndCheck(std::move(mLines[top]));
         }
-        for (size_t k = top + 1; k <= bot; ++k) {
+        for (int k = top + 1; k <= bot; ++k) {
             std::swap(mLines[k - 1], mLines[k]);
         }
         // This line is a new line absolutely, so we should clear it carefully.
@@ -964,7 +968,7 @@ void SerialConnVT::RenderText(const std::vector<uint32_t>& s)
             }
         }
         //
-        if (mVx < vline->size()) {
+        if (mVx < (int)vline->size()) {
             vline->at(mVx) = chr;
         } else {
             // padding blanks if needed.
@@ -1427,7 +1431,7 @@ void SerialConnVT::ResizeVt(const Size& csz)
         }
     }
     // extend or shrink the virtual screen
-    if (mLines.size() < csz.cy) {
+    if ((int)mLines.size() < csz.cy) {
         ExtendVirtualScreen(csz.cx, csz.cy);
         //--------------------------------------------------------------------------------------
     } else {
@@ -1485,7 +1489,7 @@ std::vector<std::string> SerialConnVT::GetSelection() const
         std::string sel;
         int nchars = (int)vline->size() - this->CalculateNumberOfBlankCharsFromEnd(*vline);
         int vx = span.X0;
-        for (size_t i = vx; i < nchars; ++i) {
+        for (int i = vx; i < nchars; ++i) {
             bool is_selected = IsCharInSelectionSpan((int)i, span.Y0);
             if (is_selected) {
                 sel += UTF32ToUTF8_(vline->at(i).Code());
@@ -1500,7 +1504,7 @@ std::vector<std::string> SerialConnVT::GetSelection() const
         const VTLine* vline = this->GetVTLine(k);
         std::string sel;
         int nchars = (int)vline->size() - this->CalculateNumberOfBlankCharsFromEnd(*vline);
-        for (size_t i = 0; i < nchars; ++i) {
+        for (int i = 0; i < nchars; ++i) {
             sel += UTF32ToUTF8_(vline->at(i).Code());
         }
         if (has_successive) {
@@ -1515,7 +1519,7 @@ std::vector<std::string> SerialConnVT::GetSelection() const
         std::string sel;
         int nchars = (int)vline->size() - this->CalculateNumberOfBlankCharsFromEnd(*vline);
         int vx = span.X1;
-        for (size_t i = 0; i < nchars && i < vx; ++i) {
+        for (int i = 0; i < nchars && i < vx; ++i) {
             bool is_selected = IsCharInSelectionSpan((int)i, span.Y1);
             if (is_selected) {
                 sel += UTF32ToUTF8_(vline->at(i).Code());

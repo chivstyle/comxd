@@ -72,7 +72,7 @@ namespace kermit {
         {
         }
     };
-    int Parse(const unsigned char* data, size_t data_sz, KermitMsg& msg)
+    int Parse(const unsigned char* data, int data_sz, KermitMsg& msg)
     {
         // SOH length mark data checksum
         if (data_sz > 0 && data[0] == xymodem::fSOH) {
@@ -163,7 +163,7 @@ namespace kermit {
             mIn.Close();
         }
         
-        size_t FileSize() { return mFileSize; }
+        int64 FileSize() { return mFileSize; }
         
         void Step()
         {
@@ -179,17 +179,17 @@ namespace kermit {
             }
         }
         // Take will step the file
-        std::string Take(int sz)
+        std::string Take(int64 sz)
         {
             std::string out;
             //
             Step();
             //
-            if (sz > mStream.length()) {
+            if (sz > (int64)mStream.length()) {
                 std::swap(out, mStream);
             } else {
-                out = mStream.substr(0, sz);
-                mStream = mStream.substr(sz);
+                out = mStream.substr(0, (size_t)sz);
+                mStream = mStream.substr((size_t)sz);
             }
             return out;
         }
@@ -199,14 +199,14 @@ namespace kermit {
             return mStream.empty() && mIn.IsEof();
         }
         //
-        size_t BytesRead() const { return mBytesRead; }
+        int64 BytesRead() const { return mBytesRead; }
         
     private:
         Upp::FileIn mIn;
         int mChunkSize;
         //
-        size_t mFileSize;
-        size_t mBytesRead;
+        int64 mFileSize;
+        int64 mBytesRead;
         //
         std::string mStream;
     };
@@ -306,7 +306,7 @@ int ProtoKermit::TransmitFile(SerialIo* io, const std::string& fname, std::strin
     int  total = 0;
     kermit::KermitDataStream fin(fname, 1024);
     bar.WhenClose = [&]() { should_stop = true; };
-    bar.SetTotal(fin.FileSize());
+    bar.SetTotal((size_t)fin.FileSize());
     bar.Title(fname.c_str());
     if (fin.FileSize() > kermit::kMaxFileSz) {
         failed = true;
@@ -364,7 +364,7 @@ int ProtoKermit::TransmitFile(SerialIo* io, const std::string& fname, std::strin
                     rate = fin.BytesRead() / ts;
                     PostCallback([&]() {
                         std::lock_guard<std::mutex> _(lock);
-                        bar.Update(fin.BytesRead(), rate);
+                        bar.Update((size_t)fin.BytesRead(), rate);
                     });
                 }
             }

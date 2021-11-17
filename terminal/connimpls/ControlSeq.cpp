@@ -29,7 +29,7 @@ static inline int ParsePs(const char* input, size_t input_sz, size_t p_begin, in
             while (pn_count--) {
                 if (input[p] == ';') {
                     p++;
-                    if (p >= input_sz)
+                    if (p >= (int)input_sz)
                         return 0; // need more
                     //
                     p = ParsePs(input, input_sz, p);
@@ -77,7 +77,7 @@ static inline int ParsePn(const char* input, size_t input_sz, size_t p_begin, in
             while (pn_count--) {
                 if (input[p] == ';') {
                     p++;
-                    if (p >= input_sz)
+                    if (p >= (int)input_sz)
                         return 0; // need more
                     //
                     p = ParsePn(input, input_sz, p);
