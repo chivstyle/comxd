@@ -48,7 +48,7 @@ void SerialConnXterm::ProcessOSC(const std::string& p)
         case 0: // change Icon Name And Window Title
         case 1: // change Icon Name
         case 2: // change window Title
-            this->Title(ps[1].c_str());
+            this->WhenTitle(ps[1].c_str());
             break;
         case 3: if (1) {
             const char* pv[2] = {"", ""};

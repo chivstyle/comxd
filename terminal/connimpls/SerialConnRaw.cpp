@@ -41,8 +41,6 @@ SerialConnRaw::SerialConnRaw(std::shared_ptr<SerialIo> io)
     this->mRx.SetFrame(FieldFrame());
     this->mTx.SetFrame(FieldFrame());
     this->mVsp.Vert(mRx.SetEditable(false), mTx);
-    this->mVsp.SetMin(0, 2000); // min is 2/10
-    this->mVsp.SetMin(1, 2000); // min is 2/10
     // The total width of Vsp is 10000, we use 7000 as our default.
     this->mVsp.SetPos(7000);
     // default settings
@@ -109,7 +107,7 @@ void SerialConnRaw::InstallUsrActions()
            }
        }).Help(t_("Select a text codec"));
        bar.Add(t_("Information"), terminal::info(), [=]() {
-           PromptOK(this->GetConnDescription().c_str());
+           PromptOK(this->GetConnDescription());
        });
     };
 }

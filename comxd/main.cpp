@@ -41,9 +41,10 @@ public:
     //
     struct TabCloseBtn : public Button {
     public:
-        TabCloseBtn(Ctrl* conn, TabCtrl* tab_bar)
+        TabCloseBtn(Ctrl* conn, TabCtrl* tab_bar, Ctrl* about)
             : mConn(conn)
             , mTabbar(tab_bar)
+            , mAbout(about)
         {
             *this << [&]() { //<! on clicked
                 // the callback will execute in the main thread (i.e GUI-thread), so
@@ -53,6 +54,9 @@ public:
                     static_cast<SerialConn*>(mConn)->GetIo()->Stop();
                     mTabbar->Remove(*mConn);
                     delete mConn;
+                    if (mTabbar->GetCount() == 0) {
+                        mAbout->Show();
+                    }
                     delete this; // delete myself.
                 });
             };
@@ -61,6 +65,7 @@ public:
     private:
         Ctrl* mConn;
         TabCtrl* mTabbar;
+        Ctrl* mAbout;
     };
     //
     void OnDevsTabSet()
@@ -117,12 +122,14 @@ protected:
                         conn->WhenWarning = [=](Upp::String warning) {
                             mStatusbar.Set(1, warning, 500);
                         };
-                        auto btn_close = new TabCloseBtn(conn, &mDevsTab);
+                        auto btn_close = new TabCloseBtn(conn, &mDevsTab, &mAbout);
                         btn_close->SetImage(comxd::close_little());
                         btn_close->SetRect(0, 0, 16, 16);
                         mDevsTab.Add(conn->SizePos(), conn->ConnName()).SetCtrl(btn_close);
                         // set current to conn
                         mDevsTab.Set(*conn);
+                        //
+                        mAbout.Hide();
                     }
                 });
             }).Tip(it->second.Desc);

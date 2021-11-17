@@ -20,3 +20,7 @@ v2.2.5a
  3. Fix bugs in ProtoSs
  4. Place warning into statusbar
  5. Update conn "Assistant" to v1.1a
+ 
+v2.2.6a
+ 1. Replace TopWindow with ParentCtrl
+ 2. Assistant, allow minimize the Tx box

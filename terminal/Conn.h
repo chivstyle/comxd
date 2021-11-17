@@ -10,7 +10,7 @@
 #include "Codec.h"
 #include "SerialIo.h"
 
-class SerialConn : public Upp::TopWindow {
+class SerialConn : public Upp::ParentCtrl {
 public:
     explicit SerialConn(std::shared_ptr<SerialIo> io);
     SerialConn() { }
@@ -26,8 +26,10 @@ public:
     {
         return mIo->DeviceName();
     }
-    void SetConnDescription(const std::string& desc) { mDesc = desc; }
-    const std::string& GetConnDescription() const { return mDesc; }
+    void SetConnDescription(const Upp::String& desc) { mDesc = desc; }
+    const Upp::String& GetConnDescription() const { return mDesc; }
+    void SetTitle(const Upp::String& title) { mTitle = title; }
+    const Upp::String& GetTitle() const { return mTitle; }
     //
     SerialIo* GetIo() const { return mIo.get(); }
     Codec* GetCodec() const { return mCodec.get(); }
@@ -41,7 +43,8 @@ protected:
     std::shared_ptr<Codec> mCodec;
     //
 private:
-    std::string mDesc;
+    Upp::String mDesc;
+    Upp::String mTitle;
 };
 
 #endif
