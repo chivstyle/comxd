@@ -24,3 +24,7 @@ v2.2.5a
 v2.2.6a
  1. Replace TopWindow with ParentCtrl
  2. Assistant, allow minimize the Tx box
+ 
+v2.2.7a
+ 1. Use CODEC to complete HEX <--> TEXT
+ 2. The virtual terminal lost focus after popup dialog, WantFocus(true) could fix it.
