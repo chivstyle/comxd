@@ -37,6 +37,7 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
     , mForegroundColorId(VTColorTable::kColorId_Texts)
     , mOwnerId(std::this_thread::get_id())
 {
+    WantFocus(true);
     // double buffer
     BackPaint();
     // default font
@@ -82,12 +83,10 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
     mLines.insert(mLines.begin(), 30, vline);
     mVtSize = Size(80, 30);
     PostCallback([=] {
-        SetFocus();
         Layout();
     });
     //
     InstallUserActions();
-    //
 }
 
 SerialConnVT::~SerialConnVT()

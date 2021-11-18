@@ -34,6 +34,8 @@ SerialConnRaw::SerialConnRaw(std::shared_ptr<SerialIo> io)
     , mNumBytesTx(0)
     , mNumBytesRx(0)
 {
+    WantFocus(true);
+    //
     this->mIo = io; //!< Important, let this as the first sentence.
     //
     this->SetConnDescription("A common serial tool by chiv, v1.1a");
@@ -247,31 +249,6 @@ static inline std::string ToHexString_(const std::string& b)
         out += hex_;
     }
     return out;
-}
-// return length of UTF-8 string, if seq[0] is not the UTF-8 prefix, return 0.
-static inline int UTF8SeqLen_(const unsigned char* seq, size_t sz)
-{
-    size_t p = 0, seqsz = 0;
-    int flag = seq[p] & 0xf0;
-    if (flag == 0xf0) { // 4 bytes
-        // check and check
-        if (sz - p >= 4 && (seq[p + 1] & 0xc0) == 0x80 && (seq[p + 2] & 0xc0) == 0x80 && (seq[p + 3] & 0xc0) == 0x80) {
-            seqsz = 4;
-        }
-    } else if ((flag & 0xe0) == 0xe0) { // 3 bytes, 4+6+6=16bits
-        if (sz - p >= 3 && (seq[p + 1] & 0xc0) == 0x80 && (seq[p + 2] & 0xc0) == 0x80) {
-            seqsz = 3;
-        }
-    } else if ((flag & 0xc0) == 0xc0) { // 2 bytes, 5+6 = 11bits
-        if (sz - p >= 2 && (seq[p + 1] & 0xc0) == 0x80) {
-            seqsz = 2;
-        }
-    } else if (flag & 0x80) {
-        seqsz = 0;
-    } else {
-        seqsz = 1;
-    }
-    return (int)seqsz;
 }
 
 static inline bool IsCharInHex(const char cc)
