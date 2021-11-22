@@ -69,7 +69,7 @@ namespace Upp {
         std::thread::id mOwnerId;
     };
 }
-#define ENABLE_THREAD_CHECK 1
+#define ENABLE_THREAD_CHECK 0
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 #if ENABLE_THREAD_CHECK
 #define CHECK_GUI_THREAD() do { \

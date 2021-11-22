@@ -33,6 +33,14 @@ static inline Color XParseColor(const std::string& spec)
     // TODO: Implement color spec
     return Color(rand() % 255, rand() % 255, rand() % 255);
 }
+static inline std::string XParseColor(const Color& color)
+{
+    std::string spec = "rgb:";
+    spec += std::to_string(color.GetR()) + ":";
+    spec += std::to_string(color.GetG()) + ":";
+    spec += std::to_string(color.GetB());
+    return spec;
+}
 
 void SerialConnXterm::ProcessXTOSC(const std::string& p)
 {
@@ -65,12 +73,28 @@ void SerialConnXterm::ProcessXTOSC(const std::string& p)
                 mRcs[pv[0]] = pv[1];
             }
         } break;
-        case 10:
-            mColorTbl.SetColor(VTColorTable::kColorId_Texts, XParseColor(ps[1]));
-            break;
-        case 11:
-            mColorTbl.SetColor(VTColorTable::kColorId_Paper, XParseColor(ps[2]));
-            break;
+        case 10: if (1) {
+            auto it = mRcs.find("allowColorOps");
+            if (it != mRcs.end() && it->second != "1" || it == mRcs.end())
+                break;
+            if (ps[1] == "?") {
+                std::string resp = std::string("\x1b]10;") + XParseColor(mColorTbl.GetColor(VTColorTable::kColorId_Texts));
+                Put(resp);
+            } else {
+                mColorTbl.SetColor(VTColorTable::kColorId_Texts, XParseColor(ps[1]));
+            }
+        } break;
+        case 11: if (1) {
+            auto it = mRcs.find("allowColorOps");
+            if (it != mRcs.end() && it->second != "1" || it == mRcs.end())
+                break;
+            if (ps[1] == "?") {
+                std::string resp = std::string("\x1b]10;") + XParseColor(mColorTbl.GetColor(VTColorTable::kColorId_Paper));
+                Put(resp);
+            } else {
+                mColorTbl.SetColor(VTColorTable::kColorId_Paper, XParseColor(ps[2]));
+            }
+        } break;
         // 12-19, we ignore them.
         // 50,51, .etc we do not support Font ops, you can change font from VTOptionsDialog.
         case 104: // reset color
@@ -92,7 +116,5 @@ void SerialConnXterm::ProcessXTOSC(const std::string& p)
             break;
         // 5,6, we do not support Xterm spec color
         }
-    } else {
-        SerialConnVT520::ProcessOSC(p);
     }
 }
