@@ -28,3 +28,6 @@ v2.2.6a
 v2.2.7a
  1. Use CODEC to complete HEX <--> TEXT
  2. The virtual terminal lost focus after popup dialog, WantFocus(true) could fix it.
+ 
+v2.2.7.1a
+ 1. I reviewed the code again, fix some bugs

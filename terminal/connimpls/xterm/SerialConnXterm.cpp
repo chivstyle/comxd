@@ -46,6 +46,7 @@ void SerialConnXterm::InstallFunctions()
     mFunctions[XTSMTITLE] = [=](const std::string& p) { ProcessXTSMTITLE(p); };
     mFunctions[XTCHECKSUM] = [=](const std::string& p) { ProcessXTCHECKSUM(p); };
     mFunctions[XTDISABLEMODOPTS] = [=](const std::string& p) { ProcessXTDISABLEMODOPTS(p); };
+    mFunctions[XTOSC] = [=](const std::string& p) { ProcessXTOSC(p); };
 }
 
 void SerialConnXterm::LeftDown(Point p, dword keyflags)
@@ -392,13 +393,13 @@ void SerialConnXterm::ProcessXTWINOPS(const std::string& p)
         Put("\033[3;0;0t");
     } break;
     case 14: if (1) {
-        std::string rsp = "\033[4;" + std::to_string(GetSize().cy) + ";" +
-            std::to_string(GetSize().cx) + "t";
+        std::string rsp = "\033[4;" + std::to_string(GetViewSize().cy) + ";" +
+            std::to_string(GetViewSize().cx) + "t";
         Put(rsp);
     } break;
     case 15: if (1) { // report size of the screen in pixels
-        std::string rsp = "\033[5;" + std::to_string(GetSize().cy) + ";" +
-            std::to_string(GetSize().cx) + "t";
+        std::string rsp = "\033[5;" + std::to_string(GetViewSize().cy) + ";" +
+            std::to_string(GetViewSize().cx) + "t";
         Put(rsp);
     } break;
     case 16: if (1) { // report xterm character cell size in pixels
@@ -438,6 +439,8 @@ void SerialConnXterm::ProcessXTCHECKSUM(const std::string&)
 
 void SerialConnXterm::Paste()
 {
+    CHECK_GUI_THREAD();
+    //
     if (mModes.GetDecpMode(SetBracketedPasteMode, 0)) {
         Put("\033[200~");
         SerialConnVT520::Paste();

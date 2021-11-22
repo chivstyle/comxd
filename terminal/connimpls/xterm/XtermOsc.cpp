@@ -34,7 +34,7 @@ static inline Color XParseColor(const std::string& spec)
     return Color(rand() % 255, rand() % 255, rand() % 255);
 }
 
-void SerialConnXterm::ProcessOSC(const std::string& p)
+void SerialConnXterm::ProcessXTOSC(const std::string& p)
 {
     std::string ps[16];
     int idx = 0;
@@ -48,7 +48,10 @@ void SerialConnXterm::ProcessOSC(const std::string& p)
         case 0: // change Icon Name And Window Title
         case 1: // change Icon Name
         case 2: // change window Title
-            this->WhenTitle(ps[1].c_str());
+            SetTitle(ps[1]);
+            PostCallback([=] {
+                this->WhenTitle(GetTitle());
+            });
             break;
         case 3: if (1) {
             const char* pv[2] = {"", ""};

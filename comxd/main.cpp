@@ -119,13 +119,20 @@ protected:
                 PostCallback([=]() {
                     auto conn = it->second.Create();
                     if (conn) {
-                        conn->WhenWarning = [=](Upp::String warning) {
+                        conn->WhenWarning = [=](String warning) {
                             mStatusbar.Set(1, warning, 500);
                         };
                         auto btn_close = new TabCloseBtn(conn, &mDevsTab, &mAbout);
                         btn_close->SetImage(comxd::close_little());
                         btn_close->SetRect(0, 0, 16, 16);
                         mDevsTab.Add(conn->SizePos(), conn->ConnName()).SetCtrl(btn_close);
+#if 0
+                        conn->WhenTitle = [=](String title) {
+                            auto item = FindConnItem(conn);
+                            if (item)
+                                item->Text(title);
+                        };
+#endif
                         // set current to conn
                         mDevsTab.Set(*conn);
                         //
@@ -141,6 +148,18 @@ protected:
         //
         bar.ToolGapRight();
         bar.Add(t_("About"), comxd::about(), [=]() { PromptOK(Upp::GetTopicLNG("comxd/comxd/about")); });
+    }
+    
+    TabCtrl::Item* FindConnItem(const SerialConn* conn_)
+    {
+        int cnt = mDevsTab.GetCount();
+        for (int i = 0; i < cnt; ++i) {
+            TabCtrl::Item& item = mDevsTab.GetItem(i);
+            auto conn = dynamic_cast<SerialConn*>(item.GetSlave());
+            if (conn == conn_)
+                return &item;
+        }
+        return nullptr;
     }
 
     void OndemandToolbar(Bar& bar)

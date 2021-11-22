@@ -36,6 +36,8 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
     , mBackgroundColorId(VTColorTable::kColorId_Paper)
     , mForegroundColorId(VTColorTable::kColorId_Texts)
     , mOwnerId(std::this_thread::get_id())
+    , mVtSize(Size(0, 0))
+    , mVwSize(Size(0, 0))
 {
     WantFocus(true);
     // double buffer
@@ -157,7 +159,6 @@ void SerialConnVT::ShowVTOptions()
         if (vscr_modified) {
             Size vsz = GetSize();
             ResizeVt(Size(vsz.cx / mFontW, vsz.cy / mFontH));
-            WhenSizeChanged(GetConsoleSize());
             UpdatePresentation();
         }
     }
@@ -828,9 +829,9 @@ int SerialConnVT::LogicToVirtual(const VTLine& vline, int lx, int& px, int& next
 void SerialConnVT::PushToLinesBufferAndCheck(const VTLine& vline)
 {
     CHECK_LOCK_VT();
-    //
+    // strip trail blanks to save memory
     int nchars = (int)vline.size() - CalculateNumberOfBlankCharsFromEnd(vline);
-    VTLine buff = VTLine(nchars).SetHeight(vline.GetHeight());
+    VTLine buff = VTLine(nchars).SetHeight(vline.GetHeight()).HasSuccessiveLines(vline.HasSuccessiveLines());
     for (int i = 0; i < nchars; ++i) {
         buff[i] = vline[i];
     }
@@ -1436,12 +1437,15 @@ void SerialConnVT::ResizeVt(const Size& csz)
     } else {
         ShrinkVirtualScreen(csz.cx, csz.cy);
     }
+    //
     ProcessOverflowChars(Seq());
     //
     UpdatePresentationPos();
     // screen size was changed
     mScrollingRegion.Top = 0;
     mScrollingRegion.Bottom = -1;
+    //
+    WhenSizeChanged(GetConsoleSize());
 }
 
 void SerialConnVT::Layout()
@@ -1455,10 +1459,10 @@ void SerialConnVT::Layout()
     //
     mSbV.SetPage(mFontH * csz.cy);
     mSbH.SetPage(mFontW * csz.cx);
-    //
+    // update the size of virtual terminal
     ResizeVt(csz);
-    //
-    WhenSizeChanged(GetConsoleSize());
+    // update the size of view
+    mVwSize = vsz;
     //
     UpdatePresentation();
 }

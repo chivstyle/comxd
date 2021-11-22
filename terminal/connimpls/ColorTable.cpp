@@ -8,11 +8,10 @@ using namespace Upp;
 VTColorTable::VTColorTable()
     : mFallbackColor(Upp::White())
 {
+    mTbl[kColorId_Texts] = Color(223, 223, 223);
+    mTbl[kColorId_Paper] = Color(30, 30, 30);
+    //
     SetToDefault();
-    // build palette
-    for (int k = 0; k < 256; ++k) {
-        SetColor(kColorId_Max + k, Upp::Color(rand() % 255, rand() % 255, rand() % 255));
-    }
 }
 
 VTColorTable::~VTColorTable()
@@ -56,8 +55,6 @@ static const int kDefaultColorTbl[256] = {
 
 void VTColorTable::SetToDefault()
 {
-    mTbl[kColorId_Texts] = Color(223, 223, 223);
-    mTbl[kColorId_Paper] = Color(30, 30, 30);
     for (int i = 0; i < 256; ++i) {
         mTbl[i] = Color((kDefaultColorTbl[i] >> 16) & 0xff,
                         (kDefaultColorTbl[i] >> 8 ) & 0xff,

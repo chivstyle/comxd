@@ -190,7 +190,7 @@ void SerialConnVT220::ProcessDECSTR(const std::string&)
     this->mScrollingRegion.Top = 0;
     this->mScrollingRegion.Bottom = 23;
     //
-    Clear();
+    ClearVt();
 }
 void SerialConnVT220::ProcessSecondaryDA(const std::string& p)
 {

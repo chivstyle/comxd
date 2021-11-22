@@ -28,12 +28,12 @@ protected:
     virtual void ProcessXTSMTITLE(const std::string&);
     virtual void ProcessXTCHECKSUM(const std::string&);
     virtual void ProcessXTDISABLEMODOPTS(const std::string&);
+    virtual void ProcessXTOSC(const std::string&);
     // override vt520
     void ProcessDECSM(const std::string& p);
     void ProcessDECRM(const std::string& p);
     void ProcessSD(const std::string& p);
     void ProcessSGR(const std::string& p);
-    void ProcessOSC(const std::string& p);
     // override Paste to support bracketed paste.
     void Paste();
     void LeftDown(Upp::Point p, Upp::dword keyflags);

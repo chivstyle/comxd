@@ -139,7 +139,7 @@ void SerialConnVT420::ProcessDA(const std::string& p)
         // 9 - NRC sets, 15 - DEC technical set
         // 18 - user windows, 19 - two sessions
         // 21 - horizontal scrolling
-        GetIo()->Write("\033[?62,63,64;6;9;15;18c");
+        Put("\033[?62,63,64;6;9;15;18c");
         break;
     default:
         SerialConnVT320::ProcessDA(p);
@@ -153,7 +153,7 @@ void SerialConnVT420::ProcessSecondaryDA(const std::string& p)
     case 0:
         // CSI > 41; Pv; 1 c
         // Pv - firmware version.
-        GetIo()->Write("\033[>41;20;1c");
+        Put("\033[>41;20;1c");
         break;
     default:
         SerialConnVT320::ProcessSecondaryDA(p);
@@ -166,7 +166,7 @@ void SerialConnVT420::ProcessTertiaryDA(const std::string& p)
     switch (pn) {
     case 0:
         // DCS!|D...D ST
-        GetIo()->Write("\033\x50!|0\033\x5c");
+        Put("\033\x50!|0\033\x5c");
         break;
     default:
         break;
@@ -180,7 +180,7 @@ void SerialConnVT420::ProcessDECDSR(const std::string& p)
     case 6:
         if (1) {
             std::string rsp = std::string("\033[?") + std::to_string(mVy) + ";" + std::to_string(mVx) + ";0R";
-            GetIo()->Write(rsp);
+            Put(rsp);
         }
         break;
     default:

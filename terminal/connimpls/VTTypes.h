@@ -207,7 +207,7 @@ public:
     }
     int GetHeight() const { return mHeight; };
     bool HasSuccessiveLines() const { return mHasSuccesiveLines; }
-    void HasSuccessiveLines(bool b) { mHasSuccesiveLines = b; }
+    VTLine& HasSuccessiveLines(bool b) { mHasSuccesiveLines = b; return *this; }
 
 private:
     int mHeight;

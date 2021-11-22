@@ -25,10 +25,11 @@
 //     VT resources includes :
 //       a. Lines
 //       b. BufferLines
-//       c. Style
+//       c. Style, show cursor, wrap line, .etc
 //       d. Vx,Vy, Px,Py
 //       e. ColorTable
 //       f. ScrollRegion
+//       g. Modes
 //     In the Handlers, you can access these resources freely without lock them.
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -58,8 +59,6 @@ namespace Upp {
         void Leave()
         {
             mMtx.Leave();
-            // stands for There's no thread owning this lock
-            mOwnerId = std::thread::id();
         }
         
         std::thread::id GetOwnerId() const { return mOwnerId; }
@@ -70,7 +69,7 @@ namespace Upp {
         std::thread::id mOwnerId;
     };
 }
-#define ENABLE_THREAD_CHECK 0
+#define ENABLE_THREAD_CHECK 1
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 #if ENABLE_THREAD_CHECK
 #define CHECK_GUI_THREAD() do { \
@@ -175,8 +174,10 @@ protected:
     bool mBlinkSignal; // 0,1,0,1,0,1, 2 Hz
     std::deque<VTLine> mLinesBuffer;
     std::deque<VTLine> mLines; //<! Text on current screen, treat is as virtual screen
-    Upp::Size          mVtSize;
+    Upp::Size          mVtSize; // size of virtual terminal, in CELLs
+    Upp::Size          mVwSize; // size of View, in Pixels
     Upp::Size GetConsoleSize() const { return mVtSize; }
+    Upp::Size GetViewSize() const { return mVwSize; }
     //-------------------------------------------------------------------------------------------
     Upp::DebugMutex mLockVt;   // protect virtual screen, before accessing VtSize, Lines, .etc
                                // you must acquire the LockVt.
