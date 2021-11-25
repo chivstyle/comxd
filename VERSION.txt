@@ -31,3 +31,8 @@ v2.2.7a
  
 v2.2.7.1a
  1. I reviewed the code again, fix some bugs
+ 
+v2.2.7.2a
+
+ 1. Do not close the Conn Dialog on error
+ 2. Do not truncate the long lines in VT

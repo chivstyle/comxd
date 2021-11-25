@@ -20,4 +20,8 @@ public:
     //
 protected:
     bool Key(Upp::dword key, int count);
+    //
+private:
+    SerialConn* mConn;
+    void CreateConn();
 };

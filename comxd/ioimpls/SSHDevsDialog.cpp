@@ -48,7 +48,9 @@ SSHDevsDialog::SSHDevsDialog()
     }
     CtrlLayout(*this);
 
-    this->Acceptor(mBtnOk, IDOK).Rejector(mBtnCancel, IDCANCEL);
+    Rejector(mBtnCancel, IDCANCEL);
+    //
+    mBtnOk.WhenAction = [=]() { CreateConn(); };
 }
 
 bool SSHDevsDialog::Key(Upp::dword key, int count)
@@ -65,34 +67,40 @@ bool SSHDevsDialog::Key(Upp::dword key, int count)
     return TopWindow::Key(key, count);
 }
 
+void SSHDevsDialog::CreateConn()
+{
+    std::shared_ptr<SshSession> session = std::make_shared<SshSession>();
+    session->WhenWait = [=]() {
+        if (IsMainThread())
+            ProcessEvents();
+    };
+    if (session->Timeout(5000).Connect(~mHost, ~mPort, ~mUser, ~mPassword)) {
+        try {
+            auto port = std::make_shared<SSHPort>(session, ~mHost,
+                ConnFactory::Inst()->GetConnType(~mTypes));
+            auto conn = ConnFactory::Inst()->CreateInst(~mTypes, port);
+            port->Start();
+            conn->WhenSizeChanged = [=](const Size& csz) {
+                port->SetConsoleSize(csz);
+            };
+            conn->SetCodec(mCodecs.GetData().ToString());
+            conn->Start();
+            //
+            mConn = conn;
+            this->AcceptBreak(IDOK);
+            //
+        } catch (const String& desc) {
+            PromptOK(Upp::DeQtf(desc));
+        }
+    } else {
+        PromptOK(Upp::DeQtf(session->GetErrorDesc()));
+    }
+}
+
 SerialConn* SSHDevsDialog::RequestConn()
 {
-    SerialConn* conn = nullptr;
     if (Run(true) == IDOK) {
-        this->Disable(); // disable the dialog.
-        std::shared_ptr<SshSession> session = std::make_shared<SshSession>();
-        this->Title(t_("Connecting..."));
-        session->WhenWait = [=]() {
-            if (IsMainThread())
-                ProcessEvents();
-        };
-        if (session->Timeout(2000).Connect(~mHost, ~mPort, ~mUser, ~mPassword)) {
-            try {
-                auto port = std::make_shared<SSHPort>(session, ~mHost,
-                    ConnFactory::Inst()->GetConnType(~mTypes));
-                conn = ConnFactory::Inst()->CreateInst(~mTypes, port);
-                port->Start();
-                conn->WhenSizeChanged = [=](const Size& csz) {
-                    port->SetConsoleSize(csz);
-                };
-                conn->SetCodec(mCodecs.GetData().ToString());
-                conn->Start();
-            } catch (const String& desc) {
-                PromptOK(Upp::DeQtf(desc));
-            }
-        } else {
-            PromptOK(Upp::DeQtf(session->GetErrorDesc()));
-        }
+        return mConn;
     }
-    return conn;
+    return nullptr;
 }

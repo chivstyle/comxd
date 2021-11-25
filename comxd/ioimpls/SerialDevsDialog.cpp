@@ -83,7 +83,9 @@ SerialDevsDialog::SerialDevsDialog()
         }
     }
     //
-    Acceptor(mBtnOk, IDOK).Acceptor(mBtnCancel, IDCANCEL);
+    Acceptor(mBtnCancel, IDCANCEL);
+    //
+    mBtnOk.WhenAction = [=]() { CreateConn(); };
 }
 
 bool SerialDevsDialog::Key(Upp::dword key, int count)
@@ -136,37 +138,43 @@ void SerialDevsDialog::ChangeSettings(SerialPort* port)
         }
     }
 }
-
+//
+void SerialDevsDialog::CreateConn()
+{
+    try {
+        auto serial = std::make_shared<serial::Serial>(
+            mDevsList.GetData().ToString().ToStd(),
+            mBaudrate.GetKey(mBaudrate.GetIndex()).To<int>(),
+            serial::Timeout(),
+            (serial::bytesize_t)mDataBits.GetKey(mDataBits.GetIndex()).To<int>(),
+            (serial::parity_t)mParity.GetKey(mParity.GetIndex()).To<int>(),
+            (serial::stopbits_t)mStopBits.GetKey(mStopBits.GetIndex()).To<int>(),
+            (serial::flowcontrol_t)mFlowCtrl.GetKey(mFlowCtrl.GetIndex()).To<int>());
+        if (serial) {
+            auto port = std::make_shared<SerialPort>(serial);
+            port->Start();
+            auto conn = ConnFactory::Inst()->CreateInst(~mTypes, port);
+            if (!conn) {
+                Upp::PromptOK(DeQtf(t_("Dose not support:") + (String)~mTypes));
+            } else {
+                conn->SetCodec(mCodecs.Get().ToString());
+                conn->Start();
+                //
+                mConn = conn;
+                //
+                this->AcceptBreak(IDOK);
+            }
+        }
+    } catch (const std::exception&) {
+        Upp::PromptOK(t_("Can't open, because:") + mDevsList.GetData().ToString() + "&" + t_("-|1. Not supported settings") + "&" + t_("-|2. Device was opened already"));
+    }
+}
 // This is a factory, it will create kingds conn according to the current settings.
 SerialConn* SerialDevsDialog::RequestConn()
 {
     int ret = Run(true);
     if (ret == IDOK) {
-        try {
-            auto serial = std::make_shared<serial::Serial>(
-                mDevsList.GetData().ToString().ToStd(),
-                mBaudrate.GetKey(mBaudrate.GetIndex()).To<int>(),
-                serial::Timeout(),
-                (serial::bytesize_t)mDataBits.GetKey(mDataBits.GetIndex()).To<int>(),
-                (serial::parity_t)mParity.GetKey(mParity.GetIndex()).To<int>(),
-                (serial::stopbits_t)mStopBits.GetKey(mStopBits.GetIndex()).To<int>(),
-                (serial::flowcontrol_t)mFlowCtrl.GetKey(mFlowCtrl.GetIndex()).To<int>());
-            if (serial) {
-                auto port = std::make_shared<SerialPort>(serial);
-                port->Start();
-                auto conn = ConnFactory::Inst()->CreateInst(~mTypes, port);
-                if (!conn) {
-                    Upp::PromptOK(DeQtf(t_("Dose not support:") + (String)~mTypes));
-                } else {
-                    conn->SetCodec(mCodecs.Get().ToString());
-                    conn->Start();
-                    return conn;
-                }
-            }
-        } catch (const std::exception&) {
-            Upp::PromptOK(t_("Can't open, because:") + mDevsList.GetData().ToString() + "&" + t_("-|1. Not supported settings") + "&" + t_("-|2. Device was opened already"));
-        }
+        return mConn;
     }
-    //
     return nullptr;
 }

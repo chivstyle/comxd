@@ -14,6 +14,7 @@
 #define ENABLE_BLINK_TEXT 1
 #define ENABLE_FIXED_LINE_HEIGHT 1
 #define ENABLE_BLANK_LINES_HINT_IN_SELECTION 1
+#define ENABLE_VT_LINE_TRUNCATION 0
 // register
 using namespace Upp;
 //----------------------------------------------------------------------------------------------
@@ -1416,7 +1417,7 @@ void SerialConnVT::ResizeVt(const Size& csz)
         }
         int overflow_cnt = (int)vline.size() - csz.cx;
         if (overflow_cnt > 0) {
-#if 1
+#if ENABLE_VT_LINE_TRUNCATION
             while (overflow_cnt--)
                 vline.pop_back();
 #else
@@ -1716,7 +1717,7 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
         }
     }
 #if ENABLE_BLANK_LINES_HINT_IN_SELECTION && ENABLE_FIXED_LINE_HEIGHT
-	if (i < csz.cx) {
+	if (i < csz.cx && !vline.HasSuccessiveLines()) {
 		if (IsCharInSelectionSpan(i, vy)) {
 			draw.DrawRect(x, y, mFontW, mFontH, mColorTbl.GetColor(VTColorTable::kColorId_Texts));
 		}
