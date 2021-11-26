@@ -35,6 +35,7 @@ public:
     {
         int cnt = mDevsTab.GetCount();
         while (cnt--) {
+            // never reach here
             delete mDevsTab.GetItem(0).GetCtrl();
         }
     }

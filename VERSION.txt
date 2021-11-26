@@ -36,3 +36,8 @@ v2.2.7.2a
 
  1. Do not close the Conn Dialog on error
  2. Do not truncate the long lines in VT
+ 
+v2.2.7.3a
+
+  1. Double/Triple click could select the whole line
+  2. A hard to find bug results in crash, I add some codes, but it depends.

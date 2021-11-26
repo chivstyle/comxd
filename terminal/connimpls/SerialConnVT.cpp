@@ -78,7 +78,7 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
     // blink timer
     mBlinkTimer.Set(-500, [&]() {
         mBlinkSignal = !mBlinkSignal;
-        this->Refresh();
+        PostCallback([=]() { this->Refresh(); });
     });
 #endif
     // initialize size
@@ -1094,11 +1094,37 @@ void SerialConnVT::LeftDouble(Point p, dword)
         while (fx >= 0 && vline->at(fx).Code() != ' ') {
             mSelectionSpan.X0 = fx--;
         }
+        int p = 1;
+        VTLine* pline = vline;
+        while (fx < 0) {
+            pline = GetVTLine(vpos.y - p++);
+            if (pline && pline->HasSuccessiveLines()) {
+                fx = std::min((int)pline->size() - 1, mVtSize.cx - 1);
+                bool valid = false;
+                while (fx >= 0 && pline->at(fx).Code() != ' ') {
+                    mSelectionSpan.X0 = fx--;
+                    valid = true;
+                }
+                if (valid) mSelectionSpan.Y0--;
+            } else break;
+        }
         // backward
         int bx = vpos.x + 1; // selection span is [vpos.x, vpos.x + N+1)
         if (fx != vpos.x) { // If you have clicked blank, we do not extend the selection span
-            while (bx < (int)vline->size() && vline->at(bx).Code() != ' ' && vline->at(bx).Code() != '\n') {
+            while (bx < (int)vline->size() && vline->at(bx).Code() != ' ') {
                 bx++;
+            }
+            VTLine* qline = vline;
+            int q = 1;
+            while (bx >= (int)mVtSize.cx && qline->HasSuccessiveLines()) {
+                qline = GetVTLine(vpos.y + q++);
+                if (qline) {
+                    bx = 0;
+                    while (bx < (int)qline->size() && qline->at(bx).Code() != ' ') {
+                        bx++;
+                    }
+                    mSelectionSpan.Y1++;
+                } else break;
             }
         }
         mSelectionSpan.X1 = bx;
@@ -1123,6 +1149,23 @@ void SerialConnVT::LeftTriple(Point p, dword)
         mSelectionSpan.X0 = 0;
         mSelectionSpan.X1 = (int)vline->size();
         mSelectionSpan.Valid = true;
+        int p = 1;
+        VTLine* pline = vline;
+        while (pline) {
+            pline = GetVTLine(vpos.y - p++);
+            if (pline && pline->HasSuccessiveLines()) {
+                mSelectionSpan.Y0--;
+            } else break;
+        }
+        int q = 1;
+        VTLine* qline = vline;
+        while (qline && qline->HasSuccessiveLines()) {
+            qline = GetVTLine(vpos.y + q++);
+            if (qline) {
+                mSelectionSpan.Y1++;
+            }
+        }
+        //
         Refresh();
     }
 }
