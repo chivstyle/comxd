@@ -74,6 +74,8 @@ void SSHDevsDialog::CreateConn()
         if (IsMainThread())
             ProcessEvents();
     };
+    auto title = GetTitle();
+    Title(t_("Connecting...")).Disable();
     if (session->Timeout(5000).Connect(~mHost, ~mPort, ~mUser, ~mPassword)) {
         try {
             auto port = std::make_shared<SSHPort>(session, ~mHost,
@@ -89,12 +91,14 @@ void SSHDevsDialog::CreateConn()
             mConn = conn;
             this->AcceptBreak(IDOK);
             //
+            return;
         } catch (const String& desc) {
             PromptOK(Upp::DeQtf(desc));
         }
     } else {
         PromptOK(Upp::DeQtf(session->GetErrorDesc()));
     }
+    Title(title).Enable();
 }
 
 SerialConn* SSHDevsDialog::RequestConn()
