@@ -11,6 +11,8 @@ class MainWindow : public WithMainWindow<TopWindow> {
 public:
     MainWindow()
     {
+        MakeConfigDirectory();
+        //
         this->Title("comxd");
         //
         this->CenterScreen();
@@ -37,6 +39,14 @@ public:
         while (cnt--) {
             // never reach here
             delete mDevsTab.GetItem(0).GetCtrl();
+        }
+    }
+    //
+    void MakeConfigDirectory()
+    {
+        auto conf = Upp::GetHomeDirectory() + "/.comxd";
+        if (!Upp::DirectoryExists(conf)) {
+            Upp::DirectoryCreate(conf);
         }
     }
     //

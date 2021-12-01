@@ -37,7 +37,7 @@ VTOptionsDialog::VTOptionsDialog()
             mFontList.Add(i);
         }
     }
-    mFontList.SetIndex(0);
+    mFontList.SetIndex(0); // 0 is the default
     for (int i = 0; i < ARRAYSIZE(kFontSizes); ++i) {
         mFontSize.AddList(kFontSizes[i]);
     }
@@ -73,20 +73,6 @@ bool VTOptionsDialog::Key(Upp::dword key, int count)
 void VTOptionsDialog::InstallActions()
 {
     mFontList.WhenAction = [=]() {
-        int sel_value = 12;
-        if (mFontSize.GetCount()) {
-            sel_value = mFontSize.GetData().To<int>();
-        }
-        mFontSize.ClearList();
-        Font font(mFontList.Get(), sel_value);
-        if (font.IsScaleable()) {
-            for (int i = 0; i < ARRAYSIZE(kFontSizes); ++i) {
-                mFontSize.AddList(kFontSizes[i]);
-            }
-            mFontSize.SetData(sel_value);
-        } else {
-            mFontSize.SetData(font.GetHeight());
-        }
         PreviewFont();
     };
     mFontSize.WhenAction = [=]() {
@@ -117,12 +103,11 @@ void VTOptionsDialog::PreviewFont()
 void VTOptionsDialog::SetOptions(const Options& options)
 {
     int face = options.Font.GetFace();
-    mFontList.Set(face);
+    mFontList.SetData(face);
     mFontSize.SetData(options.Font.GetHeight());
     mPaperColor.SetData(options.PaperColor);
     mTextsColor.SetData(options.TextsColor);
     mLinesBufferSize.SetData(options.LinesBufferSize);
-    mFontList.WhenAction();
     //
     PreviewFont();
 }
@@ -135,9 +120,4 @@ VTOptionsDialog::Options VTOptionsDialog::GetOptions() const
     options.TextsColor = mTextsColor.GetData();
     options.LinesBufferSize = mLinesBufferSize.GetData();
     return options;
-}
-
-bool VTOptionsDialog::Accept()
-{
-    return true;
 }

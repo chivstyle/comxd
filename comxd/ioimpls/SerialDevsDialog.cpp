@@ -46,9 +46,10 @@ SerialDevsDialog::SerialDevsDialog()
     mDataBits.SetIndex(3); // 8bits default
     // list baudrate
     for (size_t k = 0; k < ARRAYSIZE(kBaudrates); ++k) {
-        mBaudrate.Add(kBaudrates[k], std::to_string(kBaudrates[k]).c_str());
+        //mBaudrate.Add(kBaudrates[k], std::to_string(kBaudrates[k]).c_str());
+        mBaudrate.AddList(kBaudrates[k]);
     }
-    mBaudrate.SetIndex(6); // default, 115200
+    mBaudrate.SetData(115200);
     // stop bits
     mStopBits.Add(serial::stopbits_one, "1");
     mStopBits.Add(serial::stopbits_one_point_five, "1.5");
@@ -128,7 +129,7 @@ void SerialDevsDialog::ChangeSettings(SerialPort* port)
     int ret = Run(true);
     if (ret == IDOK) {
         try {
-            serial->setBaudrate(mBaudrate.GetKey(mBaudrate.GetIndex()).To<int>());
+            serial->setBaudrate(mBaudrate.GetData().To<int>());
             serial->setParity((serial::parity_t)mParity.GetKey(mParity.GetIndex()).To<int>());
             serial->setBytesize((serial::bytesize_t)mDataBits.GetKey(mDataBits.GetIndex()).To<int>());
             serial->setStopbits((serial::stopbits_t)mStopBits.GetKey(mStopBits.GetIndex()).To<int>());
@@ -144,7 +145,7 @@ void SerialDevsDialog::CreateConn()
     try {
         auto serial = std::make_shared<serial::Serial>(
             mDevsList.GetData().ToString().ToStd(),
-            mBaudrate.GetKey(mBaudrate.GetIndex()).To<int>(),
+            mBaudrate.GetData().To<int>(),
             serial::Timeout(),
             (serial::bytesize_t)mDataBits.GetKey(mDataBits.GetIndex()).To<int>(),
             (serial::parity_t)mParity.GetKey(mParity.GetIndex()).To<int>(),

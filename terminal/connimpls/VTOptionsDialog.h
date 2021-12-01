@@ -25,8 +25,6 @@ public:
     //
 protected:
     bool Key(Upp::dword key, int count);
-    //
-    bool Accept();
     // Update font preview
     void PreviewFont();
     //

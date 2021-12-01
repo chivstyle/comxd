@@ -6,6 +6,7 @@
 #include "Conn.h"
 // device
 #include <memory>
+#include <queue>
 //
 class SSHDevsDialog : public WithSSHDevs<TopWindow> {
 public:
@@ -19,6 +20,20 @@ protected:
     bool Key(Upp::dword key, int count);
     //
 private:
+    struct SSHDevInfo {
+        Upp::String Host;
+        Upp::String User;
+        Upp::String Type;
+        Upp::String Code;
+    };
+    std::deque<SSHDevInfo> mRecents;
+    //
+    std::deque<SSHDevInfo> GetRecentSSHDevInfos(int count) const;
+    void AddRecentSSHDevInfo(const Upp::String& host, const Upp::String& user, const Upp::String& type, const Upp::String& code);
+    void SaveRecentSSHDevInfos() const;
+    const SSHDevInfo* FindRecent(const Upp::String& host) const;
+    const SSHDevInfo* Find(const std::deque<SSHDevInfo>& infos, const Upp::String& host) const;
+    //
     SerialConn* mConn;
     void CreateConn();
 };

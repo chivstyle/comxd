@@ -8,6 +8,8 @@
 #include "SSHPort.h"
 #include "ConnCreateFactory.h"
 
+#define CONFIG_MAX_RECENT_RECS_NUMBER        10
+
 using namespace Upp;
 
 namespace {
@@ -22,6 +24,62 @@ public:
     }
 };
 __class_to_create_conn_ssh __ssh_conn_create;
+}
+// load history
+std::deque<SSHDevsDialog::SSHDevInfo> SSHDevsDialog::GetRecentSSHDevInfos(int count) const
+{
+    std::deque<SSHDevInfo> out;
+    auto conf = Upp::GetHomeDirectory() + "/.comxd/recent_ssh_devs.json";
+    Upp::Value root = Upp::ParseJSON(Upp::LoadFile(conf));
+    if (!root.IsNull()) {
+        if (root.GetType() == Upp::VALUEARRAY_V) {
+            int item_count = root.GetCount();
+            int item_from = item_count > count ? item_count - count : 0;
+            for (int i = item_from; i < item_count; ++i) {
+                if (Find(out, ~root[i]["Host"])) continue;
+                out.push_back({~root[i]["Host"], ~root[i]["User"], ~root[i]["Type"], ~root[i]["Code"]});
+            }
+        }
+    }
+    return out;
+}
+const SSHDevsDialog::SSHDevInfo* SSHDevsDialog::Find(const std::deque<SSHDevsDialog::SSHDevInfo>& infos, const String& host) const
+{
+    for (size_t k = 0; k < infos.size(); ++k) {
+        if (infos[k].Host == host)
+            return &infos[k];
+    }
+    return nullptr;
+}
+
+const SSHDevsDialog::SSHDevInfo* SSHDevsDialog::FindRecent(const String& host) const
+{
+    return Find(mRecents, host);
+}
+
+void SSHDevsDialog::SaveRecentSSHDevInfos() const
+{
+    JsonArray out;
+    const std::deque<SSHDevsDialog::SSHDevInfo>& infos = mRecents;
+    for (size_t k = 0; k < infos.size(); ++k) {
+        out << Json("Host", infos[k].Host)("User", infos[k].User)("Type", infos[k].Type)("Code", infos[k].Code);
+    }
+    auto conf = Upp::GetHomeDirectory() + "/.comxd/recent_ssh_devs.json";
+    Upp::SaveFile(conf, out.ToString());
+}
+
+void SSHDevsDialog::AddRecentSSHDevInfo(const String& host, const String& user, const String& type, const String& code)
+{
+    for (auto it = mRecents.begin(); it != mRecents.end(); ) {
+        if (it->Host == host) {
+            it = mRecents.erase(it);
+        } else ++it;
+    }
+    //
+    if (mRecents.size() >= CONFIG_MAX_RECENT_RECS_NUMBER) {
+        mRecents.pop_front();
+    }
+    mRecents.emplace_back(SSHDevInfo{host, user, type, code});
 }
 
 SSHDevsDialog::SSHDevsDialog()
@@ -46,8 +104,28 @@ SSHDevsDialog::SSHDevsDialog()
             mCodecs.SetIndex((int)k);
         }
     }
+    mRecents = GetRecentSSHDevInfos(CONFIG_MAX_RECENT_RECS_NUMBER);
+    for (size_t i = 0; i < mRecents.size(); ++i) {
+        mHost.AddList(mRecents[i].Host);
+    }
+    if (!mRecents.empty()) { // set last one
+        mHost.SetData(mRecents.rbegin()->Host);
+        mUser.SetData(mRecents.rbegin()->User);
+        mTypes.SetData(mRecents.rbegin()->Type);
+        mCodecs.SetData(mRecents.rbegin()->Code);
+    }
+    mHost.WhenSelect = [=]() {
+        auto item = this->FindRecent(~mHost);
+        if (item) {
+            mHost.SetData(item->Host);
+            mUser.SetData(item->User);
+            mTypes.SetData(item->Type);
+            mCodecs.SetData(item->Code);
+        }
+    };
+    //
     CtrlLayout(*this);
-
+    //
     Rejector(mBtnCancel, IDCANCEL);
     //
     mBtnOk.WhenAction = [=]() { CreateConn(); };
@@ -89,6 +167,10 @@ void SSHDevsDialog::CreateConn()
             conn->Start();
             //
             mConn = conn;
+            // add to recent list
+            this->AddRecentSSHDevInfo(~mHost, ~mUser, ~mTypes, ~mCodecs);
+            this->SaveRecentSSHDevInfos();
+            //
             this->AcceptBreak(IDOK);
             //
             return;

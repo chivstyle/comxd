@@ -6,7 +6,7 @@ uses
 	terminal,
 	Painter;
 
-link(MSVC) /NODEFAULTLIB:LIBCMT;
+options(MSVC) /NODEFAULTLIB:LIBCMT;
 
 include
 	.;
