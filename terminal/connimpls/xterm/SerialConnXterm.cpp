@@ -267,54 +267,43 @@ void SerialConnXterm::ProcessSGR(const std::string& p)
     SplitString(p.data(), ":;", [=, &ps](const char* token) {
         ps.push_back(atoi(token));
     });
-    if (ps.size() > 2) {
-        switch (ps[0]) {
-        case 38:
-            if (ps[1] == 2) { // RGB Color
-                switch (ps.size()) {
-                case 6:
-                    // ps[2] is color space, we ignore it.
-                    mStyle.FgColorId = this->mColorTbl.FindNearestColorId(Color(ps[3], ps[4], ps[5]));
-                    break;
-                case 5:
-                    mStyle.FgColorId = this->mColorTbl.FindNearestColorId(Color(ps[2], ps[3], ps[4]));
-                    break;
-                default:
-                    SerialConnVT520::ProcessSGR(p);
-                    break;
+    for (size_t k = 0; k < ps.size(); ++k) {
+        // 38:<2/5>:<5/6>:<[Pi]:r:g:b/index>
+        if (ps[k] == 38 && k + 1 < ps.size()) { // xterm color
+            if (ps[k+1] == 2 && k + 1 + 4 < ps.size()) { // maybe RGB
+                if (k+1 + 5 < ps.size()) { // Pi:r:g:b
+                    mStyle.FgColorId = this->mColorTbl.FindNearestColorId(Color(ps[k+4], ps[k+5], ps[k+6]));
+                    k += 6;
+                } else { // r:g:b
+                    mStyle.FgColorId = this->mColorTbl.FindNearestColorId(Color(ps[k+3], ps[k+4], ps[k+5]));
+                    k += 5;
                 }
-            } else if (ps[1] == 5) { // Indexed Color
-                mStyle.FgColorId = this->mColorTbl.FindNearestColorId(ps[2]);
-            } else {
-                SerialConnVT520::ProcessSGR(p);
+                // ignore invalid ones
             }
-            break;
-        case 48:
-            if (ps[1] == 2) { // RGB Color
-                switch (ps.size()) {
-                case 6:
-                    // ps[2] is color space, we ignore it.
-                    mStyle.BgColorId = this->mColorTbl.FindNearestColorId(Color(ps[3], ps[4], ps[5]));
-                    break;
-                case 5:
-                    mStyle.BgColorId = this->mColorTbl.FindNearestColorId(Color(ps[2], ps[3], ps[4]));
-                    break;
-                default:
-                    SerialConnVT520::ProcessSGR(p);
-                    break;
+            else if (ps[k+1] == 5 && k + 1 + 1 < ps.size()) { // maybe index color
+                mStyle.FgColorId = this->mColorTbl.FindNearestColorId(ps[k+2]);
+                k += 2;
+            }
+            // others were ignored
+        } else if (ps[k] == 48 && k < ps.size() - 1) { // xterm color
+            if (ps[k+1] == 2 && k + 1 + 4 < ps.size()) { // maybe RGB
+                if (k+1 + 5 < ps.size()) { // Pi:r:g:b
+                    mStyle.BgColorId = this->mColorTbl.FindNearestColorId(Color(ps[k+4], ps[k+5], ps[k+6]));
+                    k += 6;
+                } else { // r:g:b
+                    mStyle.BgColorId = this->mColorTbl.FindNearestColorId(Color(ps[k+3], ps[k+4], ps[k+5]));
+                    k += 5;
                 }
-            } else if (ps[1] == 5) { // Indexed Color
-                mStyle.BgColorId = this->mColorTbl.FindNearestColorId(ps[2]);
-            } else {
-                SerialConnVT520::ProcessSGR(p);
+                // ignore invalid ones
             }
-            break;
-        default:
-            SerialConnVT520::ProcessSGR(p);
-            break;
+            else if (ps[k+1] == 5 && k + 1 + 1 < ps.size()) { // maybe index color
+                mStyle.BgColorId = this->mColorTbl.FindNearestColorId(ps[k+2]);
+                k += 2;
+            }
+            // others were ignored
+        } else {
+            UseSGR(ps[k]);
         }
-    } else {
-        SerialConnVT520::ProcessSGR(p);
     }
 }
 

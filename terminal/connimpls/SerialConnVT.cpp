@@ -281,7 +281,6 @@ void SerialConnVT::SetDefaultStyle()
     CHECK_LOCK_VT();
     //
     mStyle = VTStyle(); // default.
-    mColorTbl.SetToDefault();
 }
 //
 void SerialConnVT::ClearVt()

@@ -1074,142 +1074,145 @@ void SerialConnEcma48::ProcessSEE(const std::string& p)
 void SerialConnEcma48::ProcessSEF(const std::string& p)
 {
 }
+void SerialConnEcma48::UseSGR(int sgr)
+{
+    switch (sgr) {
+    case 0:
+        this->SetDefaultStyle();
+        break;
+    case 1:
+        mStyle.FontStyle |= VTStyle::eBold;
+        break;
+    case 2:
+        break;
+    case 3:
+        mStyle.FontStyle |= VTStyle::eItalic;
+        break;
+    case 4:
+        mStyle.FontStyle |= VTStyle::eUnderline;
+        break;
+    case 5:
+    case 6:
+        mStyle.FontStyle |= VTStyle::eBlink;
+        break;
+    case 7:
+        std::swap(mStyle.FgColorId, mStyle.BgColorId);
+        break;
+    case 8:
+        mStyle.FontStyle &= ~VTStyle::eVisible;
+        break;
+    case 9:
+        mStyle.FontStyle |= VTStyle::eStrikeout;
+        break;
+    case 10:
+    case 11:
+    case 12:
+    case 13:
+    case 14:
+    case 15:
+    case 16:
+    case 17:
+    case 18:
+    case 19:
+    case 20:
+        break;
+    case 21:
+        mStyle.FontStyle |= VTStyle::eUnderline;
+        break;
+    case 22:
+        mStyle.FgColorId = VTColorTable::kColorId_Texts;
+        mStyle.BgColorId = VTColorTable::kColorId_Paper;
+        mStyle.FontStyle &= ~VTStyle::eBold;
+        break;
+    case 23:
+        mStyle.FontStyle &= ~VTStyle::eItalic;
+        break;
+    case 24:
+        mStyle.FontStyle &= ~VTStyle::eUnderline;
+        break;
+    case 25:
+        mStyle.FontStyle &= ~VTStyle::eBlink;
+        break;
+    case 26:
+        break;
+    case 27:
+        std::swap(mStyle.FgColorId, mStyle.BgColorId);
+        break;
+    case 28:
+        mStyle.FontStyle |= VTStyle::eVisible;
+        break;
+    case 29:
+        mStyle.FontStyle &= ~VTStyle::eStrikeout;
+        break;
+    case 30:
+        mStyle.FgColorId = VTColorTable::kColorId_Black;
+        break;
+    case 31:
+        mStyle.FgColorId = VTColorTable::kColorId_Red;
+        break;
+    case 32:
+        mStyle.FgColorId = VTColorTable::kColorId_Green;
+        break;
+    case 33:
+        mStyle.FgColorId = VTColorTable::kColorId_Yellow;
+        break;
+    case 34:
+        mStyle.FgColorId = VTColorTable::kColorId_Blue;
+        break;
+    case 35:
+        mStyle.FgColorId = VTColorTable::kColorId_Magenta;
+        break;
+    case 36:
+        mStyle.FgColorId = VTColorTable::kColorId_Cyan;
+        break;
+    case 37:
+        mStyle.FgColorId = VTColorTable::kColorId_White;
+        break;
+    case 38:
+        break;
+    case 39:
+        mStyle.FgColorId = VTColorTable::kColorId_Texts;
+        break;
+    case 40:
+        mStyle.BgColorId = VTColorTable::kColorId_Paper;
+        break;
+    case 41:
+        mStyle.BgColorId = VTColorTable::kColorId_Red;
+        break;
+    case 42:
+        mStyle.BgColorId = VTColorTable::kColorId_Green;
+        break;
+    case 43:
+        mStyle.BgColorId = VTColorTable::kColorId_Yellow;
+        break;
+    case 44:
+        mStyle.BgColorId = VTColorTable::kColorId_Blue;
+        break;
+    case 45:
+        mStyle.BgColorId = VTColorTable::kColorId_Magenta;
+        break;
+    case 46:
+        mStyle.BgColorId = VTColorTable::kColorId_Cyan;
+        break;
+    case 47:
+        mStyle.BgColorId = VTColorTable::kColorId_White;
+        break;
+    case 48:
+        break;
+    case 49:
+        mStyle.BgColorId = VTColorTable::kColorId_Paper;
+        break;
+    case 50:
+        break;
+    // dose not support others.
+    default:
+        break;
+    }
+}
 void SerialConnEcma48::ProcessSGR(const std::string& p)
 {
     SplitString(p.data(), ";", [=](const char* token) {
-        int ps = atoi(token);
-        switch (ps) {
-        case 0:
-            this->SetDefaultStyle();
-            break;
-        case 1:
-            mStyle.FontStyle |= VTStyle::eBold;
-            break;
-        case 2:
-            break;
-        case 3:
-            mStyle.FontStyle |= VTStyle::eItalic;
-            break;
-        case 4:
-            mStyle.FontStyle |= VTStyle::eUnderline;
-            break;
-        case 5:
-        case 6:
-            mStyle.FontStyle |= VTStyle::eBlink;
-            break;
-        case 7:
-            std::swap(mStyle.FgColorId, mStyle.BgColorId);
-            break;
-        case 8:
-            mStyle.FontStyle &= ~VTStyle::eVisible;
-            break;
-        case 9:
-            mStyle.FontStyle |= VTStyle::eStrikeout;
-            break;
-        case 10:
-        case 11:
-        case 12:
-        case 13:
-        case 14:
-        case 15:
-        case 16:
-        case 17:
-        case 18:
-        case 19:
-        case 20:
-            break;
-        case 21:
-            mStyle.FontStyle |= VTStyle::eUnderline;
-            break;
-        case 22:
-            mStyle.FgColorId = VTColorTable::kColorId_Texts;
-            mStyle.BgColorId = VTColorTable::kColorId_Paper;
-            mStyle.FontStyle &= ~VTStyle::eBold;
-            break;
-        case 23:
-            mStyle.FontStyle &= ~VTStyle::eItalic;
-            break;
-        case 24:
-            mStyle.FontStyle &= ~VTStyle::eUnderline;
-            break;
-        case 25:
-            mStyle.FontStyle &= ~VTStyle::eBlink;
-            break;
-        case 26:
-            break;
-        case 27:
-            std::swap(mStyle.FgColorId, mStyle.BgColorId);
-            break;
-        case 28:
-            mStyle.FontStyle |= VTStyle::eVisible;
-            break;
-        case 29:
-            mStyle.FontStyle &= ~VTStyle::eStrikeout;
-            break;
-        case 30:
-            mStyle.FgColorId = VTColorTable::kColorId_Black;
-            break;
-        case 31:
-            mStyle.FgColorId = VTColorTable::kColorId_Red;
-            break;
-        case 32:
-            mStyle.FgColorId = VTColorTable::kColorId_Green;
-            break;
-        case 33:
-            mStyle.FgColorId = VTColorTable::kColorId_Yellow;
-            break;
-        case 34:
-            mStyle.FgColorId = VTColorTable::kColorId_Blue;
-            break;
-        case 35:
-            mStyle.FgColorId = VTColorTable::kColorId_Magenta;
-            break;
-        case 36:
-            mStyle.FgColorId = VTColorTable::kColorId_Cyan;
-            break;
-        case 37:
-            mStyle.FgColorId = VTColorTable::kColorId_White;
-            break;
-        case 38:
-            break;
-        case 39:
-            mStyle.FgColorId = VTColorTable::kColorId_Texts;
-            break;
-        case 40:
-            mStyle.BgColorId = VTColorTable::kColorId_Paper;
-            break;
-        case 41:
-            mStyle.BgColorId = VTColorTable::kColorId_Red;
-            break;
-        case 42:
-            mStyle.BgColorId = VTColorTable::kColorId_Green;
-            break;
-        case 43:
-            mStyle.BgColorId = VTColorTable::kColorId_Yellow;
-            break;
-        case 44:
-            mStyle.BgColorId = VTColorTable::kColorId_Blue;
-            break;
-        case 45:
-            mStyle.BgColorId = VTColorTable::kColorId_Magenta;
-            break;
-        case 46:
-            mStyle.BgColorId = VTColorTable::kColorId_Cyan;
-            break;
-        case 47:
-            mStyle.BgColorId = VTColorTable::kColorId_White;
-            break;
-        case 48:
-            break;
-        case 49:
-            mStyle.BgColorId = VTColorTable::kColorId_Paper;
-            break;
-        case 50:
-            break;
-        // dose not support others.
-        default:
-            break;
-        }
+        UseSGR(atoi(token));
     });
 }
 // select character spacing

@@ -16,22 +16,20 @@ public:
     // colors
     // Layout [0-16] ANSI Colors, others were remainder of 88 or 256 colors
     enum ColorId {
-        // basic colors
+        // basic named colors
         kColorId_None = 1024,
         kColorId_Texts = 1025,
         kColorId_Paper = 1026,
-        kColorId_Red = 0,
-        kColorId_Green = 1,
-        kColorId_Blue = 2,
-        kColorId_Black = 3,
-        kColorId_White = 4,
-        kColorId_Magenta = 5,
-        kColorId_Cyan = 6,
-        kColorId_Yellow = 7,
+        kColorId_Red,
+        kColorId_Green,
+        kColorId_Blue,
+        kColorId_Black,
+        kColorId_White,
+        kColorId_Magenta,
+        kColorId_Cyan,
+        kColorId_Yellow,
         kColorId_Max
     };
-    //
-    void SetToDefault();
     //
     int FindNearestColorId(const Upp::Color& color);
     int FindNearestColorId(int idx);
@@ -43,16 +41,16 @@ public:
     //
     const Upp::Color& GetColor(int color_id);
 
-    void SetColor(int color_id, const Upp::Color& color)
-    {
-        mTbl[color_id] = color;
-    }
+    // set pallet
+    void SetColor(int color_id, const Upp::Color& color);
     void ResetColor(int color_id);
 
 private:
     std::unordered_map<int, Upp::Color> mTbl;
     //
     Upp::Color mFallbackColor;
+    //
+    void InitXterm256Colors();
 };
 
 #endif

@@ -174,6 +174,8 @@ protected:
     virtual bool ProcessChar(Upp::dword cc);
     virtual bool ProcessOverflowLines(const struct Seq&);
     //
+    virtual void UseSGR(int sgr);
+    //
     void SetUseS8C(bool b);
     bool IsControlSeqPrefix(uint8_t c);
     int IsControlSeq(const char* input, size_t input_sz, size_t& p_begin, size_t& p_sz, size_t& s_end);
