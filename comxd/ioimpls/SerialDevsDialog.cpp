@@ -85,8 +85,6 @@ SerialDevsDialog::SerialDevsDialog()
     }
     //
     Acceptor(mBtnCancel, IDCANCEL);
-    //
-    mBtnOk.WhenAction = [=]() { CreateConn(); };
 }
 
 bool SerialDevsDialog::Key(Upp::dword key, int count)
@@ -105,6 +103,7 @@ bool SerialDevsDialog::Key(Upp::dword key, int count)
 
 void SerialDevsDialog::ChangeSettings(SerialPort* port)
 {
+    mBtnOk.WhenAction = [=]() { this->AcceptBreak(IDOK); };
     // load settings of serial
     auto serial = port->GetNativeDevice();
     // name
@@ -173,6 +172,7 @@ void SerialDevsDialog::CreateConn()
 // This is a factory, it will create kingds conn according to the current settings.
 SerialConn* SerialDevsDialog::RequestConn()
 {
+    mBtnOk.WhenAction = [=]() { CreateConn(); };
     int ret = Run(true);
     if (ret == IDOK) {
         return mConn;

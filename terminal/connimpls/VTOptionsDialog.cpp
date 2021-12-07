@@ -41,7 +41,6 @@ VTOptionsDialog::VTOptionsDialog()
     for (int i = 0; i < ARRAYSIZE(kFontSizes); ++i) {
         mFontSize.AddList(kFontSizes[i]);
     }
-    mFontSize.SetData(11);
     //
     PreviewFont();
     //
