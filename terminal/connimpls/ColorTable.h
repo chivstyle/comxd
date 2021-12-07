@@ -27,8 +27,7 @@ public:
         kColorId_White,
         kColorId_Magenta,
         kColorId_Cyan,
-        kColorId_Yellow,
-        kColorId_Max
+        kColorId_Yellow
     };
     //
     int FindNearestColorId(const Upp::Color& color);
@@ -51,6 +50,7 @@ private:
     Upp::Color mFallbackColor;
     //
     void InitXterm256Colors();
+    void InitNamedColors();
 };
 
 #endif

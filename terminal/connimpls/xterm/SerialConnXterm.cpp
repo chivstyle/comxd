@@ -268,15 +268,15 @@ void SerialConnXterm::ProcessSGR(const std::string& p)
         ps.push_back(atoi(token));
     });
     for (size_t k = 0; k < ps.size(); ++k) {
-        // 38:<2/5>:<5/6>:<[Pi]:r:g:b/index>
+        // 38:<2/5>:<[Pi]:r:g:b/index>
         if (ps[k] == 38 && k + 1 < ps.size()) { // xterm color
-            if (ps[k+1] == 2 && k + 1 + 4 < ps.size()) { // maybe RGB
-                if (k+1 + 5 < ps.size()) { // Pi:r:g:b
-                    mStyle.FgColorId = this->mColorTbl.FindNearestColorId(Color(ps[k+4], ps[k+5], ps[k+6]));
-                    k += 6;
-                } else { // r:g:b
+            if (ps[k+1] == 2 && k + 1 + 3 < ps.size()) { // maybe RGB
+                if (k+1 + 4 < ps.size()) { // Pi:r:g:b
                     mStyle.FgColorId = this->mColorTbl.FindNearestColorId(Color(ps[k+3], ps[k+4], ps[k+5]));
                     k += 5;
+                } else { // r:g:b
+                    mStyle.FgColorId = this->mColorTbl.FindNearestColorId(Color(ps[k+2], ps[k+3], ps[k+4]));
+                    k += 4;
                 }
                 // ignore invalid ones
             }
@@ -286,13 +286,13 @@ void SerialConnXterm::ProcessSGR(const std::string& p)
             }
             // others were ignored
         } else if (ps[k] == 48 && k < ps.size() - 1) { // xterm color
-            if (ps[k+1] == 2 && k + 1 + 4 < ps.size()) { // maybe RGB
-                if (k+1 + 5 < ps.size()) { // Pi:r:g:b
-                    mStyle.BgColorId = this->mColorTbl.FindNearestColorId(Color(ps[k+4], ps[k+5], ps[k+6]));
-                    k += 6;
-                } else { // r:g:b
+            if (ps[k+1] == 2 && k + 1 + 3 < ps.size()) { // maybe RGB
+                if (k+1 + 4 < ps.size()) { // Pi:r:g:b
                     mStyle.BgColorId = this->mColorTbl.FindNearestColorId(Color(ps[k+3], ps[k+4], ps[k+5]));
                     k += 5;
+                } else { // r:g:b
+                    mStyle.BgColorId = this->mColorTbl.FindNearestColorId(Color(ps[k+2], ps[k+3], ps[k+4]));
+                    k += 4;
                 }
                 // ignore invalid ones
             }

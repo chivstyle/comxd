@@ -8,22 +8,26 @@ using namespace Upp;
 VTColorTable::VTColorTable()
     : mFallbackColor(Upp::White())
 {
+    InitXterm256Colors();
+    InitNamedColors();
+}
+
+VTColorTable::~VTColorTable()
+{
+}
+
+void VTColorTable::InitNamedColors()
+{
     mTbl[kColorId_Texts]   = Color(223, 223, 223);
     mTbl[kColorId_Paper]   = Color( 30,  30,  30);
     mTbl[kColorId_Red]     = Color(223,   0,   0);
     mTbl[kColorId_Green]   = Color(  0, 223,   0);
-    mTbl[kColorId_Blue]    = Color(  0,   0, 223);
+    mTbl[kColorId_Blue]    = Color(  0,  90, 223);
     mTbl[kColorId_Black]   = Color(  0,   0,   0);
     mTbl[kColorId_White]   = Color(253, 253, 253);
     mTbl[kColorId_Magenta] = Color(223,   0, 223);
     mTbl[kColorId_Cyan]    = Color(  0, 223, 223);
     mTbl[kColorId_Yellow]  = Color(223, 223,   0);
-    //
-    InitXterm256Colors();
-}
-
-VTColorTable::~VTColorTable()
-{
 }
 
 static const int kXterm256Colors[256] = {
@@ -74,6 +78,12 @@ void VTColorTable::SetColor(int color_id, const Upp::Color& color)
 {
     if (color_id < 256 && color_id >= 0)
         mTbl[color_id] = color;
+    else {
+        auto it = mTbl.find(color_id);
+        if (it != mTbl.end()) {
+            it->second = color;
+        }
+    }
 }
 
 void VTColorTable::ResetColor(int color_id)
@@ -82,6 +92,21 @@ void VTColorTable::ResetColor(int color_id)
         mTbl[color_id] = Color((kXterm256Colors[color_id] >> 16) & 0xff,
                                (kXterm256Colors[color_id] >> 8 ) & 0xff,
                                (kXterm256Colors[color_id] & 0xff));
+    } else {
+        // named color
+        switch (color_id) {
+        case kColorId_Texts:  mTbl[kColorId_Texts]   = Color(223, 223, 223);break;
+        case kColorId_Paper:  mTbl[kColorId_Paper]   = Color( 30,  30,  30);break;
+        case kColorId_Red:    mTbl[kColorId_Red]     = Color(223,   0,   0);break;
+        case kColorId_Green:  mTbl[kColorId_Green]   = Color(  0, 223,   0);break;
+        case kColorId_Blue:   mTbl[kColorId_Blue]    = Color(  0,  90, 223);break;
+        case kColorId_Black:  mTbl[kColorId_Black]   = Color(  0,   0,   0);break;
+        case kColorId_White:  mTbl[kColorId_White]   = Color(253, 253, 253);break;
+        case kColorId_Magenta:mTbl[kColorId_Magenta] = Color(223,   0, 223);break;
+        case kColorId_Cyan:   mTbl[kColorId_Cyan]    = Color(  0, 223, 223);break;
+        case kColorId_Yellow: mTbl[kColorId_Yellow]  = Color(223, 223,   0);break;
+        default:break;
+        }
     }
 }
 
@@ -90,11 +115,11 @@ int VTColorTable::FindNearestColorId(const Upp::Color& color)
     int c_idx = 0;
     int min_d = 255 * 3;
     for (int k = 0; k < 256; ++k) {
-        Upp::Color cr = GetColor(kColorId_Max + k);
+        Upp::Color cr = GetColor(k);
         int d = abs(cr.GetR() - color.GetR()) + abs(cr.GetG() - color.GetG()) + abs(cr.GetB() - color.GetB());
         if (d < min_d) {
             min_d = d;
-            c_idx = kColorId_Max + k;
+            c_idx = k;
         }
     }
     return c_idx;
