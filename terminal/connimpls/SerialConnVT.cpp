@@ -951,10 +951,6 @@ void SerialConnVT::RenderText(const std::vector<uint32_t>& s)
     for (size_t k = 0; k < s.size(); ++k) {
         VTChar chr = RemapCharacter(s[k], mCharset);
         chr.SetStyle(mStyle);
-        // Unfortunately, UPP does not support complete UNICODE, support UCS-16 instead. So
-        // we should ignore those out of range
-        if (chr.Code() > 0xffff)
-            chr.SetCode('?'); // replace chr with ?
         if (mWrapLine) {
             if (mVx >= csz.cx || mPx >= mFontW * csz.cx) { // wrap line
                 mLines[mVy].HasSuccessiveLines(true);

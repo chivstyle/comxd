@@ -47,6 +47,8 @@ void SSHPort::Stop()
 {
     mShouldExit = true;
     mCondWrite.notify_all();
+    mShell->Timeout(500);
+    mShell->Abort();
     //
     mShell->Close();
 }
