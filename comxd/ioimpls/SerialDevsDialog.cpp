@@ -97,6 +97,9 @@ bool SerialDevsDialog::Key(Upp::dword key, int count)
             Close();
             return true;
         }
+        if (flags == 0 && d_key == 0xd) {
+            mBtnOk.WhenAction();
+        }
     }
     return TopWindow::Key(key, count);
 }
