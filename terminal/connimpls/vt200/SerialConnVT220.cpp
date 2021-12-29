@@ -7,7 +7,7 @@
 #include "VT220Charset.h"
 #include "VT220ControlSeq.h"
 
-REGISTER_CONN_INSTANCE("vt220 by chiv", "vt220", SerialConnVT220);
+//REGISTER_CONN_INSTANCE("vt220 by chiv", "vt220", SerialConnVT220);
 
 using namespace Upp;
 

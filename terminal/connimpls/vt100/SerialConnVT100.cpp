@@ -9,7 +9,7 @@
 
 using namespace Upp;
 
-REGISTER_CONN_INSTANCE("vt100 by chiv", "vt100", SerialConnVT100);
+REGISTER_CONN_INSTANCE("vt100", "vt100", SerialConnVT100);
 
 SerialConnVT100::SerialConnVT100(std::shared_ptr<SerialIo> io)
     : SerialConnVT(io)

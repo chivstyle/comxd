@@ -37,7 +37,11 @@ std::deque<SSHDevsDialog::SSHDevInfo> SSHDevsDialog::GetRecentSSHDevInfos(int co
             int item_from = item_count > count ? item_count - count : 0;
             for (int i = item_from; i < item_count; ++i) {
                 if (Find(out, ~root[i]["Host"])) continue;
-                out.push_back({~root[i]["Host"], ~root[i]["User"], ~root[i]["Type"], ~root[i]["Code"]});
+                int port = 22;
+                if (!root[i]["Port"].IsNull()) {
+                    port = (int)root[i]["Port"];
+                }
+                out.push_back({~root[i]["Host"], ~root[i]["User"], ~root[i]["Type"], ~root[i]["Code"], port});
             }
         }
     }
@@ -62,13 +66,14 @@ void SSHDevsDialog::SaveRecentSSHDevInfos() const
     JsonArray out;
     const std::deque<SSHDevsDialog::SSHDevInfo>& infos = mRecents;
     for (size_t k = 0; k < infos.size(); ++k) {
-        out << Json("Host", infos[k].Host)("User", infos[k].User)("Type", infos[k].Type)("Code", infos[k].Code);
+        out << Json("Host", infos[k].Host)("User", infos[k].User)("Type", infos[k].Type)
+            ("Code", infos[k].Code)("Port", infos[k].Port);
     }
     auto conf = Upp::GetHomeDirectory() + "/.comxd/recent_ssh_devs.json";
     Upp::SaveFile(conf, out.ToString());
 }
 
-void SSHDevsDialog::AddRecentSSHDevInfo(const String& host, const String& user, const String& type, const String& code)
+void SSHDevsDialog::AddRecentSSHDevInfo(const String& host, const String& user, const String& type, const String& code, int port)
 {
     for (auto it = mRecents.begin(); it != mRecents.end(); ) {
         if (it->Host == host) {
@@ -79,14 +84,14 @@ void SSHDevsDialog::AddRecentSSHDevInfo(const String& host, const String& user, 
     if (mRecents.size() >= CONFIG_MAX_RECENT_RECS_NUMBER) {
         mRecents.pop_front();
     }
-    mRecents.emplace_back(SSHDevInfo{host, user, type, code});
+    mRecents.emplace_back(SSHDevInfo{host, user, type, code, port});
 }
 
 SSHDevsDialog::SSHDevsDialog()
 {
     Icon(comxd::new_ssh()).Title("SSH");
     //
-    mPort.SetData("22");
+    mPort.SetData(22);
     mPassword.Password();
     // types
     auto conn_names = ConnFactory::Inst()->GetSupportedConnNames();
@@ -113,6 +118,7 @@ SSHDevsDialog::SSHDevsDialog()
         mUser.SetData(mRecents.rbegin()->User);
         mTypes.SetData(mRecents.rbegin()->Type);
         mCodecs.SetData(mRecents.rbegin()->Code);
+        mPort.SetData(mRecents.rbegin()->Port);
     }
     mHost.WhenSelect = [=]() {
         auto item = this->FindRecent(~mHost);
@@ -121,6 +127,7 @@ SSHDevsDialog::SSHDevsDialog()
             mUser.SetData(item->User);
             mTypes.SetData(item->Type);
             mCodecs.SetData(item->Code);
+            mPort.SetData(item->Port);
         }
     };
     //
@@ -171,7 +178,7 @@ void SSHDevsDialog::CreateConn()
             //
             mConn = conn;
             // add to recent list
-            this->AddRecentSSHDevInfo(~mHost, ~mUser, ~mTypes, ~mCodecs);
+            this->AddRecentSSHDevInfo(~mHost, ~mUser, ~mTypes, ~mCodecs, ~mPort);
             this->SaveRecentSSHDevInfos();
             //
             this->AcceptBreak(IDOK);

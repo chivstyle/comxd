@@ -6,7 +6,7 @@ uses
 	terminal,
 	Painter;
 
-options(MSVC) /NODEFAULTLIB:LIBCMT;
+uses(MSC) minhook;
 
 include
 	.;
@@ -32,5 +32,5 @@ file
 	main.cpp;
 
 mainconfig
-	"" = "GUI MT SSE2";
+	"" = "GUI";
 

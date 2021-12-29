@@ -292,9 +292,6 @@ protected:
     virtual int GetCharWidth(const VTChar& c) const;
     // vy - absolute position
     virtual int GetLineHeight(int vy) const;
-    // VTChar contains the codepoint, UTF32->UTF8
-    // used by Drawing functions
-    virtual Upp::WString TranscodeToUTF16(const VTChar& cc) const;
     /// raw(default:UTF8, we'll support more later)->UTF32
     /// used by Rendering functions, NOTE: Not drawing
     /// --------------------Working flow---------------------------------

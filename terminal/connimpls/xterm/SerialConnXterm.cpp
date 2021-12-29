@@ -7,7 +7,7 @@
 #include "XtermCharset.h"
 #include "XtermControlSeq.h"
 
-REGISTER_CONN_INSTANCE("xterm by chiv", "xterm", SerialConnXterm);
+REGISTER_CONN_INSTANCE("xterm", "xterm-256color", SerialConnXterm);
 
 using namespace Upp;
 
@@ -15,7 +15,7 @@ SerialConnXterm::SerialConnXterm(std::shared_ptr<SerialIo> io)
     : SerialConnVT520(io)
     , SerialConnVT(io)
 {
-    SetConnDescription("xterm emulator, by chiv, v1.0a");
+    SetConnDescription("xterm emulator, by chiv, v1.1a");
     //
     AddXtermControlSeqs(this->mSeqsFactory);
     //

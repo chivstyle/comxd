@@ -1,9 +1,92 @@
 //
 // (C) 2020 chiv
 //
+#ifdef _MSC_VER
+#include <winsock2.h>
+#include <MinHook.h>
+#include <Windows.h>
+#include <minidumpapiset.h>
+#pragma comment(lib, "dbghelp.lib")
+#endif
 #include "resource.h"
-//
 #include "ConnCreateFactory.h"
+//
+#ifdef _MSC_VER
+static
+LONG WINAPI ApplicationCrashHandler(EXCEPTION_POINTERS* exception_pointers)
+{
+    std::wstring fname_ = (Upp::GetTempDirectory() + "\\comxd.dump").ToWString().ToStd();
+    const WCHAR* fname = fname_.c_str();
+    HANDLE file = CreateFileW(fname, GENERIC_WRITE, 0, NULL,
+        CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (file == INVALID_HANDLE_VALUE) {
+        return EXCEPTION_CONTINUE_SEARCH;
+    } else {
+        MINIDUMP_EXCEPTION_INFORMATION mei;
+        mei.ExceptionPointers = exception_pointers;
+        mei.ThreadId = GetCurrentThreadId();
+        mei.ClientPointers = TRUE;
+        BOOL ret = MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), file, MiniDumpNormal,
+            &mei, NULL, NULL);
+        MessageBoxW(NULL, fname, L"Exception", MB_OK);
+        return ret == TRUE ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH;
+    }
+}
+
+typedef LPTOP_LEVEL_EXCEPTION_FILTER (*FnSetUnhandledExceptionFilter)(LPTOP_LEVEL_EXCEPTION_FILTER lpTopLevelExceptionFilter);
+static FnSetUnhandledExceptionFilter NtSetUnhandledExceptionFilter = NULL;
+
+LPTOP_LEVEL_EXCEPTION_FILTER MySetUnhandledExceptionFilter(
+  LPTOP_LEVEL_EXCEPTION_FILTER lpTopLevelExceptionFilter
+)
+{
+    (void)lpTopLevelExceptionFilter;
+    // DO NOTHING HERE
+    return NULL;
+}
+
+static void my_invalid_parameter_handler(const wchar_t* expression, const wchar_t* function, const wchar_t* file,
+    unsigned int line, uintptr_t reserved)
+{
+    (void)function;
+    (void)file;
+    (void)reserved;
+    throw expression;
+}
+static void my_purecall_handler()
+{
+    throw "purecall";
+}
+
+static void CrashReport_Initialize()
+{
+#ifndef _DEBUG
+    _set_invalid_parameter_handler(my_invalid_parameter_handler);
+    _set_purecall_handler(my_purecall_handler);
+#endif
+    SetUnhandledExceptionFilter(ApplicationCrashHandler);
+    MH_STATUS sr = MH_Initialize();
+    if (sr == MH_OK) {
+        NtSetUnhandledExceptionFilter = (FnSetUnhandledExceptionFilter)GetProcAddress(GetModuleHandleA("kernel32.dll"),
+            "SetUnhandledExceptionFilter");
+        if (NtSetUnhandledExceptionFilter) {
+            MH_CreateHook(NtSetUnhandledExceptionFilter, MySetUnhandledExceptionFilter, NULL);
+            MH_EnableHook(NtSetUnhandledExceptionFilter);
+        }
+    } else {
+        MessageBoxW(NULL, L"We can not initialize crash report on your system.", L"Warning", MB_OK);
+    }
+}
+static void CrashReport_Shutdown()
+{
+    if (NtSetUnhandledExceptionFilter) {
+        MH_RemoveHook(NtSetUnhandledExceptionFilter);
+        //
+        MH_Uninitialize();
+    }
+}
+
+#endif
 // main window
 class MainWindow : public WithMainWindow<TopWindow> {
     typedef MainWindow CLASSNAME;
@@ -11,6 +94,9 @@ class MainWindow : public WithMainWindow<TopWindow> {
 public:
     MainWindow()
     {
+#if _MSC_VER
+        CrashReport_Initialize();
+#endif
         MakeConfigDirectory();
         //
         this->Title("comxd");
@@ -40,6 +126,9 @@ public:
             // never reach here
             delete mDevsTab.GetItem(0).GetCtrl();
         }
+#if _MSC_VER
+        CrashReport_Shutdown();
+#endif
     }
     //
     void MakeConfigDirectory()

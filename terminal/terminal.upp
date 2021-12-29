@@ -3,22 +3,19 @@ description "virtual terminal\377";
 uses
 	Core/SSH;
 
-options(MSVC) /std:c++17;
-
-link(MSVC) /NODEFAULTLIB:LIBCMT;
-
 include
 	.;
 
 file
 	terminal.lay,
+	vtwchar.h,
+	vtwchar.cpp,
 	terminal.iml,
 	terminal_rc.h,
 	terminal_rc.cpp,
 	terminal.t,
 	SerialIo.h,
 	SerialIo.cpp,
-	wcwidth.cpp,
 	Conn.cpp,
 	Conn.h,
 	ConnFactory.h,

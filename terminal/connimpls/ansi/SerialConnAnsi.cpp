@@ -7,7 +7,7 @@
 #include "AnsiControlSeq.h"
 #include "ConnFactory.h"
 
-REGISTER_CONN_INSTANCE("ansi by chiv", "ansi", SerialConnAnsi);
+REGISTER_CONN_INSTANCE("ansi", "ansi", SerialConnAnsi);
 
 SerialConnAnsi::SerialConnAnsi(std::shared_ptr<SerialIo> io)
     : SerialConnVT100(io)

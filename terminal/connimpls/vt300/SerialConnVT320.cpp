@@ -7,7 +7,7 @@
 #include "VT320Charset.h"
 #include "VT320ControlSeq.h"
 
-REGISTER_CONN_INSTANCE("vt320 by chiv", "vt320", SerialConnVT320);
+//REGISTER_CONN_INSTANCE("vt320 by chiv", "vt320", SerialConnVT320);
 
 using namespace Upp;
 

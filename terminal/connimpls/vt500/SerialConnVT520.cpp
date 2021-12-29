@@ -7,7 +7,7 @@
 #include "VT520Charset.h"
 #include "VT520ControlSeq.h"
 
-REGISTER_CONN_INSTANCE("vt520 by chiv", "vt520", SerialConnVT520);
+//REGISTER_CONN_INSTANCE("vt520 by chiv", "vt520", SerialConnVT520);
 
 using namespace Upp;
 

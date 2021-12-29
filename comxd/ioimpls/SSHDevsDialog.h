@@ -25,11 +25,12 @@ private:
         Upp::String User;
         Upp::String Type;
         Upp::String Code;
+        int         Port;
     };
     std::deque<SSHDevInfo> mRecents;
     //
     std::deque<SSHDevInfo> GetRecentSSHDevInfos(int count) const;
-    void AddRecentSSHDevInfo(const Upp::String& host, const Upp::String& user, const Upp::String& type, const Upp::String& code);
+    void AddRecentSSHDevInfo(const Upp::String& host, const Upp::String& user, const Upp::String& type, const Upp::String& code, int port);
     void SaveRecentSSHDevInfos() const;
     const SSHDevInfo* FindRecent(const Upp::String& host) const;
     const SSHDevInfo* Find(const std::deque<SSHDevInfo>& infos, const Upp::String& host) const;

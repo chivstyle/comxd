@@ -24,6 +24,43 @@ __class_to_create_conn_serial __serial_conn_create;
 static int kBaudrates[] = { 921600, 460800, 256000, 230400, 153600,
     128000, 115200, 38400, 76800, 57600, 28800, 19200, 14400,
     9600, 7200, 4800, 2400, 1800, 1200 };
+    
+struct SerialInfo {
+    String Name; // device name
+    String Term;
+    String Code; // Codec
+    int    Baud; // buadrate
+    int    Bits;
+    int    Parity;
+    int    StopBits;
+    int    FlowControl;
+};
+
+static bool GetLastSerialInfo(SerialInfo& info)
+{
+    auto conf = Upp::GetHomeDirectory() + "/.comxd/last_serial_port.json";
+    Upp::Value root = Upp::ParseJSON(Upp::LoadFile(conf));
+    if (!root.IsNull()) {
+        info.Name = ~root["Name"];
+        info.Term = ~root["Term"];
+        info.Code = ~root["Code"];
+        info.Baud = (int)root["Baud"];
+        info.Bits = (int)root["Bits"];
+        info.Parity = (int)root["Parity"];
+        info.FlowControl = (int)root["FlowControl"];
+        info.StopBits = (int)root["StopBits"];
+        return true;
+    }
+    return false;
+}
+static void SaveLastSerialInfo(const SerialInfo& info)
+{
+    auto conf = Upp::GetHomeDirectory() + "/.comxd/last_serial_port.json";
+    Json json = Json("Name", info.Name)("Term", info.Term)("Code", info.Code)("Baud", info.Baud)
+                    ("Bits", info.Bits)("Parity", info.Parity)("FlowControl", info.FlowControl)
+                    ("StopBits", info.StopBits);
+    SaveFile(conf, json.ToString());
+}
 
 SerialDevsDialog::SerialDevsDialog()
 {
@@ -46,7 +83,6 @@ SerialDevsDialog::SerialDevsDialog()
     mDataBits.SetIndex(3); // 8bits default
     // list baudrate
     for (size_t k = 0; k < ARRAYSIZE(kBaudrates); ++k) {
-        //mBaudrate.Add(kBaudrates[k], std::to_string(kBaudrates[k]).c_str());
         mBaudrate.AddList(kBaudrates[k]);
     }
     mBaudrate.SetData(115200);
@@ -82,6 +118,17 @@ SerialDevsDialog::SerialDevsDialog()
         if (codec_names[k] == "UTF-8" || codec_names[k] == "UTF8") {
             mCodecs.SetIndex((int)k);
         }
+    }
+    SerialInfo info;
+    if (GetLastSerialInfo(info)) {
+        mDevsList.SetData(info.Name);
+        mBaudrate.SetData(info.Baud);
+        mDataBits.SetData(info.Bits);
+        mStopBits.SetData(info.StopBits);
+        mParity.SetData(info.Parity);
+        mFlowCtrl.SetData(info.FlowControl);
+        mTypes.SetData(info.Term);
+        mCodecs.SetData(info.Code);
     }
     //
     Acceptor(mBtnCancel, IDCANCEL);
@@ -132,10 +179,14 @@ void SerialDevsDialog::ChangeSettings(SerialPort* port)
     if (ret == IDOK) {
         try {
             serial->setBaudrate(mBaudrate.GetData().To<int>());
-            serial->setParity((serial::parity_t)mParity.GetKey(mParity.GetIndex()).To<int>());
-            serial->setBytesize((serial::bytesize_t)mDataBits.GetKey(mDataBits.GetIndex()).To<int>());
-            serial->setStopbits((serial::stopbits_t)mStopBits.GetKey(mStopBits.GetIndex()).To<int>());
-            serial->setFlowcontrol((serial::flowcontrol_t)mFlowCtrl.GetKey(mFlowCtrl.GetIndex()).To<int>());
+            serial->setParity((serial::parity_t)mParity.GetData().To<int>());
+            serial->setBytesize((serial::bytesize_t)mDataBits.GetData().To<int>());
+            serial->setStopbits((serial::stopbits_t)mStopBits.GetData().To<int>());
+            serial->setFlowcontrol((serial::flowcontrol_t)mFlowCtrl.GetData().To<int>());
+            // save
+            SaveLastSerialInfo({~mDevsList, ~mTypes, ~mCodecs, mBaudrate.GetData().To<int>(),
+                                mDataBits.GetData().To<int>(), mParity.GetData().To<int>(),
+                                mStopBits.GetData().To<int>(), mFlowCtrl.GetData().To<int>()});
         } catch (const std::exception&) {
             Upp::PromptOK(DeQtf(t_("Can't change settings!")));
         }
@@ -149,10 +200,10 @@ void SerialDevsDialog::CreateConn()
             mDevsList.GetData().ToString().ToStd(),
             mBaudrate.GetData().To<int>(),
             serial::Timeout(),
-            (serial::bytesize_t)mDataBits.GetKey(mDataBits.GetIndex()).To<int>(),
-            (serial::parity_t)mParity.GetKey(mParity.GetIndex()).To<int>(),
-            (serial::stopbits_t)mStopBits.GetKey(mStopBits.GetIndex()).To<int>(),
-            (serial::flowcontrol_t)mFlowCtrl.GetKey(mFlowCtrl.GetIndex()).To<int>());
+            (serial::bytesize_t)mDataBits.GetData().To<int>(),
+            (serial::parity_t)mParity.GetData().To<int>(),
+            (serial::stopbits_t)mStopBits.GetData().To<int>(),
+            (serial::flowcontrol_t)mFlowCtrl.GetData().To<int>());
         if (serial) {
             auto port = std::make_shared<SerialPort>(serial);
             port->Start();
@@ -162,6 +213,10 @@ void SerialDevsDialog::CreateConn()
             } else {
                 conn->SetCodec(mCodecs.Get().ToString());
                 conn->Start();
+                // save
+                SaveLastSerialInfo({~mDevsList, ~mTypes, ~mCodecs, mBaudrate.GetData().To<int>(),
+                                    mDataBits.GetData().To<int>(), mParity.GetData().To<int>(),
+                                    mStopBits.GetData().To<int>(), mFlowCtrl.GetData().To<int>()});
                 //
                 mConn = conn;
                 //

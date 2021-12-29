@@ -2,6 +2,7 @@
 // (c) 2020 chiv
 //
 #include "terminal_rc.h"
+#include "vtwchar.h"
 #include "SerialConnVT.h"
 #include "Charset.h"
 #include "ControlSeq.h"
@@ -573,28 +574,12 @@ void SerialConnVT::RxProc()
 }
 // This routine guarantee that the width of any char is integral multiple
 // of mFontW.
-extern int mk_wcwidth(uint32_t ucs);
 int SerialConnVT::GetCharWidth(const VTChar& c) const
 {
     int cx = mFontW;
-    switch (c.Code()) {
-    case '\t':
-        if (1) {
-            int tabsz = mFontW * mTabWidth;
-            cx = tabsz - (mPx % tabsz);
-        }
-        break;
-    case '\v':
-    case '\n':
-    case ' ':
-        break;
-    default:
-        if (1) {
-            cx *= mk_wcwidth(c.Code());
-        }
-        break;
-    }
-    return cx;
+	int cz = wcwidth(c.Code());
+    if (cz < 0) return 0;
+    return cx*cz;
 }
 //
 VTLine* SerialConnVT::GetVTLine(int vy)
@@ -1941,14 +1926,6 @@ void SerialConnVT::Render(Draw& draw)
     //
     DrawCursor(draw);
 }
-// To UTF16
-WString SerialConnVT::TranscodeToUTF16(const VTChar& cc) const
-{
-    // Because the UPP only support UCS-16, so we replace the unsupported chars with ?
-    WString out;
-    out << (int)cc.Code();
-    return out;
-}
 
 std::vector<uint32_t> SerialConnVT::TranscodeToUTF32(const std::string& s, size_t& ep)
 {
@@ -1959,9 +1936,9 @@ void SerialConnVT::DrawVTChar(Draw& draw, int x, int y, const VTChar& c,
     const Font& font, const Color& cr)
 {
     CHECK_GUI_THREAD();
-    // To UTF8
-    WString text = TranscodeToUTF16(c);
-    draw.DrawText(x, y, text, font, cr);
+    // UPP begins to support full unicode
+    wchar f[] = {c.Code(), 0};
+    draw.DrawText(x, y, f, font, cr);
 }
 
 void SerialConnVT::Paint(Draw& draw)
