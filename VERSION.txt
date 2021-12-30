@@ -50,3 +50,10 @@ v2.2.7.4a
 v2.2.7.5a
 
   1. Fix bugs of xterm 256 colors
+
+v2.2.8.0a
+
+  1. Add new wcwith implementation
+  2. UPP begins support full unicode, we benefit from that
+  3. Add crash handler for windows
+
