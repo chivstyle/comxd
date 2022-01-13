@@ -15,6 +15,7 @@ It says we do not have to support all features defined in ECMA-048. Yes, it's tr
 ## vt100
 
 - Features/Sequences were ignored
+  
   - Auto wrap. We have unlimited line width, I like it, so we ignore line wrap
   - VT52 control sequences.
   - DECLL
@@ -23,10 +24,11 @@ It says we do not have to support all features defined in ECMA-048. Yes, it's tr
   - Printer. We response "No printer"
 
 - Keys were supported
-
+  
   - Control + ...
-
+  
   - Direction keys
+  
   - HOME
 
 ## ANSI
@@ -64,4 +66,3 @@ It says we do not have to support all features defined in ECMA-048. Yes, it's tr
 - No Sixel，No ReGIS
 - Enough for our applications
 - Will add more features if we need
-

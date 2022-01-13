@@ -26,6 +26,8 @@ SerialConnXterm::SerialConnXterm(std::shared_ptr<SerialIo> io)
 
 void SerialConnXterm::LoadDefaultModes()
 {
+	mModes.SetDecpMode(SendXyOnPress, 0);
+	mModes.SetDecpMode(SendXyOnPressAndRelease, 0);
 }
 
 void SerialConnXterm::InstallFunctions()

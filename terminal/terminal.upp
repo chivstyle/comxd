@@ -47,6 +47,8 @@ file
 	codec/CodecUTF8.h,
 	Codec.cpp,
 	connimpls\Charset.h,
+	connimpls\InUsedModes.cpp,
+	connimpls\InUsedModes.h,
 	connimpls/SerialConnVT.h,
 	connimpls/SerialConnVT.cpp,
 	connimpls/ColorTable.cpp,

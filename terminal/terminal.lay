@@ -56,3 +56,8 @@ LAYOUT(TransmitProgressDialog, 400, 60)
 	ITEM(Upp::Label, mTime, SetAlign(ALIGN_RIGHT).RightPosZ(8, 168).TopPosZ(36, 19))
 END_LAYOUT
 
+LAYOUT(InUsedModes, 452, 284)
+	ITEM(Upp::ArrayCtrl, mAnsiModes, AutoHideSb(true).AskRemove(false).VertGrid(false).LeftPosZ(8, 216).TopPosZ(12, 264))
+	ITEM(Upp::ArrayCtrl, mDecpModes, AutoHideSb(true).AskRemove(false).VertGrid(false).LeftPosZ(232, 212).TopPosZ(12, 264))
+END_LAYOUT
+

@@ -8,6 +8,7 @@
 #include "ControlSeq.h"
 #include "TextCodecsDialog.h"
 #include "VTOptionsDialog.h"
+#include "InUsedModes.h"
 #include "ProtoFactory.h"
 #include <algorithm>
 //
@@ -115,6 +116,14 @@ void SerialConnVT::Stop()
     }
 }
 //
+void SerialConnVT::ShowVTModes()
+{
+	CHECK_GUI_THREAD();
+	//
+	InUsedModes modes(&mModes, [=]() { mLockVt.Enter(); }, [=]() { mLockVt.Leave(); });
+	modes.Run();
+}
+//
 void SerialConnVT::ShowVTOptions()
 {
     CHECK_GUI_THREAD();
@@ -181,6 +190,7 @@ void SerialConnVT::InstallUserActions()
             .Help(t_("Clear the line buffers"));
         bar.Add(t_("VT Options"), terminal::vt_options(), [=]() { ShowVTOptions(); })
             .Help(t_("Virtual terminal options"));
+        bar.Add(t_("VT Modes"), terminal::modes(), [=]() { ShowVTModes(); });
         //
         bar.Add(t_("Benchmark"), terminal::benchmark(), [=]() { RunParserBenchmark(); })
             .Help(t_("Test the performance of the parser"));

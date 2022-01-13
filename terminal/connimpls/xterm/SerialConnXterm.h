@@ -49,7 +49,6 @@ protected:
     ScreenData mAlternateScr;
     // Xterm resources
     std::map<std::string, std::string> mRcs;
-    //
 private:
 	void LoadDefaultModes();
     void InstallFunctions();

@@ -134,6 +134,7 @@ protected:
     void RunParserBenchmark();
     //
     void ShowVTOptions();
+    void ShowVTModes();
     //
     // public methods
     struct ScreenData {

@@ -53,7 +53,7 @@ v2.2.7.5a
 
 v2.2.8.0a
 
-  1. Add new wcwith implementation
+  1. Add new wcwidth implementation
   2. UPP begins support full unicode, we benefit from that
   3. Add crash handler for windows
 
