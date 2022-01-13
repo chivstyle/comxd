@@ -57,3 +57,5 @@ v2.2.8.0a
   2. UPP begins support full unicode, we benefit from that
   3. Add crash handler for windows
 
+v2.2.9.0a
+  1. Add a vt options dialog to show the active modes
