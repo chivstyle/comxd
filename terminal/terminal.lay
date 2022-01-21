@@ -57,7 +57,8 @@ LAYOUT(TransmitProgressDialog, 400, 60)
 END_LAYOUT
 
 LAYOUT(InUsedModes, 452, 284)
-	ITEM(Upp::ArrayCtrl, mAnsiModes, AutoHideSb(true).AskRemove(false).VertGrid(false).LeftPosZ(8, 216).TopPosZ(12, 264))
-	ITEM(Upp::ArrayCtrl, mDecpModes, AutoHideSb(true).AskRemove(false).VertGrid(false).LeftPosZ(232, 212).TopPosZ(12, 264))
+	ITEM(Upp::ArrayCtrl, mAnsiModes, AutoHideSb(true).AskRemove(false).VertGrid(false).LeftPosZ(12, 216).TopPosZ(12, 260))
+	ITEM(Upp::ArrayCtrl, mDecpModes, AutoHideSb(true).AskRemove(false).VertGrid(false).LeftPosZ(232, 212).TopPosZ(12, 260))
+	ITEM(Splitter, mSp, HSizePosZ(4, 4).VSizePosZ(4, 4))
 END_LAYOUT
 

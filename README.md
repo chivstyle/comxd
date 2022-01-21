@@ -58,7 +58,7 @@ It says we do not have to support all features defined in ECMA-048. Yes, it's tr
 ## xterm
 
 - most of charsets
-- Ignore a lost of sequences
+- Ignore a lot of sequences
 
 # Summary
 

@@ -25,6 +25,10 @@ InUsedModes::InUsedModes(VTModes* modes, std::function<void()> lock_vt,
     , mOpsUnlock(unlock_vt)
 {
     Upp::CtrlLayout(*this);
+    Title(t_("Virtual Terminal Modes")).Sizeable();
+    //
+    this->mSp.AddChild(&mAnsiModes);
+    this->mSp.AddChild(&mDecpModes);
     // load a snap
     lock_vt();
     {
