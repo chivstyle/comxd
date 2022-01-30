@@ -420,6 +420,11 @@ Serial::SerialImpl::read(uint8_t* buf, size_t size)
         if (!ok) {
             if (GetLastError() == ERROR_IO_PENDING) {
                 // I/O was pending
+                size_t time = (byte_time_ns_ * size) / 1000 / 1000 + 1;
+                if (WaitForSingleObject(overlapped.hEvent, (DWORD)time) != WAIT_OBJECT_0) {
+                    SERIAL_THROW(IOException, "Timeout");
+                }
+                GetOverlappedResult(fd_, &overlapped, &bytes_read, FALSE);
             } else {
                 stringstream ss;
                 ss << "Error while reading from the serial port: " << GetLastError();
@@ -446,7 +451,9 @@ Serial::SerialImpl::write(const uint8_t* data, size_t length)
             if (GetLastError() == ERROR_IO_PENDING) {
                 // I/O was pending, let's wait for a while and then get's the result.
                 size_t time = (byte_time_ns_ * length) / 1000 / 1000 + 1;
-                WaitForSingleObject(overlapped.hEvent, (DWORD)time);
+                if (WaitForSingleObject(overlapped.hEvent, (DWORD)time) != WAIT_OBJECT_0) {
+                    SERIAL_THROW(IOException, "Timeout");
+                }
                 GetOverlappedResult(fd_, &overlapped, &bytes_written, FALSE);
             } else {
                 stringstream ss;

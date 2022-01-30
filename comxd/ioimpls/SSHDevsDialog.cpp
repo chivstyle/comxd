@@ -88,6 +88,7 @@ void SSHDevsDialog::AddRecentSSHDevInfo(const String& host, const String& user, 
 }
 
 SSHDevsDialog::SSHDevsDialog()
+    : mConn(nullptr)
 {
     Icon(comxd::new_ssh()).Title("SSH");
     //
@@ -182,8 +183,6 @@ void SSHDevsDialog::CreateConn()
             this->SaveRecentSSHDevInfos();
             //
             this->AcceptBreak(IDOK);
-            //
-            return;
         } catch (const String& desc) {
             PromptOK(Upp::DeQtf(desc));
         }

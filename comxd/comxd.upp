@@ -29,6 +29,14 @@ file
 	ioimpls/SerialDevsDialog.cpp,
 	ConnCreateFactory.cpp,
 	ConnCreateFactory.h,
+	ioimpls\PipeClientDialog.cpp,
+	ioimpls\PipeClientDialog.h,
+	ioimpls\PipeClient.cpp,
+	ioimpls\PipeClient.h,
+	ioimpls\PipeServer.cpp,
+	ioimpls\PipeServer.h,
+	ioimpls\PipeServerDialog.cpp,
+	ioimpls\PipeServerDialog.h,
 	main.cpp;
 
 mainconfig

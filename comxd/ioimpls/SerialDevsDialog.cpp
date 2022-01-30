@@ -63,6 +63,7 @@ static void SaveLastSerialInfo(const SerialInfo& info)
 }
 
 SerialDevsDialog::SerialDevsDialog()
+    : mConn(nullptr)
 {
     CtrlLayout(*this);
     //

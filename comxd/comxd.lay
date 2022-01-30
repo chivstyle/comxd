@@ -40,3 +40,22 @@ LAYOUT(SSHDevs, 344, 152)
 	ITEM(Upp::Button, mBtnCancel, SetLabel(t_("Cancel")).LeftPosZ(268, 68).VSizePosZ(124, 8))
 END_LAYOUT
 
+LAYOUT(PipeServer, 376, 176)
+	ITEM(Upp::Label, dv___0, SetLabel(t_("Name")).LeftPosZ(8, 40).TopPosZ(16, 19))
+	ITEM(Upp::Label, dv___1, SetLabel(t_("RxBufferSz")).LeftPosZ(8, 56).TopPosZ(48, 19))
+	ITEM(Upp::Label, dv___2, SetLabel(t_("TxBufferSz")).LeftPosZ(8, 56).TopPosZ(80, 19))
+	ITEM(Upp::Label, dv___3, SetLabel(t_("InstanceNb")).LeftPosZ(8, 56).TopPosZ(112, 19))
+	ITEM(Upp::Label, dv___4, SetLabel(t_("Timeout")).LeftPosZ(8, 56).TopPosZ(144, 19))
+	ITEM(Upp::Label, dv___5, SetLabel(t_("Type")).LeftPosZ(152, 40).TopPosZ(48, 19))
+	ITEM(Upp::Label, dv___6, SetLabel(t_("Encoding")).LeftPosZ(152, 48).TopPosZ(80, 19))
+	ITEM(Upp::EditString, mName, LeftPosZ(72, 292).TopPosZ(16, 19))
+	ITEM(Upp::EditInt, mRxBufferSize, Min(64).Max(512).LeftPosZ(72, 64).TopPosZ(48, 19))
+	ITEM(Upp::EditInt, mTxBufferSize, Min(64).Max(512).LeftPosZ(72, 64).TopPosZ(80, 19))
+	ITEM(Upp::EditInt, mInstanceNb, Min(1).Max(256).HSizePosZ(72, 240).TopPosZ(112, 19))
+	ITEM(Upp::EditInt, mTimeout, Min(1).Max(10000).HSizePosZ(72, 240).TopPosZ(144, 19))
+	ITEM(Upp::DropList, mTypes, LeftPosZ(204, 84).TopPosZ(48, 19))
+	ITEM(Upp::DropList, mCodecs, LeftPosZ(204, 84).TopPosZ(80, 19))
+	ITEM(Upp::Button, mButtonOk, SetLabel(t_("Ok")).LeftPosZ(308, 56).TopPosZ(48, 20))
+	ITEM(Upp::Button, mButtonCancel, SetLabel(t_("Cancel")).LeftPosZ(308, 56).TopPosZ(80, 20))
+END_LAYOUT
+
