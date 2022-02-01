@@ -200,9 +200,9 @@ void SerialConnVT::InstallUserActions()
             info += "  [* "; info += t_("Size "); info += "]-|" + std::to_string(csz.cx) + "x" + std::to_string(csz.cy) + "&";
             info += "  [* "; info += t_("vPos "); info += "]-|" + std::to_string(mVx) + "x" + std::to_string(mVy) + "&";
             info += "  [* "; info += t_("pPos "); info += "]-|" + std::to_string(mPx) + "x" + std::to_string(mPy) + "&";
-            info += "  [* "; info += t_("Desc "); info += "]-|" + GetConnDescription() + "&";
-            info += "  [* "; info += t_("Io   "); info += "]-|" + GetIo()->DeviceName() + "&";
-            info += "  [* "; info += t_("Codec"); info += "]-|" + GetCodec()->GetName() + "&";
+            info += "  [* "; info += t_("Desc "); info += "]-|" + DeQtf(GetConnDescription()) + "&";
+            info += "  [* "; info += t_("Io   "); info += "]-|" + DeQtf(GetIo()->DeviceName().c_str()) + "&";
+            info += "  [* "; info += t_("Codec"); info += "]-|" + DeQtf(GetCodec()->GetName().c_str()) + "&";
             Upp::PromptOK(info.c_str());
         }).Help(t_("Show basic vt information"));
     };

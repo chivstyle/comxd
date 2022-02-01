@@ -27,6 +27,8 @@ static const int kFontSizes[] = {
 VTOptionsDialog::VTOptionsDialog()
 {
     Upp::CtrlLayout(*this);
+    //
+    Title(t_("VT Options"));
     // set icon
     this->Icon(terminal::vt_options());
     // list fixed-width fonts
