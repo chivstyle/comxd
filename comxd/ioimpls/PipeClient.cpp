@@ -15,6 +15,7 @@ NamedPipeClient::NamedPipeClient(const String& pipe_name)
     , mEventOut(NULL)
     , mPending(true)
     , mShouldStop(false)
+    , mRunning(false)
 {
 }
 
@@ -50,6 +51,7 @@ void NamedPipeClient::Stop()
 
 void NamedPipeClient::RxProc()
 {
+    mRunning = true;
     const size_t kBufferSize = 512;
     std::vector<unsigned char> buffer(kBufferSize);
     while (!mShouldStop) {
@@ -65,11 +67,12 @@ void NamedPipeClient::RxProc()
                     DWORD dret = WaitForSingleObject(mEventIn, 200);
                     if (dret == WAIT_OBJECT_0)
                         break;
+                    dret = GetLastError();
                 }
                 // get the result
                 BOOL bok = GetOverlappedResult(mPipe, &overlapped, &cb, FALSE);
                 if (!bok) {
-                    RLOG("PipeServer" << "fatal error, GetOerlappedResult failed, line:" << __LINE__);
+                    // the big error will stop this thread
                     break;
                 }
             }
@@ -77,12 +80,13 @@ void NamedPipeClient::RxProc()
         std::lock_guard<std::mutex> _(mLock);
         mRxBuffer.insert(mRxBuffer.end(), buffer.begin(), buffer.begin() + cb);
     }
+    mRunning = false;
 }
 
 int NamedPipeClient::Available() const
 {
     std::lock_guard<std::mutex> _(mLock);
-    return (int)mRxBuffer.size();
+    return mRunning ? (int)mRxBuffer.size() : -1;
 }
 
 size_t NamedPipeClient::Read(unsigned char* buf, size_t sz)
@@ -108,10 +112,11 @@ size_t NamedPipeClient::WriteOverlapped(const unsigned char* buf, size_t blksz)
             DWORD wret = WaitForSingleObject(mEventOut, 200);
             if (wret == WAIT_OBJECT_0)
                 break;
+            err = GetLastError();
         }
         bok = GetOverlappedResult(mPipe, &overlapped, &cb, FALSE);
         if (!bok) {
-            LOG("PipeServer" << "fatal error, GetOverlappedResult failed, line:" << __LINE__);
+            cb = 0; // return 0
         }
     }
     return cb;
@@ -124,8 +129,9 @@ size_t NamedPipeClient::Write(const unsigned char* buf, size_t sz)
     while (p < sz) {
         size_t wb = sz - p > (size_t)kBlkSize ? kBlkSize : sz - p;
         size_t cb = WriteOverlapped(buf + p, wb);
-        if (cb == 0)
-            return 0; // Internal error
+        if (cb == 0) {
+            break;
+        }
         p += cb;
     }
     return p;

@@ -19,6 +19,7 @@ NamedPipeServer::NamedPipeServer(const String& pipe_name, int in_buffer_sz, int 
     , mEventOut(NULL)
     , mPending(true)
     , mShouldStop(false)
+    , mRunning(false)
     , mInBufferSize(in_buffer_sz)
     , mOutBufferSize(out_buffer_sz)
 {
@@ -59,6 +60,7 @@ void NamedPipeServer::Stop()
 
 void NamedPipeServer::RxProc()
 {
+    mRunning = true;
     std::vector<unsigned char> buffer(mInBufferSize);
     while (!mShouldStop) {
         // connected ?
@@ -97,12 +99,13 @@ void NamedPipeServer::RxProc()
             }
         }
     }
+    mRunning = false;
 }
 
 int NamedPipeServer::Available() const
 {
     std::lock_guard<std::mutex> _(mLock);
-    return (int)mRxBuffer.size();
+    return mRunning ? (int)mRxBuffer.size() : -1;
 }
 
 size_t NamedPipeServer::Read(unsigned char* buf, size_t sz)
@@ -128,10 +131,11 @@ size_t NamedPipeServer::WriteOverlapped(const unsigned char* buf, size_t blksz)
             DWORD wret = WaitForSingleObject(mEventOut, 200);
             if (wret == WAIT_OBJECT_0)
                 break;
+            err = GetLastError();
         }
         bok = GetOverlappedResult(mPipe, &overlapped, &cb, FALSE);
         if (!bok) {
-            LOG("PipeServer" << "fatal error, GetOverlappedResult failed, line:" << __LINE__);
+            cb = 0;
         }
     }
     return cb;
@@ -144,7 +148,7 @@ size_t NamedPipeServer::Write(const unsigned char* buf, size_t sz)
         size_t wb = sz - p > (size_t)mOutBufferSize ? mOutBufferSize : sz - p;
         size_t cb = WriteOverlapped(buf + p, wb);
         if (cb == 0)
-            return 0; // Internal error
+            break;
         p += cb;
     }
     return p;

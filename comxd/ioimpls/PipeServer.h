@@ -42,6 +42,7 @@ private:
 	mutable std::mutex mLock;
 	std::deque<unsigned char> mRxBuffer;
 	volatile bool mShouldStop;
+	volatile bool mRunning;
 	//
 	size_t WriteOverlapped(const unsigned char* buf, size_t blksz);
 };
