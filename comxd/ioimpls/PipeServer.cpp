@@ -60,7 +60,6 @@ void NamedPipeServer::Stop()
 
 void NamedPipeServer::RxProc()
 {
-    mRunning = true;
     std::vector<unsigned char> buffer(mInBufferSize);
     while (!mShouldStop) {
         // connected ?
@@ -105,7 +104,7 @@ void NamedPipeServer::RxProc()
 int NamedPipeServer::Available() const
 {
     std::lock_guard<std::mutex> _(mLock);
-    return mRunning ? (int)mRxBuffer.size() : -1;
+    return mRunning && mRx.joinable() ? (int)mRxBuffer.size() : -1;
 }
 
 size_t NamedPipeServer::Read(unsigned char* buf, size_t sz)
@@ -199,6 +198,7 @@ bool NamedPipeServer::Start()
         return false;
     // create a connection
     Connect();
+    mRunning = true;
     mRx = std::thread([=]() { RxProc(); });
     
     return true;

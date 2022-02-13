@@ -51,7 +51,6 @@ void NamedPipeClient::Stop()
 
 void NamedPipeClient::RxProc()
 {
-    mRunning = true;
     const size_t kBufferSize = 512;
     std::vector<unsigned char> buffer(kBufferSize);
     while (!mShouldStop) {
@@ -86,7 +85,7 @@ void NamedPipeClient::RxProc()
 int NamedPipeClient::Available() const
 {
     std::lock_guard<std::mutex> _(mLock);
-    return mRunning ? (int)mRxBuffer.size() : -1;
+    return mRunning && mRx.joinable() ? (int)mRxBuffer.size() : -1;
 }
 
 size_t NamedPipeClient::Read(unsigned char* buf, size_t sz)
@@ -157,6 +156,7 @@ bool NamedPipeClient::Start()
     mEventOut = CreateEvent(NULL, TRUE, TRUE, NULL);
     if (mEventIn == NULL || mEventOut == NULL)
         return false;
+    mRunning = true;
     mRx = std::thread([=]() { RxProc(); });
     
     return true;
