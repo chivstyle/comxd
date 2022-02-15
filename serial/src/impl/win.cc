@@ -420,9 +420,10 @@ Serial::SerialImpl::read(uint8_t* buf, size_t size)
         if (!ok) {
             if (GetLastError() == ERROR_IO_PENDING) {
                 // I/O was pending
-                size_t time = (byte_time_ns_ * size) / 1000 / 1000 + 1;
-                if (WaitForSingleObject(overlapped.hEvent, (DWORD)time) != WAIT_OBJECT_0) {
-                    SERIAL_THROW(IOException, "Timeout");
+                while (GetLastError() == ERROR_IO_PENDING) {
+	                if (WaitForSingleObject(overlapped.hEvent, 200) == WAIT_OBJECT_0) {
+	                    break;
+	                }
                 }
                 GetOverlappedResult(fd_, &overlapped, &bytes_read, FALSE);
             } else {
@@ -450,9 +451,10 @@ Serial::SerialImpl::write(const uint8_t* data, size_t length)
         if (!ok) {
             if (GetLastError() == ERROR_IO_PENDING) {
                 // I/O was pending, let's wait for a while and then get's the result.
-                size_t time = (byte_time_ns_ * length) / 1000 / 1000 + 1;
-                if (WaitForSingleObject(overlapped.hEvent, (DWORD)time) != WAIT_OBJECT_0) {
-                    SERIAL_THROW(IOException, "Timeout");
+                while (GetLastError() == ERROR_IO_PENDING) {
+	                if (WaitForSingleObject(overlapped.hEvent, 200) == WAIT_OBJECT_0) {
+	                    break;
+	                }
                 }
                 GetOverlappedResult(fd_, &overlapped, &bytes_written, FALSE);
             } else {
