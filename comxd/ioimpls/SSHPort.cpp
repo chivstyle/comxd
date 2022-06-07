@@ -14,7 +14,7 @@ SSHPort::SSHPort(std::shared_ptr<Upp::SshSession> session, String name, String t
 {
     mShell = new SshShell(*mSession.get());
     mShell->Timeout(Null);
-    mShell->SetReadWindowSize(65535);
+    mShell->SetReadWindowSize(2048);
     mShell->WhenOutput = [=](const void* out, int out_len) {
         if (out_len > 0 && mShouldExit == false) {
             std::unique_lock<std::mutex> _(mLock);
@@ -89,7 +89,7 @@ size_t SSHPort::Read(unsigned char* buf, size_t sz)
 
 size_t SSHPort::Write(const unsigned char* buf, size_t sz)
 {
-    String out((const char*)buf, sz);
+    String out((const char*)buf, (int)sz);
     mShell->Send(out); // push to queue
     return sz;
 }
