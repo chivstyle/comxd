@@ -13,6 +13,7 @@
 #include "Conn.h"
 #include "VTTypes.h"
 #include "VTModes.h"
+#include <cassert>
 #include <functional>
 #include <map>
 #include <mutex>
@@ -75,8 +76,7 @@ namespace Upp {
 #define CHECK_GUI_THREAD() do { \
     if (GetOwnerId() != std::this_thread::get_id()) { \
         std::string report = std::string("You must invoke ") + __FUNCTION__ + " from GUI thread"; \
-        PromptOK(DeQtf(report.c_str())); \
-        abort(); \
+        assert(report.empty()); \
     } \
 } while (0)
 // This codes maybe run in Non GUI thread, in that case, the Framework will report an error, or
@@ -84,8 +84,7 @@ namespace Upp {
 #define CHECK_LOCK_VT() do { \
     if (mLockVt.GetOwnerId() != std::this_thread::get_id()) { \
         std::string report = std::string("You must acuire the LockVt before invoking ") + __FUNCTION__; \
-        PromptOK(DeQtf(report.c_str())); \
-        abort(); \
+        assert(report.empty()); \
     } \
 } while (0)
 #else

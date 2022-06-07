@@ -1017,7 +1017,7 @@ void SerialConnEcma48::ProcessRI(const std::string& p)
 }
 void SerialConnEcma48::ProcessRIS(const std::string& p)
 {
-    this->Clear();
+    this->ClearVt();
 }
 void SerialConnEcma48::ProcessRM(const std::string& p)
 {

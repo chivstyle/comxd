@@ -7,7 +7,7 @@
 #include "VT520Charset.h"
 #include "VT520ControlSeq.h"
 
-//REGISTER_CONN_INSTANCE("vt520 by chiv", "vt520", SerialConnVT520);
+REGISTER_CONN_INSTANCE("vt520 by chiv", "vt520", SerialConnVT520);
 
 using namespace Upp;
 
@@ -33,8 +33,6 @@ void SerialConnVT520::LoadDefaultModes()
 void SerialConnVT520::InstallFunctions()
 {
     mFunctions[DECAC] = [=](const std::string& p) { ProcessDECAC(p); };
-    mFunctions[DECRQM_ANSI] = [=](const std::string& p) { ProcessDECRQM_ANSI(p); };
-    mFunctions[DECRQM_DECP] = [=](const std::string& p) { ProcessDECRQM_DECP(p); };
     mFunctions[DECST8C] = [=](const std::string& p) { ProcessDECST8C(p); };
 }
 
@@ -103,10 +101,10 @@ void SerialConnVT520::ProcessG3_CS96(const std::string& p)
     DO_SET_CHARSET96(3);
 }
 
-void SerialConnVT520::ProcessDECRQM_ANSI(const std::string& p)
+void SerialConnVT520::ProcessANSIRQM(const std::string& p)
 {
-    int ps = atoi(p.data());
-    std::string rsp = std::string("\033[") + std::to_string(ps) + ";";
+    int ps = atoi(p.c_str()); char buff[16]; sprintf(buff, "%d", ps);
+    std::string rsp = std::string("\033[") + buff + ";";
     switch (ps) {
     case 1:
     case 5:
@@ -121,30 +119,37 @@ void SerialConnVT520::ProcessDECRQM_ANSI(const std::string& p)
     case 18:
     case 19:
         // These modes were permanently reset
+        // 0 Not recognized
+        // 1 Set
+        // 2 Reset
+        // 3 Permanently set
+        // 4 Permanently reset
         Put(rsp + "4$y");
         break;
-    default:
-        Put(rsp + (mModes.GetAnsiMode(ps, 0) ? "1" : "2") + "$y");
-        break;
+    default: if (1) {
+        int mode = mModes.GetAnsiMode(ps, -1);
+        Put(rsp + (mode == -1 ? "0" : mode ? "1" : "2") + "$y");
+    } break;
     }
 }
-void SerialConnVT520::ProcessDECRQM_DECP(const std::string& p)
+void SerialConnVT520::ProcessDECRQM(const std::string& p)
 {
-    int ps = atoi(p.data());
-    std::string rsp = std::string("\033[?") + std::to_string(ps) + ";";
+    int ps = atoi(p.c_str()); char buff[16]; sprintf(buff, "%d", ps);
+    std::string rsp = std::string("\033[?") + buff + ";";
     switch (ps) {
     // permanently reset
     case 34: Put(rsp + "4$y"); break;
-    default:
-        Put(rsp + (mModes.GetAnsiMode(ps, 0) ? "1" : "2") + "$y");
-        break;
+    default: if (1) {
+        int mode = mModes.GetAnsiMode(ps, -1);
+        Put(rsp + (mode == -1 ? "0" : mode ? "1" : "2") + "$y");
+    } break;
     }
 }
 
 void SerialConnVT520::ProcessDECAC(const std::string& p)
 {
     int ps[3] = {0}, idx = 0;
-    SplitString(p.data(), ";", [=, &ps, &idx](const char* token) {
+    SplitString(p.c_str(), ";", [=, &ps, &idx](const char* token) {
         if (idx < 3)
             ps[idx] = atoi(token);
         idx++;
@@ -163,7 +168,7 @@ void SerialConnVT520::ProcessDECAC(const std::string& p)
 
 void SerialConnVT520::ProcessDA(const std::string& p)
 {
-    int ps = atoi(p.data());
+    int ps = atoi(p.c_str());
     switch (ps) {
     case 0:
         // 1   132 columns
@@ -196,7 +201,7 @@ void SerialConnVT520::ProcessDECSCL(const std::string& p)
 {
     int idx = 0;
     int ps[2] = {0, 0};
-    SplitString(p.data(), ";", [=, &idx, &ps](const char* token) {
+    SplitString(p.c_str(), ";", [=, &idx, &ps](const char* token) {
         if (idx < 2)
             ps[idx] = atoi(token);
     });
@@ -213,12 +218,12 @@ void SerialConnVT520::ProcessDECSCL(const std::string& p)
 
 void SerialConnVT520::ProcessSecondaryDA(const std::string& p)
 {
-    int pn = atoi(p.data());
+    int pn = atoi(p.c_str());
     switch (pn) {
     case 0:
         // CSI > 64; Pv; 1 c , VT520
         // Pv - firmware version.
-        GetIo()->Write("\033[>64;20;1c");
+        Put("\033[>64;20;1c");
         break;
     default:
         SerialConnVT420::ProcessSecondaryDA(p);

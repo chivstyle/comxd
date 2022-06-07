@@ -717,7 +717,7 @@ Point SerialConnVT::LogicToVirtual(const std::deque<VTLine>& lines, int lx, int 
     next_py = py + mFontH;
     vy = ly / mFontH;
     if (vy >= (int)lines.size())
-        vy = -1;
+        vy = (int)lines.size() - 1;
 #endif
     int nchars = ignore_tail_blanks ? (int)lines[vy].size() - this->CalculateNumberOfPureBlankCharsFromEnd(lines[vy]) : (int)lines[vy].size();
     int vx = nchars == 0 ? 0 : (int)nchars - 1;

@@ -13,9 +13,10 @@ public:
 protected:
     //
     virtual void ProcessDECAC(const std::string& p);
-    virtual void ProcessDECRQM_ANSI(const std::string& p);
-    virtual void ProcessDECRQM_DECP(const std::string& p);
     virtual void ProcessDECST8C(const std::string& p);
+    // override vt320
+    void ProcessANSIRQM(const std::string& p) override;
+    void ProcessDECRQM(const std::string& p) override;
     // override vt420
     void ProcessDECSCL(const std::string& p);
     void ProcessSecondaryDA(const std::string& p);

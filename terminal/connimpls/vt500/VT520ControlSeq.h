@@ -28,8 +28,6 @@ enum VT520SeqType {
     DECPS, // play sound
     DECRQKD, // request key definition
     DECRQKT, // request key type
-    DECRQM_ANSI, // request ansi mode
-    DECRQM_DECP, // request dec private mode
     DECRQPKFM, // request program key free memory
     DECCTR, // color table request
     DECSCP, // select communication port

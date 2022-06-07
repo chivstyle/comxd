@@ -31,8 +31,6 @@ void AddVT520ControlSeqs(ControlSeqFactory* factory)
     REGISTER_SEQ(factory, DECPS, "\033[", Ps, 3, ",~");
     REGISTER_SEQ(factory, DECRQKD, "\033[", Ps, 2, ",w");
     REGISTER_SEQ(factory, DECRQKT, "\033[", Ps, 1, ",u");
-    REGISTER_SEQ(factory, DECRQM_ANSI, "\033[", Ps, 1, "$p");
-    REGISTER_SEQ(factory, DECRQM_DECP, "\033[?", Ps, 1, "$p");
     REGISTER_SEQ(factory, DECRQPKFM, "\033[+x", No, 0, "");
     REGISTER_SEQ(factory, DECCTR, "\033[2;", Ps, 1, "$u");
     REGISTER_SEQ(factory, DECSCP, "\033[", Ps, 2, "*u");

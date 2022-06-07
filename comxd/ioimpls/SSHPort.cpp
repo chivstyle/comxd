@@ -14,13 +14,13 @@ SSHPort::SSHPort(std::shared_ptr<Upp::SshSession> session, String name, String t
 {
     mShell = new SshShell(*mSession.get());
     mShell->Timeout(Null);
-    //mShell->SetReadWindowSize(1024);
+    mShell->SetReadWindowSize(65535);
     mShell->WhenOutput = [=](const void* out, int out_len) {
         if (out_len > 0 && mShouldExit == false) {
             std::unique_lock<std::mutex> _(mLock);
             mCondWrite.wait(_, [=]() {
-                // limit stream to 1024
-                return mRxBuffer.size() < 1024 || mShouldExit;
+                // limit stream to 2048
+                return mRxBuffer.size() < 2048 || mShouldExit;
             });
             if (!mShouldExit) {
                 mRxBuffer.insert(mRxBuffer.end(), (unsigned char*)out, (unsigned char*)out + out_len);
@@ -29,9 +29,7 @@ SSHPort::SSHPort(std::shared_ptr<Upp::SshSession> session, String name, String t
         }
     };
     mShell->WhenWait = [=]() {
-        PostCallback([=]() {
-            Ctrl::ProcessEvents();
-        });
+        PostCallback([=]() { Ctrl::ProcessEvents(); });
     };
 }
 
@@ -58,6 +56,7 @@ bool SSHPort::Start()
     mShouldExit = false;
     mJob = std::thread([=]() {
         mShell->Run(mTerm, 80, 34, Null);
+        printf("1\n");
     });
     return true;
 }
@@ -90,7 +89,7 @@ size_t SSHPort::Read(unsigned char* buf, size_t sz)
 
 size_t SSHPort::Write(const unsigned char* buf, size_t sz)
 {
-    String out((const char*)buf, (int)sz);
+    String out((const char*)buf, sz);
     mShell->Send(out); // push to queue
     return sz;
 }
