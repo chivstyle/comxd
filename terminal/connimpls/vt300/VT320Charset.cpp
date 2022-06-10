@@ -11,29 +11,29 @@ uint32_t VT320_RemapL(uint32_t uc, int cs)
     case CS_PORTUGUESE:
         switch (uc) {
         case 0x23:
-            return L'#';
+            return 0x23;// L'#';
         case 0x40:
-            return L'@';
+            return 0x40;// L'@';
         case 0x5b:
-            return L'Ã';
+            return 0xc3;// L'Ã';
         case 0x5c:
-            return L'Ç';
+            return 0xc7;// L'Ç';
         case 0x5d:
-            return L'Õ';
+            return 0xd5;// L'Õ';
         case 0x5e:
-            return L'^';
+            return 0x5e;// L'^';
         case 0x5f:
-            return L'_';
+            return 0x5f;// L'_';
         case 0x60:
-            return L'`';
+            return 0x60;// L'`';
         case 0x7b:
-            return L'ã';
+            return 0xe3;// L'ã';
         case 0x7c:
-            return L'ç';
+            return 0xe7;// L'ç';
         case 0x7d:
-            return L'õ';
+            return 0xf5;// L'õ';
         case 0x7e:
-            return L'~';
+            return 0x7e;// L'~';
         }
         break;
     case CS_DANISH_VT320:
