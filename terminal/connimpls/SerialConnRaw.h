@@ -16,9 +16,9 @@ public:
     SerialConnRaw(std::shared_ptr<SerialIo> io);
     virtual ~SerialConnRaw();
     //
-    bool Start();
+    bool Start() override;
     //
-    void Stop();
+    void Stop() override;
     //
 protected:
     static const int kPeriodicTimerId = 0;

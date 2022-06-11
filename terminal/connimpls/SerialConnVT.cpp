@@ -399,9 +399,12 @@ void SerialConnVT::RenderSeqs(const std::deque<Seq>& seqs)
 {
     DebugMutex::Lock _(mLockVt);
     //
+    bool b_old = mShowCursor;
+    mShowCursor = false;
     for (auto it = seqs.begin(); it != seqs.end(); ++it) {
         RenderSeq(*it);
     }
+    mShowCursor = b_old;
 }
 //
 bool SerialConnVT::IsControlSeqPrefix(uint8_t c)
@@ -1922,8 +1925,9 @@ void SerialConnVT::Render(Draw& draw)
     draw.DrawRect(GetRect(), mColorTbl.GetColor(VTColorTable::kColorId_Paper));
     //
     DrawVT(draw);
-    //
+#if 0
     DrawCursor(draw);
+#endif
 }
 
 std::vector<uint32_t> SerialConnVT::TranscodeToUTF32(const std::string& s, size_t& ep)
@@ -1938,6 +1942,11 @@ void SerialConnVT::DrawVTChar(Draw& draw, int x, int y, const VTChar& c,
     // UPP begins to support full unicode
     wchar f[] = {c.Code(), 0};
     draw.DrawText(x, y, f, font, cr);
+}
+
+Rect SerialConnVT::GetCaret() const
+{
+	return mShowCursor ? Rect(mPx, mPy, mPx + 2, mPy + mFontH) : Null;
 }
 
 void SerialConnVT::Paint(Draw& draw)

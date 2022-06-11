@@ -10,7 +10,7 @@
 #include "Codec.h"
 #include "SerialIo.h"
 
-class SerialConn : public Upp::ParentCtrl {
+class SerialConn : public Upp::Ctrl {
 public:
     explicit SerialConn(std::shared_ptr<SerialIo> io);
     SerialConn() { }

@@ -19,7 +19,7 @@ public:
     SerialConn* RequestConn();
     //
 protected:
-    bool Key(Upp::dword key, int count);
+    bool Key(Upp::dword key, int count) override;
     //
 private:
     SerialConn* mConn;

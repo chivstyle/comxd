@@ -99,9 +99,9 @@ public:
     SerialConnVT(std::shared_ptr<SerialIo> io);
     virtual ~SerialConnVT();
     // start the works
-    virtual bool Start();
+    bool Start() override;
     // stop the works
-    virtual void Stop();
+    void Stop() override;
     // clear screen and buffer, restore default, .etc, you can override it
     virtual void Clear();
     // Editing commands
@@ -153,18 +153,18 @@ protected:
     // swap current scr and sd
     void SwapScr(ScreenData& sd);
     //------------------------------------------------------------------------------------------
-    // Font
-    virtual void Paint(Upp::Draw& draw);
-    virtual void Layout();
-    virtual bool Key(Upp::dword key, int count);
-    virtual void MouseWheel(Upp::Point, int zdelta, Upp::dword);
-    virtual void LeftUp(Upp::Point p, Upp::dword keyflags);
-    virtual void LeftDown(Upp::Point p, Upp::dword keyflags);
-    virtual void LeftDouble(Upp::Point p, Upp::dword keyflags);
-    virtual void LeftTriple(Upp::Point p, Upp::dword keyflags);
-    virtual void MouseMove(Upp::Point p, Upp::dword keyflags);
-    virtual void RightUp(Upp::Point p, Upp::dword keyflags);
-    virtual Upp::Image CursorImage(Upp::Point p, Upp::dword keyflags);
+    virtual Upp::Rect GetCaret() const override;
+    virtual void Paint(Upp::Draw& draw) override;
+    virtual void Layout() override;
+    virtual bool Key(Upp::dword key, int count) override;
+    virtual void MouseWheel(Upp::Point, int zdelta, Upp::dword) override;
+    virtual void LeftUp(Upp::Point p, Upp::dword keyflags) override;
+    virtual void LeftDown(Upp::Point p, Upp::dword keyflags) override;
+    virtual void LeftDouble(Upp::Point p, Upp::dword keyflags) override;
+    virtual void LeftTriple(Upp::Point p, Upp::dword keyflags) override;
+    virtual void MouseMove(Upp::Point p, Upp::dword keyflags) override;
+    virtual void RightUp(Upp::Point p, Upp::dword keyflags) override;
+    virtual Upp::Image CursorImage(Upp::Point p, Upp::dword keyflags) override;
     // virtual screen resources
     VTChar mBlankChar;
     Upp::Font mFont;
@@ -179,8 +179,8 @@ protected:
     Upp::Size GetConsoleSize() const { return mVtSize; }
     Upp::Size GetViewSize() const { return mVwSize; }
     //-------------------------------------------------------------------------------------------
-    Upp::DebugMutex mLockVt;   // protect virtual screen, before accessing VtSize, Lines, .etc
-                               // you must acquire the LockVt.
+    mutable Upp::DebugMutex mLockVt;   // protect virtual screen, before accessing VtSize, Lines, .etc
+                                       // you must acquire the LockVt.
     //--------------------------------------------------------------------------------------------
     void ClearVt();
     //
