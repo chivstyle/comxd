@@ -6,8 +6,6 @@ uses
 	terminal,
 	Painter;
 
-uses(MSC) minhook;
-
 include
 	.;
 

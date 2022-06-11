@@ -1052,16 +1052,6 @@ void SerialConnVT::LeftDown(Point p, dword)
     mSelectionSpan.X1 = mSelectionSpan.X0;
     mSelectionSpan.Y1 = mSelectionSpan.Y0;
     mSelectionSpan.Valid = false;
-    // show the caret
-    VTLine* vline = this->GetVTLine(vpos.y);
-    if (vline) {
-        Point lpos = VirtualToLogic(mSelectionSpan.X0, mSelectionSpan.Y0);
-#if ENABLE_FIXED_LINE_HEIGHT
-		this->SetCaret(lpos.x - mSbH.Get(), lpos.y - mSbV.Get(), 1, mFontH);
-#else
-        this->SetCaret(lpos.x - mSbH.Get(), lpos.y - mSbV.Get(), 1, vline->GetHeight());
-#endif
-    }
     // capture, event the cursor move out of the client region.
     SetFocus();
     SetCapture();
@@ -1164,7 +1154,6 @@ void SerialConnVT::LeftUp(Point p, dword)
 {
     (void)p;
     if (mPressed) {
-        this->KillCaret();
         mPressed = false;
         Refresh();
     }

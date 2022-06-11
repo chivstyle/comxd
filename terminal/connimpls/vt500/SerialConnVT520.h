@@ -18,17 +18,17 @@ protected:
     void ProcessANSIRQM(const std::string& p) override;
     void ProcessDECRQM(const std::string& p) override;
     // override vt420
-    void ProcessDECSCL(const std::string& p);
-    void ProcessSecondaryDA(const std::string& p);
-    void ProcessDA(const std::string& p);
+    void ProcessDECSCL(const std::string& p) override;
+    void ProcessSecondaryDA(const std::string& p) override;
+    void ProcessDA(const std::string& p) override;
     // override cs
-    void ProcessG0_CS(const std::string&);
-    void ProcessG1_CS(const std::string&);
-    void ProcessG2_CS(const std::string&);
-    void ProcessG3_CS(const std::string&);
-    void ProcessG1_CS96(const std::string&);
-    void ProcessG2_CS96(const std::string&);
-    void ProcessG3_CS96(const std::string&);
+    void ProcessG0_CS(const std::string&) override;
+    void ProcessG1_CS(const std::string&) override;
+    void ProcessG2_CS(const std::string&) override;
+    void ProcessG3_CS(const std::string&) override;
+    void ProcessG1_CS96(const std::string&) override;
+    void ProcessG2_CS96(const std::string&) override;
+    void ProcessG3_CS96(const std::string&) override;
     //
 private:
 	void LoadDefaultModes();

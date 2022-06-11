@@ -13,11 +13,11 @@ public:
     SerialConnVT100(std::shared_ptr<SerialIo> io);
 protected:
     // override ECMA48
-    void ProcessDA(const std::string& p);
-    void ProcessCUP(const std::string& p);
-    void ProcessHVP(const std::string& p);
-    void ProcessSI(const std::string& p);
-    void ProcessSO(const std::string& p);
+    void ProcessDA(const std::string& p) override;
+    void ProcessCUP(const std::string& p) override;
+    void ProcessHVP(const std::string& p) override;
+    void ProcessSI(const std::string& p) override;
+    void ProcessSO(const std::string& p) override;
     // VT100 modes, DEC private
     virtual void ProcessDECSM(const std::string& p);
     virtual void ProcessDECRM(const std::string& p);
@@ -38,11 +38,11 @@ protected:
     // charset
     virtual void ProcessG0_CS(const std::string& p);
     virtual void ProcessG1_CS(const std::string& p);
-    virtual uint32_t RemapCharacter(uint32_t uc, int charset);
+    uint32_t RemapCharacter(uint32_t uc, int charset) override;
     //
-    virtual bool ProcessKeyDown(Upp::dword key, Upp::dword flags);
+    bool ProcessKeyDown(Upp::dword key, Upp::dword flags) override;
     //
-    virtual void SetCursorToHome();
+    void SetCursorToHome() override;
     // cursor position, graphics rendition, character set
     struct CursorDataVT100 {
         int Vx, Vy;

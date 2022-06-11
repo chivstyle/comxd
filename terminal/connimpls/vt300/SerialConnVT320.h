@@ -24,16 +24,16 @@ protected:
     virtual void ProcessG2_CS96(const std::string&);
     virtual void ProcessG3_CS96(const std::string&);
     // override vt220
-    void ProcessDECSCL(const std::string&);
-    void ProcessDECSEL(const std::string&);
-    void ProcessDECSED(const std::string&);
-    void ProcessDA(const std::string&);
-    void ProcessSecondaryDA(const std::string&);
+    void ProcessDECSCL(const std::string&) override;
+    void ProcessDECSEL(const std::string&) override;
+    void ProcessDECSED(const std::string&) override;
+    void ProcessDA(const std::string&) override;
+    void ProcessSecondaryDA(const std::string&) override;
     // override cs
-    void ProcessG0_CS(const std::string&);
-    void ProcessG1_CS(const std::string&);
-    void ProcessG2_CS(const std::string&);
-    void ProcessG3_CS(const std::string&);
+    void ProcessG0_CS(const std::string&) override;
+    void ProcessG1_CS(const std::string&) override;
+    void ProcessG2_CS(const std::string&) override;
+    void ProcessG3_CS(const std::string&) override;
     //
 private:
 	void LoadDefaultModes();
