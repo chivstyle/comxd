@@ -32,6 +32,7 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
     , mScrollToEnd(true)
     , mPressed(false)
     , mShowCursor(true)
+    , mEnableCaret(true)
     , mMaxLinesBufferSize(5000)
     , mSeqsFactory(new ControlSeqFactory())
     , mTabWidth(8)
@@ -399,12 +400,9 @@ void SerialConnVT::RenderSeqs(const std::deque<Seq>& seqs)
 {
     DebugMutex::Lock _(mLockVt);
     //
-    bool b_old = mShowCursor;
-    mShowCursor = false;
     for (auto it = seqs.begin(); it != seqs.end(); ++it) {
         RenderSeq(*it);
     }
-    mShowCursor = b_old;
 }
 //
 bool SerialConnVT::IsControlSeqPrefix(uint8_t c)
@@ -1946,7 +1944,13 @@ void SerialConnVT::DrawVTChar(Draw& draw, int x, int y, const VTChar& c,
 
 Rect SerialConnVT::GetCaret() const
 {
-	return mShowCursor ? Rect(mPx, mPy, mPx + 2, mPy + mFontH) : Null;
+	CHECK_GUI_THREAD();
+	if (mEnableCaret && mShowCursor) {
+		int px = mPx - mSbH.Get();
+	    int py = mPy + (mSbV.GetTotal() - mSbV.Get() - mSbV.GetPage());
+	    return Rect(px, py, px+2, py+mFontH);
+	}
+	return Rect(-1,-1,0,0); // return a invisible position
 }
 
 void SerialConnVT::Paint(Draw& draw)

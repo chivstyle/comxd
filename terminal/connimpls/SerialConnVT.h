@@ -382,6 +382,7 @@ private:
     bool mScrollToEnd;
     bool mPressed;
     bool mShowCursor;
+    volatile bool mEnableCaret;
     int mBackgroundColorId;
     int mForegroundColorId;
     //
