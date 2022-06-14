@@ -526,6 +526,7 @@ void SerialConnVT::RxProc()
         }
         RefineTheInput(raw);
         //
+        mEnableCaret = false;
         size_t rawp = 0; const size_t kSeqsPoolSz = 100;
         while (rawp < raw.length() && !mRxShouldStop) {
             if (IsControlSeqPrefix((uint8_t)raw[rawp])) { // is prefix of some control sequence
@@ -580,6 +581,7 @@ void SerialConnVT::RxProc()
         if (!seqs.empty()) {
             RenderSeqs(seqs); seqs.clear();
         }
+        mEnableCaret = true;
         PostCallback([=]() { this->UpdatePresentation(); });
     }
 }
