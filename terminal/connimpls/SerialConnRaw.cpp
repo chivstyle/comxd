@@ -149,7 +149,15 @@ void SerialConnRaw::InstallActions()
     };
     // pause rx
     this->mBtnPauseRx.WhenAction = [&]() {
-        mStopUpdateRx = !mStopUpdateRx;
+        if (mRxThr.joinable()) {
+            mRxShouldStop = true;
+            mRxThr.join();
+            mBtnPauseRx.SetLabel(t_("Resume"));
+        } else {
+            mRxShouldStop = false;
+            mRxThr = std::thread([=]() { RxProc(); });
+            mBtnPauseRx.SetLabel(t_("Pause"));
+        }
     };
     // period
     this->mTxPeriod.WhenAction = [=]() {

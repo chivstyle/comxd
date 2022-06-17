@@ -4,11 +4,11 @@ END_LAYOUT
 
 LAYOUT(SerialDevs, 348, 160)
 	ITEM(Upp::Label, dv___0, SetLabel(t_("Devices")).LeftPosZ(8, 52).VSizePosZ(12, 129))
-	ITEM(WithDropChoice<EditString>, mDevsList, LeftPosZ(68, 116).TopPosZ(12, 19))
+	ITEM(Upp::WithDropChoice<Upp::EditString>, mDevsList, LeftPosZ(68, 116).TopPosZ(12, 19))
 	ITEM(Upp::Label, dv___2, SetLabel(t_("DataBits")).HSizePosZ(8, 288).VSizePosZ(60, 80))
 	ITEM(Upp::DropList, mDataBits, HSizePosZ(68, 164).VSizePosZ(60, 81))
 	ITEM(Upp::Label, dv___4, SetLabel(t_("Baudrate")).LeftPosZ(8, 52).TopPosZ(36, 20))
-	ITEM(WithDropChoice<EditInt>, mBaudrate, LeftPosZ(68, 116).TopPosZ(36, 19))
+	ITEM(Upp::WithDropChoice<Upp::EditInt>, mBaudrate, LeftPosZ(68, 116).TopPosZ(36, 19))
 	ITEM(Upp::Label, dv___6, SetLabel(t_("StopBits")).LeftPosZ(8, 52).TopPosZ(84, 19))
 	ITEM(Upp::DropList, mStopBits, HSizePosZ(68, 164).TopPosZ(84, 19))
 	ITEM(Upp::Label, dv___8, SetLabel(t_("Parity")).LeftPosZ(8, 52).TopPosZ(108, 19))
@@ -25,7 +25,7 @@ END_LAYOUT
 
 LAYOUT(SSHDevs, 344, 152)
 	ITEM(Upp::Label, dv___0, SetLabel(t_("Host")).LeftPosZ(8, 40).VSizePosZ(12, 121))
-	ITEM(WithDropChoice<EditString>, mHost, LeftPosZ(68, 184).TopPosZ(12, 19))
+	ITEM(Upp::WithDropChoice<Upp::EditString>, mHost, LeftPosZ(68, 184).TopPosZ(12, 19))
 	ITEM(Upp::Label, dv___2, SetLabel(t_("Port")).LeftPosZ(260, 28).VSizePosZ(12, 121))
 	ITEM(Upp::EditInt, mPort, LeftPosZ(296, 40).VSizePosZ(12, 121))
 	ITEM(Upp::Label, dv___4, SetLabel(t_("User")).LeftPosZ(8, 40).VSizePosZ(40, 93))
