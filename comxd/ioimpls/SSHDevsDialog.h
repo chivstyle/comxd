@@ -4,6 +4,7 @@
 #pragma once
 
 #include "Conn.h"
+#include "SSHPort.h"
 // device
 #include <memory>
 #include <queue>
@@ -15,6 +16,7 @@ public:
     SSHDevsDialog();
     // create a serialconn from current settings.
     SerialConn* RequestConn();
+    bool Reconnect(SSHPort* sp);
     //
 protected:
     bool Key(Upp::dword key, int count) override;

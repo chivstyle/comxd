@@ -5,7 +5,6 @@
 #include "SSHDevsDialog.h"
 #include "CodecFactory.h"
 #include "ConnFactory.h"
-#include "SSHPort.h"
 #include "ConnCreateFactory.h"
 
 #define CONFIG_MAX_RECENT_RECS_NUMBER        10
@@ -156,6 +155,44 @@ bool SSHDevsDialog::Key(Upp::dword key, int count)
     return TopWindow::Key(key, count);
 }
 
+bool SSHDevsDialog::Reconnect(SSHPort* sp)
+{
+	auto sc = dynamic_cast<SSHPort*>(sp); if (!sc) return false;
+	WhenAction = [=]() { AcceptBreak(IDOK); };
+	mCodecs.Hide();
+	mCodecsLabel.Hide();
+	mHost.Disable();
+	mHost.SetData(sc->Host());
+	mUser.SetData(sc->User());
+	// find the type
+	auto codec_names = CodecFactory::Inst()->GetSupportedCodecNames();
+    for (size_t k = 0; k < codec_names.size(); ++k) {
+        auto type = ConnFactory::Inst()->GetConnType(codec_names[k]);
+        if (type == sc->Term()) {
+            mTypes.SetData(codec_names[k]);
+            break;
+        }
+    }
+	mPort.SetData(sc->Port());
+	int ret = Run(true);
+    if (ret == IDOK) {
+	    auto session = sc->Session();
+	    session->WhenWait = [=]() {
+	        if (IsMainThread())
+	            ProcessEvents();
+	    };
+	    auto title = GetTitle();
+	    Title(t_("Connecting...")).Disable();
+	    if (session->Timeout(5000).Connect(~mHost, ~mPort, ~mUser, ~mPassword)) {
+	        return true;
+	    } else {
+	        PromptOK(Upp::DeQtf(session->GetErrorDesc()));
+	    }
+	    Title(title).Enable();
+    }
+    return false;
+}
+
 void SSHDevsDialog::CreateConn()
 {
     std::shared_ptr<SshSession> session = std::make_shared<SshSession>();
@@ -167,7 +204,7 @@ void SSHDevsDialog::CreateConn()
     Title(t_("Connecting...")).Disable();
     if (session->Timeout(5000).Connect(~mHost, ~mPort, ~mUser, ~mPassword)) {
         try {
-            auto port = std::make_shared<SSHPort>(session, ~mHost,
+            auto port = std::make_shared<SSHPort>(session, ~mHost, ~mPort, ~mUser,
                 ConnFactory::Inst()->GetConnType(~mTypes));
             auto conn = ConnFactory::Inst()->CreateInst(~mTypes, port);
             port->Start();

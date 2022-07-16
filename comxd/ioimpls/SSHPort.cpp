@@ -3,19 +3,32 @@
 //
 #include "resource.h"
 #include "SSHPort.h"
+#include "SSHDevsDialog.h"
 
 using namespace Upp;
 
-SSHPort::SSHPort(std::shared_ptr<Upp::SshSession> session, String name, String term)
+SSHPort::SSHPort(std::shared_ptr<Upp::SshSession> session, Upp::String host, int port, Upp::String user, Upp::String term)
     : mSession(session)
-    , mDeviceName(name)
+    , mHost(host)
+    , mPort(port)
+    , mUser(user)
     , mTerm(term)
     , mShouldExit(false)
 {
-    mShell = new SshShell(*mSession.get());
-    mShell->Timeout(Null);
-    mShell->SetReadWindowSize(2048);
-    mShell->WhenOutput = [=](const void* out, int out_len) {
+	mShell = CreateShell();
+}
+
+SSHPort::~SSHPort()
+{
+    Stop();
+}
+
+Upp::SshShell* SSHPort::CreateShell()
+{
+	auto shell = new SshShell(*mSession.get());
+    shell->Timeout(Null);
+    shell->SetReadWindowSize(2048);
+    shell->WhenOutput = [=](const void* out, int out_len) {
         if (out_len > 0 && mShouldExit == false) {
             std::unique_lock<std::mutex> _(mLock);
             mCondWrite.wait(_, [=]() {
@@ -28,41 +41,52 @@ SSHPort::SSHPort(std::shared_ptr<Upp::SshSession> session, String name, String t
             }
         }
     };
-    mShell->WhenWait = [=]() {
+    shell->WhenWait = [=]() {
         PostCallback([=]() { Ctrl::ProcessEvents(); });
     };
-}
-
-SSHPort::~SSHPort()
-{
-    if (mJob.joinable()) {
-        mJob.join();
-    }
-    delete mShell;
+    return shell;
 }
 
 void SSHPort::Stop()
 {
-    mShouldExit = true;
-    mCondWrite.notify_all();
-    mShell->Timeout(200);
-    mShell->Abort();
-    //
-    mShell->Close();
+	if (mShell) {
+	    mShouldExit = true;
+	    mCondWrite.notify_all();
+	    // stop the shell
+	    mShell->Timeout(200);
+	    mShell->Abort();
+	    mShell->Close();
+	    // wait for the job
+	    if (mJob.joinable()) {
+	        mJob.join();
+	    }
+	    // release the shell
+	    delete mShell;
+	    mShell = nullptr;
+	    //
+	    mSession->Disconnect();
+	}
 }
 
 bool SSHPort::Start()
 {
-    mShouldExit = false;
-    mJob = std::thread([=]() {
-        mShell->Run(mTerm, 80, 34, Null);
-        printf("1\n");
-    });
+	if (!mJob.joinable()) {
+	    mShouldExit = false;
+	    if (!mShell) {
+	        SSHDevsDialog d;
+	        d.Reconnect(this);
+	        mShell = CreateShell();
+	    }
+	    mJob = std::thread([=]() {
+	        mShell->Run(mTerm, 80, 34, Null);
+	    });
+	}
     return true;
 }
 
 void SSHPort::SetConsoleSize(const Size& csz)
 {
+	if (!mShell) return;
     if (mShell->GetPageSize() != csz)
         mShell->PageSize(csz);
 }
@@ -89,6 +113,7 @@ size_t SSHPort::Read(unsigned char* buf, size_t sz)
 
 size_t SSHPort::Write(const unsigned char* buf, size_t sz)
 {
+	if (!mShell) return 0;
     String out((const char*)buf, (int)sz);
     mShell->Send(out); // push to queue
     return sz;

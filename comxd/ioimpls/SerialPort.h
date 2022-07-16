@@ -11,7 +11,10 @@ class SerialPort : public SerialIo {
 public:
     SerialPort(std::shared_ptr<serial::Serial> serial);
     //
-    int Available() const
+    bool Start() override;
+    void Stop() override;
+    //
+    int Available() const override
     {
         int sz = -1;
         try {
@@ -21,7 +24,7 @@ public:
         return sz;
     }
     //
-    size_t Read(unsigned char* buf, size_t sz)
+    size_t Read(unsigned char* buf, size_t sz) override
     {
         size_t sz_ = 0;
         try {
@@ -31,7 +34,7 @@ public:
         return sz_;
     }
     //
-    size_t Write(const unsigned char* buf, size_t sz)
+    size_t Write(const unsigned char* buf, size_t sz) override
     {
         size_t sz_ = 0;
         try {
@@ -41,7 +44,7 @@ public:
         return sz_;
     }
     //
-    std::string DeviceName() const
+    std::string DeviceName() const override
     {
         std::string name;
         try {

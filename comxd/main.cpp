@@ -177,6 +177,17 @@ protected:
         if (mDevsTab.GetCount()) {
             auto conn = dynamic_cast<SerialConn*>(mDevsTab.GetItem(mDevsTab.Get()).GetSlave());
             if (conn) {
+                bar.Add(t_("Reconnect"), comxd::reconnect(), [=]() {
+                    conn->Stop();
+                    conn->GetIo()->Stop();
+                    if (!conn->GetIo()->Start()) {
+                        String text = t_("Can't start the I/O deivce:");
+                        text += conn->GetIo()->DeviceName();
+                        PromptOK(Upp::DeQtf(text));
+                    } else {
+                        conn->Start();
+                    }
+	            }).Help(t_("Reconnect to the I/O device"));
                 // Actions of serial device
                 conn->GetIo()->WhenUsrBar(bar);
                 conn->WhenUsrBar(bar);

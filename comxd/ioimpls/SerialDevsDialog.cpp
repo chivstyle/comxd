@@ -152,7 +152,7 @@ bool SerialDevsDialog::Key(Upp::dword key, int count)
     return TopWindow::Key(key, count);
 }
 
-void SerialDevsDialog::ChangeSettings(SerialPort* port)
+bool SerialDevsDialog::Reconnect(SerialPort* port)
 {
     mBtnOk.WhenAction = [=]() { this->AcceptBreak(IDOK); };
     // load settings of serial
@@ -184,14 +184,12 @@ void SerialDevsDialog::ChangeSettings(SerialPort* port)
             serial->setBytesize((serial::bytesize_t)mDataBits.GetData().To<int>());
             serial->setStopbits((serial::stopbits_t)mStopBits.GetData().To<int>());
             serial->setFlowcontrol((serial::flowcontrol_t)mFlowCtrl.GetData().To<int>());
-            // save
-            SaveLastSerialInfo({~mDevsList, ~mTypes, ~mCodecs, mBaudrate.GetData().To<int>(),
-                                mDataBits.GetData().To<int>(), mParity.GetData().To<int>(),
-                                mStopBits.GetData().To<int>(), mFlowCtrl.GetData().To<int>()});
+            return true;
         } catch (const std::exception&) {
             Upp::PromptOK(DeQtf(t_("Can't change settings!")));
         }
     }
+    return false;
 }
 //
 void SerialDevsDialog::CreateConn()

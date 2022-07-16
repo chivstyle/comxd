@@ -16,7 +16,7 @@ public:
     // create a serialconn from current settings.
     SerialConn* RequestConn();
     //
-    void ChangeSettings(SerialPort* port);
+    bool Reconnect(SerialPort* port);
     //
 protected:
     bool Key(Upp::dword key, int count) override;
