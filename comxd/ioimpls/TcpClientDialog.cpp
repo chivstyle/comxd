@@ -2,7 +2,7 @@
 // (c) 2020 chiv
 //
 #include "resource.h"
-#include "SSHDevsDialog.h"
+#include "TcpClientDialog.h"
 #include "CodecFactory.h"
 #include "ConnFactory.h"
 #include "ConnCreateFactory.h"
@@ -12,23 +12,23 @@
 using namespace Upp;
 
 namespace {
-class __class_to_create_conn_ssh {
+class __class_to_create_conn_tcp {
 public:
-    __class_to_create_conn_ssh()
+    __class_to_create_conn_tcp()
     {
-        ConnCreateFactory::Inst()->RegisterInstanceFunc("SSH", "SSH Shell", comxd::new_ssh(), [=]() {
-            SSHDevsDialog d;
+        ConnCreateFactory::Inst()->RegisterInstanceFunc("TcpClient", "TCP Client", comxd::tcp_client(), [=]() {
+            TcpClientDialog d;
             return d.RequestConn();
         });
     }
 };
-__class_to_create_conn_ssh __ssh_conn_create;
+__class_to_create_conn_tcp __tcp_conn_create;
 }
 // load history
-std::deque<SSHDevsDialog::SSHDevInfo> SSHDevsDialog::GetRecentSSHDevInfos(int count) const
+std::deque<TcpClientDialog::TcpClientInfo> TcpClientDialog::GetRecentTcpClientInfos(int count) const
 {
-    std::deque<SSHDevInfo> out;
-    auto conf = Upp::GetHomeDirectory() + "/.comxd/recent_ssh_devs.json";
+    std::deque<TcpClientInfo> out;
+    auto conf = Upp::GetHomeDirectory() + "/.comxd/recent_tcp_clients.json";
     Upp::Value root = Upp::ParseJSON(Upp::LoadFile(conf));
     if (!root.IsNull()) {
         if (root.GetType() == Upp::VALUEARRAY_V) {
@@ -40,13 +40,13 @@ std::deque<SSHDevsDialog::SSHDevInfo> SSHDevsDialog::GetRecentSSHDevInfos(int co
                 if (!root[i]["Port"].IsNull()) {
                     port = (int)root[i]["Port"];
                 }
-                out.push_back({~root[i]["Host"], ~root[i]["User"], ~root[i]["Type"], ~root[i]["Code"], port});
+                out.push_back({~root[i]["Host"], port});
             }
         }
     }
     return out;
 }
-const SSHDevsDialog::SSHDevInfo* SSHDevsDialog::Find(const std::deque<SSHDevsDialog::SSHDevInfo>& infos, const String& host) const
+const TcpClientDialog::TcpClientInfo* TcpClientDialog::Find(const std::deque<TcpClientDialog::TcpClientInfo>& infos, const String& host) const
 {
     for (size_t k = 0; k < infos.size(); ++k) {
         if (infos[k].Host == host)
@@ -55,24 +55,23 @@ const SSHDevsDialog::SSHDevInfo* SSHDevsDialog::Find(const std::deque<SSHDevsDia
     return nullptr;
 }
 
-const SSHDevsDialog::SSHDevInfo* SSHDevsDialog::FindRecent(const String& host) const
+const TcpClientDialog::TcpClientInfo* TcpClientDialog::FindRecent(const String& host) const
 {
     return Find(mRecents, host);
 }
 
-void SSHDevsDialog::SaveRecentSSHDevInfos() const
+void TcpClientDialog::SaveRecentTcpClientInfos() const
 {
     JsonArray out;
-    const std::deque<SSHDevsDialog::SSHDevInfo>& infos = mRecents;
+    const std::deque<TcpClientDialog::TcpClientInfo>& infos = mRecents;
     for (size_t k = 0; k < infos.size(); ++k) {
-        out << Json("Host", infos[k].Host)("User", infos[k].User)("Type", infos[k].Type)
-            ("Code", infos[k].Code)("Port", infos[k].Port);
+        out << Json("Host", infos[k].Host)("Port", infos[k].Port);
     }
-    auto conf = Upp::GetHomeDirectory() + "/.comxd/recent_ssh_devs.json";
+    auto conf = Upp::GetHomeDirectory() + "/.comxd/recent_tcp_clients.json";
     Upp::SaveFile(conf, out.ToString());
 }
 
-void SSHDevsDialog::AddRecentSSHDevInfo(const String& host, const String& user, const String& type, const String& code, int port)
+void TcpClientDialog::AddRecentTcpClientInfo(const String& host, int port)
 {
     for (auto it = mRecents.begin(); it != mRecents.end(); ) {
         if (it->Host == host) {
@@ -83,16 +82,15 @@ void SSHDevsDialog::AddRecentSSHDevInfo(const String& host, const String& user, 
     if (mRecents.size() >= CONFIG_MAX_RECENT_RECS_NUMBER) {
         mRecents.pop_front();
     }
-    mRecents.emplace_back(SSHDevInfo{host, user, type, code, port});
+    mRecents.emplace_back(TcpClientInfo{host, port});
 }
 
-SSHDevsDialog::SSHDevsDialog()
+TcpClientDialog::TcpClientDialog()
     : mConn(nullptr)
 {
-    Icon(comxd::new_ssh()).Title("SSH");
+    Icon(comxd::tcp_client()).Title("TCP Client");
     //
     mPort.SetData(22);
-    mPassword.Password();
     // types
     auto conn_names = ConnFactory::Inst()->GetSupportedConnNames();
     for (size_t k = 0; k < conn_names.size(); ++k) {
@@ -109,24 +107,18 @@ SSHDevsDialog::SSHDevsDialog()
             mCodecs.SetIndex((int)k);
         }
     }
-    mRecents = GetRecentSSHDevInfos(CONFIG_MAX_RECENT_RECS_NUMBER);
+    mRecents = GetRecentTcpClientInfos(CONFIG_MAX_RECENT_RECS_NUMBER);
     for (size_t i = 0; i < mRecents.size(); ++i) {
         mHost.AddList(mRecents[i].Host);
     }
     if (!mRecents.empty()) { // set last one
         mHost.SetData(mRecents.rbegin()->Host);
-        mUser.SetData(mRecents.rbegin()->User);
-        mTypes.SetData(mRecents.rbegin()->Type);
-        mCodecs.SetData(mRecents.rbegin()->Code);
         mPort.SetData(mRecents.rbegin()->Port);
     }
     mHost.WhenSelect = [=]() {
         auto item = this->FindRecent(~mHost);
         if (item) {
             mHost.SetData(item->Host);
-            mUser.SetData(item->User);
-            mTypes.SetData(item->Type);
-            mCodecs.SetData(item->Code);
             mPort.SetData(item->Port);
         }
     };
@@ -138,7 +130,7 @@ SSHDevsDialog::SSHDevsDialog()
     mBtnOk.WhenAction = [=]() { CreateConn(); };
 }
 
-bool SSHDevsDialog::Key(Upp::dword key, int count)
+bool TcpClientDialog::Key(Upp::dword key, int count)
 {
     dword flags = K_CTRL | K_ALT | K_SHIFT;
     dword d_key = key & ~(flags | K_KEYUP); // key with delta
@@ -155,7 +147,7 @@ bool SSHDevsDialog::Key(Upp::dword key, int count)
     return TopWindow::Key(key, count);
 }
 
-bool SSHDevsDialog::Reconnect(SSHPort* sc)
+bool TcpClientDialog::Reconnect(TcpClient* sc)
 {
 	WhenAction = [=]() { AcceptBreak(IDOK); };
 	mCodecs.Clear(); mCodecs.Disable();
@@ -164,73 +156,56 @@ bool SSHDevsDialog::Reconnect(SSHPort* sc)
 	mTypesLabel.Hide();
 	mHost.Disable();
 	mHost.SetData(sc->Host());
-	mUser.SetData(sc->User());
-	// find the type
-	auto codec_names = CodecFactory::Inst()->GetSupportedCodecNames();
-    for (size_t k = 0; k < codec_names.size(); ++k) {
-        auto type = ConnFactory::Inst()->GetConnType(codec_names[k]);
-        if (type == sc->Term()) {
-            mTypes.SetData(codec_names[k]);
-            break;
-        }
-    }
 	mPort.SetData(sc->Port());
 	int ret = Run(true);
     if (ret == IDOK) {
-	    auto session = sc->Session();
-	    session->WhenWait = [=]() {
-	        if (IsMainThread())
-	            ProcessEvents();
-	    };
+	    TcpSocket* tcp = sc->Tcp();
 	    auto title = GetTitle();
 	    Title(t_("Connecting...")).Disable();
-	    if (session->Timeout(5000).Connect(~mHost, ~mPort, ~mUser, ~mPassword)) {
+	    Upp::String host = ~mHost;
+	    if (tcp->Timeout(5000).Connect(host, ~mPort)) {
 	        return true;
 	    } else {
-	        PromptOK(Upp::DeQtf(session->GetErrorDesc()));
+	        PromptOK(Upp::DeQtf(tcp->GetErrorDesc()));
 	    }
 	    Title(title).Enable();
     }
     return false;
 }
 
-void SSHDevsDialog::CreateConn()
+void TcpClientDialog::CreateConn()
 {
-    std::shared_ptr<SshSession> session = std::make_shared<SshSession>();
-    session->WhenWait = [=]() {
-        if (IsMainThread())
-            ProcessEvents();
-    };
+    std::shared_ptr<TcpSocket> tcp = std::make_shared<TcpSocket>();
     auto title = GetTitle();
     Title(t_("Connecting...")).Disable();
-    if (session->Timeout(5000).Connect(~mHost, ~mPort, ~mUser, ~mPassword)) {
+    Upp::String host = ~mHost;
+    if (tcp->Timeout(5000).Connect(host, ~mPort)) {
         try {
-            auto port = std::make_shared<SSHPort>(session, ~mHost, ~mPort, ~mUser,
-                ConnFactory::Inst()->GetConnType(~mTypes));
+            if (!tcp->WaitConnect()) {
+                throw String(t_("Can't establish the connection"));
+            }
+            auto port = std::make_shared<TcpClient>(tcp, ~mHost, ~mPort);
             auto conn = ConnFactory::Inst()->CreateInst(~mTypes, port);
             port->Start();
-            conn->WhenSizeChanged = [=](const Size& csz) {
-                port->SetConsoleSize(csz);
-            };
             conn->SetCodec(mCodecs.GetData().ToString());
             conn->Start();
             //
             mConn = conn;
             // add to recent list
-            this->AddRecentSSHDevInfo(~mHost, ~mUser, ~mTypes, ~mCodecs, ~mPort);
-            this->SaveRecentSSHDevInfos();
+            this->AddRecentTcpClientInfo(~mHost, ~mPort);
+            this->SaveRecentTcpClientInfos();
             //
             this->AcceptBreak(IDOK);
         } catch (const String& desc) {
             PromptOK(Upp::DeQtf(desc));
         }
     } else {
-        PromptOK(Upp::DeQtf(session->GetErrorDesc()));
+        PromptOK(Upp::DeQtf(tcp->GetErrorDesc()));
     }
     Title(title).Enable();
 }
 
-SerialConn* SSHDevsDialog::RequestConn()
+SerialConn* TcpClientDialog::RequestConn()
 {
     if (Run(true) == IDOK) {
         return mConn;

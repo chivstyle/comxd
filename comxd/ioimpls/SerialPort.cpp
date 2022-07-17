@@ -12,9 +12,10 @@ SerialPort::SerialPort(std::shared_ptr<serial::Serial> serial)
 
 bool SerialPort::Start()
 {
-	if (mSerial->isOpen()) return true;
-	SerialDevsDialog d;
-	d.Reconnect(this);
+	if (!mSerial->isOpen()) {
+		SerialDevsDialog d;
+		d.Reconnect(this);
+	}
 	return true;
 }
 

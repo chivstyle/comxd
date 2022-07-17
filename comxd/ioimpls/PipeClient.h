@@ -2,6 +2,8 @@
 // (c) 2022 chiv
 //
 */
+#pragma once
+
 #ifdef _WIN32
 
 #include "SerialIo.h"

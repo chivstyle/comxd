@@ -172,9 +172,9 @@ bool SerialDevsDialog::Reconnect(SerialPort* port)
     mFlowCtrl.SetData(serial->getFlowcontrol());
     // only change the settings of serial, type could not be modified on running time.
     mTypesLabel.Hide();
-    mTypes.Hide();
+    mTypes.Clear(); mTypes.Disable();
     mCodecsLabel.Hide();
-    mCodecs.Hide();
+    mCodecs.Clear(); mCodecs.Disable();
     //
     int ret = Run(true);
     if (ret == IDOK) {

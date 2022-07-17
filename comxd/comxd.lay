@@ -40,6 +40,19 @@ LAYOUT(SSHDevs, 344, 152)
 	ITEM(Upp::Button, mBtnCancel, SetLabel(t_("Cancel")).LeftPosZ(268, 68).VSizePosZ(124, 8))
 END_LAYOUT
 
+LAYOUT(TcpClient, 344, 104)
+	ITEM(Upp::Label, dv___0, SetLabel(t_("Host")).LeftPosZ(8, 40).VSizePosZ(12, 73))
+	ITEM(Upp::WithDropChoice<Upp::EditString>, mHost, LeftPosZ(68, 184).TopPosZ(12, 19))
+	ITEM(Upp::Label, dv___2, SetLabel(t_("Port")).LeftPosZ(260, 28).VSizePosZ(12, 73))
+	ITEM(Upp::EditInt, mPort, LeftPosZ(296, 40).VSizePosZ(12, 73))
+	ITEM(Upp::Label, mCodecsLabel, SetLabel(t_("Encoding")).HSizePosZ(8, 288).TopPosZ(44, 19))
+	ITEM(Upp::DropList, mCodecs, HSizePosZ(68, 92).TopPosZ(44, 19))
+	ITEM(Upp::Label, mTypesLabel, SetLabel(t_("Type")).LeftPosZ(8, 48).TopPosZ(72, 19))
+	ITEM(Upp::DropList, mTypes, LeftPosZ(68, 184).TopPosZ(72, 19))
+	ITEM(Upp::Button, mBtnOk, SetLabel(t_("Ok")).LeftPosZ(268, 68).VSizePosZ(44, 40))
+	ITEM(Upp::Button, mBtnCancel, SetLabel(t_("Cancel")).LeftPosZ(268, 68).VSizePosZ(72, 12))
+END_LAYOUT
+
 LAYOUT(PipeServer, 376, 176)
 	ITEM(Upp::Label, dv___0, SetLabel(t_("Name")).LeftPosZ(8, 40).TopPosZ(16, 19))
 	ITEM(Upp::Label, dv___1, SetLabel(t_("RxBufferSz")).LeftPosZ(8, 56).TopPosZ(48, 19))

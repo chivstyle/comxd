@@ -79,7 +79,6 @@ void NamedPipeClient::RxProc()
         std::lock_guard<std::mutex> _(mLock);
         mRxBuffer.insert(mRxBuffer.end(), buffer.begin(), buffer.begin() + cb);
     }
-    mRunning = false;
 }
 
 int NamedPipeClient::Available() const
@@ -156,8 +155,8 @@ bool NamedPipeClient::Start()
     mEventOut = CreateEvent(NULL, TRUE, TRUE, NULL);
     if (mEventIn == NULL || mEventOut == NULL)
         return false;
-    mRunning = true;
-    mRx = std::thread([=]() { RxProc(); });
+    
+    mRx = std::thread([=]() { mRunning = true; RxProc(); mRunning = false; });
     
     return true;
 }
