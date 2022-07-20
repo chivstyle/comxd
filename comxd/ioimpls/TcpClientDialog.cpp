@@ -146,10 +146,25 @@ bool TcpClientDialog::Key(Upp::dword key, int count)
     }
     return TopWindow::Key(key, count);
 }
+// Invoke this routine from main thread (GUI thread)
+static inline bool WaitTcpConnection(TcpSocket* s, int timeout)
+{
+	s->Timeout(16);
+	while (timeout > 0) {
+		auto t1 = std::chrono::steady_clock::now();
+		if (s->WaitConnect()) {
+		    break;
+		}
+		Ctrl::ProcessEvents();
+		auto t2 = std::chrono::steady_clock::now();
+		timeout -= (int)std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+	}
+	return timeout > 0;
+}
 
 bool TcpClientDialog::Reconnect(TcpClient* sc)
 {
-	WhenAction = [=]() { AcceptBreak(IDOK); };
+	mBtnOk.WhenAction = [=]() { AcceptBreak(IDOK); };
 	mCodecs.Clear(); mCodecs.Disable();
 	mCodecsLabel.Hide();
 	mTypes.Clear(); mTypes.Disable();
@@ -163,7 +178,11 @@ bool TcpClientDialog::Reconnect(TcpClient* sc)
 	    auto title = GetTitle();
 	    Title(t_("Connecting...")).Disable();
 	    Upp::String host = ~mHost;
-	    if (tcp->Timeout(5000).Connect(host, ~mPort)) {
+	    if (tcp->Timeout(2000).Connect(host, ~mPort)) {
+	        if (!WaitTcpConnection(tcp, 2000)) {
+                PromptOK(Upp::DeQtf(t_("Can't establish the connection")));
+                return false;
+            }
 	        return true;
 	    } else {
 	        PromptOK(Upp::DeQtf(tcp->GetErrorDesc()));
@@ -179,9 +198,9 @@ void TcpClientDialog::CreateConn()
     auto title = GetTitle();
     Title(t_("Connecting...")).Disable();
     Upp::String host = ~mHost;
-    if (tcp->Timeout(5000).Connect(host, ~mPort)) {
+    if (tcp->Timeout(2000).Connect(host, ~mPort)) {
         try {
-            if (!tcp->WaitConnect()) {
+            if (!WaitTcpConnection(tcp.get(), 2000)) {
                 throw String(t_("Can't establish the connection"));
             }
             auto port = std::make_shared<TcpClient>(tcp, ~mHost, ~mPort);

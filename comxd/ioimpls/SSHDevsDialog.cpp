@@ -157,7 +157,7 @@ bool SSHDevsDialog::Key(Upp::dword key, int count)
 
 bool SSHDevsDialog::Reconnect(SSHPort* sc)
 {
-	WhenAction = [=]() { AcceptBreak(IDOK); };
+	mBtnOk.WhenAction = [=]() { AcceptBreak(IDOK); };
 	mCodecs.Clear(); mCodecs.Disable();
 	mCodecsLabel.Hide();
 	mTypes.Clear(); mTypes.Disable();
