@@ -179,14 +179,16 @@ bool SerialDevsDialog::Reconnect(SerialPort* port)
     int ret = Run(true);
     if (ret == IDOK) {
         try {
+            serial->close();
             serial->setBaudrate(mBaudrate.GetData().To<int>());
             serial->setParity((serial::parity_t)mParity.GetData().To<int>());
             serial->setBytesize((serial::bytesize_t)mDataBits.GetData().To<int>());
             serial->setStopbits((serial::stopbits_t)mStopBits.GetData().To<int>());
             serial->setFlowcontrol((serial::flowcontrol_t)mFlowCtrl.GetData().To<int>());
+            serial->open();
             return true;
         } catch (const std::exception&) {
-            Upp::PromptOK(DeQtf(t_("Can't change settings!")));
+            Upp::PromptOK(DeQtf(t_("Can't reconnect to serial device!")));
         }
     }
     return false;
