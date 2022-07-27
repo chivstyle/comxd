@@ -12,7 +12,7 @@ class __class_to_create_conn_serial {
 public:
     __class_to_create_conn_serial()
     {
-        ConnCreateFactory::Inst()->RegisterInstanceFunc("Serial", "Serial Port", comxd::new_serial(), [=]() {
+        ConnCreateFactory::Inst()->RegisterInstanceFunc("Serial", "Serial Port", [=]() { return comxd::new_serial(); }, [=]() {
             SerialDevsDialog d;
             return d.RequestConn();
         });
@@ -171,9 +171,7 @@ bool SerialDevsDialog::Reconnect(SerialPort* port)
     // flow control
     mFlowCtrl.SetData(serial->getFlowcontrol());
     // only change the settings of serial, type could not be modified on running time.
-    mTypesLabel.Hide();
     mTypes.Clear(); mTypes.Disable();
-    mCodecsLabel.Hide();
     mCodecs.Clear(); mCodecs.Disable();
     //
     int ret = Run(true);

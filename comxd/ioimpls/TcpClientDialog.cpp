@@ -16,7 +16,7 @@ class __class_to_create_conn_tcp {
 public:
     __class_to_create_conn_tcp()
     {
-        ConnCreateFactory::Inst()->RegisterInstanceFunc("TcpClient", "TCP Client", comxd::tcp_client(), [=]() {
+        ConnCreateFactory::Inst()->RegisterInstanceFunc("TcpClient", "TCP Client", [=]() { return comxd::tcp_client(); }, [=]() {
             TcpClientDialog d;
             return d.RequestConn();
         });
@@ -166,9 +166,7 @@ bool TcpClientDialog::Reconnect(TcpClient* sc)
 {
 	mBtnOk.WhenAction = [=]() { AcceptBreak(IDOK); };
 	mCodecs.Clear(); mCodecs.Disable();
-	mCodecsLabel.Hide();
 	mTypes.Clear(); mTypes.Disable();
-	mTypesLabel.Hide();
 	mHost.Disable();
 	mHost.SetData(sc->Host());
 	mPort.SetData(sc->Port());

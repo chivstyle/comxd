@@ -354,7 +354,7 @@ static std::string TranslateEscapeChars(const std::string& text)
     return out;
 }
 
-static inline std::string ReplaceLineBreak_(const std::string& text, int lb)
+static inline std::string ReplaceLineBreak_(std::string& text, int lb)
 {
     std::string lb_ = "\r\n";
     switch (lb) {
@@ -368,14 +368,20 @@ static inline std::string ReplaceLineBreak_(const std::string& text, int lb)
         break; // CRLF
     }
     std::string out;
-    bool lb_u = false; // line break was not added
-    for (size_t k = 0; k < text.size(); ++k) {
-        if ((text[k] == '\r' || text[k] == '\n') && lb_u == false) {
+    size_t k = 0;
+    while (k < text.length()) {
+        if (k < text.length() - 1 && text[k] == '\r' && text[k+1] == '\n') { // windows
             out += lb_;
-            lb_u = true;
-        } else if (text[k] != '\r' && text[k] != '\n') {
-            lb_u = false;
+            k += 2;
+        } else if (text[k] == '\r') { // mac
+            out += lb_;
+            k += 1;
+        } else if (text[k] == '\n') { // unix
+            out += lb_;
+            k += 1;
+        } else {
             out.push_back(text[k]);
+            k += 1;
         }
     }
     return out;

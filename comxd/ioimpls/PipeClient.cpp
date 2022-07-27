@@ -15,25 +15,12 @@ NamedPipeClient::NamedPipeClient(const String& pipe_name)
     , mEventOut(NULL)
     , mPending(true)
     , mShouldStop(false)
-    , mRunning(false)
 {
 }
 
 NamedPipeClient::~NamedPipeClient()
 {
-    mShouldStop = true;
-    if (mRx.joinable()) {
-        mRx.join();
-    }
-    if (mEventIn) {
-        CloseHandle(mEventIn);
-    }
-    if (mEventOut) {
-        CloseHandle(mEventOut);
-    }
-    if (mPipe != INVALID_HANDLE_VALUE) {
-        CloseHandle(mPipe);
-    }
+    Stop();
 }
 
 std::string NamedPipeClient::DeviceName() const
@@ -46,6 +33,18 @@ void NamedPipeClient::Stop()
     mShouldStop = true;
     if (mRx.joinable()) {
         mRx.join();
+    }
+    if (mEventIn) {
+        CloseHandle(mEventIn);
+        mEventIn = NULL;
+    }
+    if (mEventOut) {
+        CloseHandle(mEventOut);
+        mEventOut = NULL;
+    }
+    if (mPipe != INVALID_HANDLE_VALUE) {
+        CloseHandle(mPipe);
+        mPipe = INVALID_HANDLE_VALUE;
     }
 }
 
@@ -71,7 +70,7 @@ void NamedPipeClient::RxProc()
                 // get the result
                 BOOL bok = GetOverlappedResult(mPipe, &overlapped, &cb, FALSE);
                 if (!bok) {
-                    // the big error will stop this thread
+                    // system fault, break the loop, exit the thread
                     break;
                 }
             }
@@ -84,7 +83,7 @@ void NamedPipeClient::RxProc()
 int NamedPipeClient::Available() const
 {
     std::lock_guard<std::mutex> _(mLock);
-    return mRunning && mRx.joinable() ? (int)mRxBuffer.size() : -1;
+    return mRx.joinable() ? (int)mRxBuffer.size() : -1;
 }
 
 size_t NamedPipeClient::Read(unsigned char* buf, size_t sz)
@@ -156,7 +155,8 @@ bool NamedPipeClient::Start()
     if (mEventIn == NULL || mEventOut == NULL)
         return false;
     
-    mRx = std::thread([=]() { mRunning = true; RxProc(); mRunning = false; });
+    mShouldStop = false;
+    mRx = std::thread([=]() { RxProc(); });
     
     return true;
 }

@@ -16,7 +16,7 @@ class __class_to_create_conn_pipeclient {
 public:
     __class_to_create_conn_pipeclient()
     {
-        ConnCreateFactory::Inst()->RegisterInstanceFunc("PipeC", "Pipe Client", comxd::new_pipe_c(), [=]() {
+        ConnCreateFactory::Inst()->RegisterInstanceFunc("PipeC", "Pipe Client", [=]() { return comxd::pipe_client(); }, [=]() {
             PipeClientDialog d;
             return d.RequestConn();
         });
@@ -28,7 +28,7 @@ __class_to_create_conn_pipeclient __pipeclient_conn_create;
 PipeClientDialog::PipeClientDialog()
     : mConn(nullptr)
 {
-    Icon(comxd::new_pipe_c()).Title("Pipe Client");
+    Icon(comxd::pipe_client()).Title("Pipe Client");
     // types
     auto conn_names = ConnFactory::Inst()->GetSupportedConnNames();
     for (size_t k = 0; k < conn_names.size(); ++k) {

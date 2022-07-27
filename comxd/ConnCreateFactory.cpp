@@ -18,7 +18,7 @@ SerialConn* ConnCreateFactory::CreateConn(const Upp::String& name)
     return it->second.Create();
 }
 //
-bool ConnCreateFactory::RegisterInstanceFunc(const Upp::String& name, const Upp::String& desc, const Upp::Image& icon,
+bool ConnCreateFactory::RegisterInstanceFunc(const Upp::String& name, const Upp::String& desc, FnCreateIcon icon,
     FnCreateConnFunc func)
 {
     auto it = mConns.find(name);

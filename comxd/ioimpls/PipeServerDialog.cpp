@@ -16,7 +16,7 @@ class __class_to_create_conn_pipeserver {
 public:
     __class_to_create_conn_pipeserver()
     {
-        ConnCreateFactory::Inst()->RegisterInstanceFunc("PipeS", "Pipe Server", comxd::new_pipe_s(), [=]() {
+        ConnCreateFactory::Inst()->RegisterInstanceFunc("PipeS", "Pipe Server", [=]() { return comxd::pipe_server(); }, [=]() {
             PipeServerDialog d;
             return d.RequestConn();
         });
@@ -28,7 +28,7 @@ __class_to_create_conn_pipeserver __pipeserver_conn_create;
 PipeServerDialog::PipeServerDialog()
     : mConn(nullptr)
 {
-    Icon(comxd::new_pipe_s()).Title("Pipe Server");
+    Icon(comxd::pipe_server()).Title("Pipe Server");
     // types
     auto conn_names = ConnFactory::Inst()->GetSupportedConnNames();
     for (size_t k = 0; k < conn_names.size(); ++k) {

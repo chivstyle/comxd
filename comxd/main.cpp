@@ -21,11 +21,11 @@ public:
         InitStatusbar();
         // welcome to comxd.
         mAbout.SetQTF(Upp::GetTopicLNG("comxd/comxd/welcome"));
+        //
+        mToolbar.Set(THISBACK(MainToolbar));
         // frame
         AddFrame(mToolbar);
         AddFrame(mStatusbar);
-        // Toolbar
-        mToolbar.Set(THISBACK(MainToolbar));
         // conn tabs.
         mDevsTab.WhenSet = THISBACK(OnDevsTabSet);
         mDevsTab.Add(mAbout);
@@ -123,7 +123,7 @@ protected:
     {
         auto& conns = ConnCreateFactory::Inst()->GetSupportedConnIntroductions();
         for (auto it = conns.begin(); it != conns.end(); ++it) {
-            bar.Add(it->second.Name, it->second.Icon, [=]() {
+            bar.Add(it->second.Name, it->second.Icon(), [=]() {
                 // If we run codes here diretly, the program will crash, so we
                 // put these codes to PostCallback
                 PostCallback([=]() {
@@ -135,7 +135,7 @@ protected:
                         auto btn_close = new TabCloseBtn(conn, &mDevsTab, &mAbout);
                         btn_close->SetImage(comxd::close_little());
                         btn_close->SetRect(0, 0, 16, 16);
-                        mDevsTab.Add(conn->SizePos(), conn->ConnName()).SetCtrl(btn_close);
+                        mDevsTab.Add(conn->SizePos(), it->second.Icon(), conn->ConnName()).SetCtrl(btn_close);
 #if 0
                         conn->WhenTitle = [=](String title) {
                             auto item = FindConnItem(conn);

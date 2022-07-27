@@ -14,7 +14,6 @@ TcpClient::TcpClient(std::shared_ptr<Upp::TcpSocket> tcp, const Upp::String& hos
     , mHost(host)
     , mPort(port)
     , mShouldStop(false)
-    , mRunning(false)
 {
 }
 
@@ -25,7 +24,7 @@ TcpClient::~TcpClient()
 
 std::string TcpClient::DeviceName() const
 {
-    return mTcp->GetPeerAddr().ToStd();
+    return mHost.ToStd();
 }
 
 void TcpClient::Stop()
@@ -59,7 +58,7 @@ void TcpClient::RxProc()
 int TcpClient::Available() const
 {
     std::lock_guard<std::mutex> _(mLock);
-    return mRunning && mRx.joinable() ? (int)mRxBuffer.size() : -1;
+    return mRx.joinable() ? (int)mRxBuffer.size() : -1;
 }
 
 size_t TcpClient::Read(unsigned char* buf, size_t sz)
@@ -91,7 +90,7 @@ bool TcpClient::Start()
 	}
 	mTcp->Timeout(0); // NON BLOCK
 	mShouldStop = false;
-    mRx = std::thread([=]() { mRunning = true; RxProc(); mRunning = false; });
+    mRx = std::thread([=]() { RxProc(); });
 	
     return true;
 }

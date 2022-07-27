@@ -16,7 +16,7 @@ class __class_to_create_conn_ssh {
 public:
     __class_to_create_conn_ssh()
     {
-        ConnCreateFactory::Inst()->RegisterInstanceFunc("SSH", "SSH Shell", comxd::new_ssh(), [=]() {
+        ConnCreateFactory::Inst()->RegisterInstanceFunc("SSH", "SSH Shell", [=]() { return comxd::new_ssh(); }, [=]() {
             SSHDevsDialog d;
             return d.RequestConn();
         });
@@ -159,9 +159,7 @@ bool SSHDevsDialog::Reconnect(SSHPort* sc)
 {
 	mBtnOk.WhenAction = [=]() { AcceptBreak(IDOK); };
 	mCodecs.Clear(); mCodecs.Disable();
-	mCodecsLabel.Hide();
 	mTypes.Clear(); mTypes.Disable();
-	mTypesLabel.Hide();
 	mHost.Disable();
 	mHost.SetData(sc->Host());
 	mUser.SetData(sc->User());

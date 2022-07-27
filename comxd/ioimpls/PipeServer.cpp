@@ -19,7 +19,6 @@ NamedPipeServer::NamedPipeServer(const String& pipe_name, int in_buffer_sz, int 
     , mEventOut(NULL)
     , mPending(true)
     , mShouldStop(false)
-    , mRunning(false)
     , mInBufferSize(in_buffer_sz)
     , mOutBufferSize(out_buffer_sz)
 {
@@ -27,22 +26,7 @@ NamedPipeServer::NamedPipeServer(const String& pipe_name, int in_buffer_sz, int 
 
 NamedPipeServer::~NamedPipeServer()
 {
-    mShouldStop = true;
-    if (mRx.joinable()) {
-        mRx.join();
-    }
-    if (mEventConnected) {
-        CloseHandle(mEventConnected);
-    }
-    if (mEventIn) {
-        CloseHandle(mEventIn);
-    }
-    if (mEventOut) {
-        CloseHandle(mEventOut);
-    }
-    if (mPipe != INVALID_HANDLE_VALUE) {
-        CloseHandle(mPipe);
-    }
+    Stop();
 }
 
 std::string NamedPipeServer::DeviceName() const
@@ -55,6 +39,22 @@ void NamedPipeServer::Stop()
     mShouldStop = true;
     if (mRx.joinable()) {
         mRx.join();
+    }
+    if (mEventConnected) {
+        CloseHandle(mEventConnected);
+        mEventConnected = NULL;
+    }
+    if (mEventIn) {
+        CloseHandle(mEventIn);
+        mEventIn = NULL;
+    }
+    if (mEventOut) {
+        CloseHandle(mEventOut);
+        mEventOut = NULL;
+    }
+    if (mPipe != INVALID_HANDLE_VALUE) {
+        CloseHandle(mPipe);
+        mPipe = INVALID_HANDLE_VALUE;
     }
 }
 
@@ -98,13 +98,12 @@ void NamedPipeServer::RxProc()
             }
         }
     }
-    mRunning = false;
 }
 
 int NamedPipeServer::Available() const
 {
     std::lock_guard<std::mutex> _(mLock);
-    return mRunning && mRx.joinable() ? (int)mRxBuffer.size() : -1;
+    return mRx.joinable() ? (int)mRxBuffer.size() : -1;
 }
 
 size_t NamedPipeServer::Read(unsigned char* buf, size_t sz)
@@ -198,7 +197,8 @@ bool NamedPipeServer::Start()
         return false;
     // create a connection
     Connect();
-    mRunning = true;
+    //
+    mShouldStop = false;
     mRx = std::thread([=]() { RxProc(); });
     
     return true;
