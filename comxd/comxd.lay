@@ -72,3 +72,8 @@ LAYOUT(PipeServer, 376, 176)
 	ITEM(Upp::Button, mButtonCancel, SetLabel(t_("Cancel")).LeftPosZ(308, 56).TopPosZ(80, 20))
 END_LAYOUT
 
+LAYOUT(InputText, 324, 36)
+	ITEM(Upp::EditString, dv___0, HSizePosZ(12, 76).TopPosZ(8, 19))
+	ITEM(Upp::Button, dv___1, RightPosZ(12, 56).TopPosZ(8, 20))
+END_LAYOUT
+

@@ -34,6 +34,9 @@ public:
     Upp::String User() const { return mUser; }
     int Port() const { return mPort; }
     //
+    void Upload();
+    void Download();
+    //
 private:
     SshShell* mShell;
     std::shared_ptr<Upp::SshSession> mSession;

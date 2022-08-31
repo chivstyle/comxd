@@ -16,6 +16,15 @@ SSHPort::SSHPort(std::shared_ptr<Upp::SshSession> session, Upp::String host, int
     , mShouldExit(false)
 {
 	mShell = CreateShell();
+	//
+	WhenUsrBar = [=](Bar& bar) {
+		bar.Add("Upload", comxd::upload(), [=]() {
+			Upload();
+		});
+		bar.Add("Download", comxd::download(), [=]() {
+			Download();
+		});
+	};
 }
 
 SSHPort::~SSHPort()

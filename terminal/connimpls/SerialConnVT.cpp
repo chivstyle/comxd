@@ -106,6 +106,7 @@ bool SerialConnVT::Start()
 {
     mRxShouldStop = false;
     mRxThr = std::thread([=]() { RxProc(); });
+    PostCallback([=] { Layout(); });
     //
     return true;
 }

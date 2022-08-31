@@ -25,6 +25,8 @@ file
 	ProtoFactory.cpp,
 	ProtoFactory.h,
 	proto\TransmitProgressDialog.cpp,
+	proto\export.cpp,
+	proto\export.h,
 	proto\TransmitProgressDialog.h,
 	proto/ss.h,
 	proto/ss.cpp,

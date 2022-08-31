@@ -125,7 +125,7 @@ TcpClientDialog::TcpClientDialog()
     //
     CtrlLayout(*this);
     //
-    Rejector(mBtnCancel, IDCANCEL);
+    Rejector(mBtnCancel, IDOK);
     //
     mBtnOk.WhenAction = [=]() { CreateConn(); };
 }
