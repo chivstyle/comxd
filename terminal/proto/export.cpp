@@ -9,6 +9,7 @@
 ProgressDialog::ProgressDialog()
 	: mImpl(new TransmitProgressDialog)
 {
+	mImpl->WhenClose = [=]() { WhenClose(); };
 }
 ProgressDialog::~ProgressDialog()
 {

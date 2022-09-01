@@ -46,33 +46,44 @@ void SSHPort::Upload()
         int ret = d.Run(true);
         if (ret == IDOK) {
             double t_rate = 0;
-            int64 t_count = 0;
+            int64 t_count = 0, t_total = 0;
             String remote = ~es;
-            // create ftp to upload
+            //
             FileIn fin(filename);
+            Scp scp = mSession->CreateScp();
+            // try to fix, why don't we transmit file by ftp ? It's slower than scp heavily.
             SFtp ftp = mSession->CreateSFtp();
-            // check
             SFtp::DirEntry info = ftp.GetInfo(remote);
             if (info.IsDirectory()) {
                 remote += "/" + GetBasename(filename);
             }
+            static volatile bool should_stop = false;
             //
+            std::mutex lock;
             ProgressDialog bar;
-            bar.SetTotal(fin.GetSize());
+            bar.WhenClose = [&]() { should_stop = true; };
             auto t1 = std::chrono::high_resolution_clock::now();
-            ftp.WhenProgress = [&](int64 sz, int64 total) {
+            scp.WhenProgress = [&](int64 count, int64 total) {
                 double ts = std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - t1).count();
-                t_rate = total / ts;
-                t_count = sz;
-                PostCallback([&]() { bar.Update(t_count, t_rate); });
-                return true;
+                std::lock_guard<std::mutex> _(lock);
+                t_rate = count / ts;
+                t_count = count;
+                t_total = total;
+                PostCallback([&]() { std::lock_guard<std::mutex> _(lock); bar.SetTotal(t_total); bar.Update(t_count, t_rate); });
+                return count >= total || should_stop;
             };
+            bool success = false;
             std::thread job([&]() {
-                ftp.SaveFile(remote, fin);
+                success = scp.SaveFile(remote, fin);
                 PostCallback([&]() { bar.Close(); });
             });
             bar.Run(true);
             job.join();
+            if (!should_stop) {
+	            PostCallback([=]() {
+	                PromptOK(success ? Upp::DeQtf(t_("Transmition was failed!")) : Upp::DeQtf(t_("Transmition was completed!")));
+	            });
+            }
         }
     }
 }
@@ -100,33 +111,43 @@ void SSHPort::Download()
             double r_rate = 0;
             int64  r_total = 0, r_count = 0;
             String remote = ~es;
-            // create ftp to upload
+            //
+            Scp scp = mSession->CreateScp();
+            // try to fix
             SFtp ftp = mSession->CreateSFtp();
-            // check
             SFtp::DirEntry info = ftp.GetInfo(remote);
-            if (info.IsFile()) {
-                filename += "/" + GetBasename(remote);
-            } else {
-                PromptOK(Upp::DeQtf(t_("Remote file does not exist or invalid")));
+            if (!info.IsFile()) {
+                PromptOK(Upp::DeQtf("The remote file is not a normal file!"));
                 return;
             }
+            // check
+            static volatile bool should_stop = false;
             FileOut fout(filename);
             ProgressDialog bar;
+            bar.WhenClose = [&]() { should_stop = true; };
+            std::mutex lock;
             auto t1 = std::chrono::high_resolution_clock::now();
-            ftp.WhenProgress = [&](int64 sz, int64 total) {
+            scp.WhenProgress = [&](int64 count, int64 total) {
                 double ts = std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - t1).count();
-                r_rate = total / ts;
+                std::lock_guard<std::mutex> _(lock);
+                r_rate = count / ts;
                 r_total = total;
-                r_count = sz;
-                PostCallback([&]() { bar.SetTotal(r_total); bar.Update(r_count, r_rate); });
-                return true;
+                r_count = count;
+                PostCallback([&]() { std::lock_guard<std::mutex> _(lock); bar.SetTotal(r_total); bar.Update(r_count, r_rate); });
+                return count >= total || should_stop;
             };
+            bool success = false;
             std::thread job([&]() {
-                ftp.LoadFile(fout, remote);
+                success = scp.LoadFile(fout, remote);
                 PostCallback([&]() { bar.Close(); });
             });
             bar.Run(true);
             job.join();
+            if (!should_stop) {
+	            PostCallback([=]() {
+	                PromptOK(success ? Upp::DeQtf(t_("Transmition was failed!")) : Upp::DeQtf(t_("Transmition was completed!")));
+	            });
+            }
         }
     }
 }

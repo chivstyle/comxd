@@ -36,13 +36,13 @@ Upp::SshShell* SSHPort::CreateShell()
 {
 	auto shell = new SshShell(*mSession.get());
     shell->Timeout(Null);
-    shell->SetReadWindowSize(2048);
+    shell->SetReadWindowSize(8192);
     shell->WhenOutput = [=](const void* out, int out_len) {
         if (out_len > 0 && mShouldExit == false) {
             std::unique_lock<std::mutex> _(mLock);
             mCondWrite.wait(_, [=]() {
-                // limit stream to 2048
-                return mRxBuffer.size() < 2048 || mShouldExit;
+                // limit stream to 8192
+                return mRxBuffer.size() < 8192 || mShouldExit;
             });
             if (!mShouldExit) {
                 mRxBuffer.insert(mRxBuffer.end(), (unsigned char*)out, (unsigned char*)out + out_len);

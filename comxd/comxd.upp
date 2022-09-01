@@ -20,7 +20,7 @@ file
 	ioimpls/TcpClient.cpp,
 	ioimpls/TcpClient.h,
 	ioimpls/SerialPort.cpp,
-	ioimpls\SSHSFtp.cpp,
+	ioimpls\SSHTransmit.cpp,
 	ioimpls/SerialPort.h,
 	ioimpls/SSHPort.h,
 	ioimpls/SSHPort.cpp,

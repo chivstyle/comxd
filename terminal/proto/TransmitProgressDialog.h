@@ -14,6 +14,7 @@ public:
     // count - [0, total]
     // tx_rate - in KiB
     void Update(Upp::int64 count, double tx_rate);
+    //
 private:
     Upp::int64 mTotal;
 };
