@@ -6,6 +6,7 @@
 #include <mutex>
 #include <thread>
 #include <vector>
+#include <atomic>
 
 class Proto;
 
@@ -42,8 +43,8 @@ protected:
     void Update();
     //
 private:
-    size_t mNumBytesTx;
-    size_t mNumBytesRx;
+    std::atomic<size_t> mNumBytesTx;
+    std::atomic<size_t> mNumBytesRx;
     Upp::LineEdit mRx;
     Upp::LineEdit mTx;
     Proto* mTxProto;

@@ -38,7 +38,7 @@ SerialConnRaw::SerialConnRaw(std::shared_ptr<SerialIo> io)
     //
     this->mIo = io; //!< Important, let this as the first sentence.
     //
-    this->SetConnDescription("A common serial tool by chiv, v1.1a");
+    this->SetConnDescription("A common serial tool by chiv, v1.2a");
     //
     this->mRx.SetFrame(FieldFrame());
     this->mTx.SetFrame(FieldFrame());
@@ -497,6 +497,7 @@ void SerialConnRaw::Update()
         //
         mRxBytes.SetText(std::to_string(mNumBytesRx).c_str());
     }
+    mTxBytes.SetText(std::to_string(mNumBytesTx).c_str());
 }
 
 void SerialConnRaw::RxProc()
@@ -512,6 +513,10 @@ void SerialConnRaw::RxProc()
         } else {
             size_t max_buffer_sz = mRxBufferSz;
             std::vector<unsigned char> buf = GetIo()->ReadRaw(sz);
+            if (mLoopback.Get()) {
+                // don't worry, lib serial is thread-safe
+                mNumBytesTx += GetIo()->Write(buf);
+            }
             mRxBufferLock.lock();
             {
                 mRxBuffer.insert(mRxBuffer.end(), buf.begin(), buf.end());

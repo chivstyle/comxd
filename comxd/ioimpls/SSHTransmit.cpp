@@ -117,7 +117,7 @@ void SSHPort::Download()
             SFtp ftp = mSession->CreateSFtp();
             SFtp::DirEntry info = ftp.GetInfo(remote);
             if (!info.IsFile()) {
-                PromptOK(Upp::DeQtf("The remote file is not a normal file!"));
+                PromptOK(Upp::DeQtf(t_("The remote file is not a normal file!")));
                 return;
             }
             // check
