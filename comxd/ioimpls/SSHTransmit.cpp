@@ -72,6 +72,7 @@ void SSHPort::Upload()
                 PostCallback([&]() { std::lock_guard<std::mutex> _(lock); bar.SetTotal(t_total); bar.Update(t_count, t_rate); });
                 return count >= total || should_stop;
             };
+            scp.WhenWait = [=]() { PostCallback([=]() { Ctrl::ProcessEvents(); }); };
             bool success = false;
             std::thread job([&]() {
                 success = scp.SaveFile(remote, fin);
@@ -136,6 +137,7 @@ void SSHPort::Download()
                 PostCallback([&]() { std::lock_guard<std::mutex> _(lock); bar.SetTotal(r_total); bar.Update(r_count, r_rate); });
                 return count >= total || should_stop;
             };
+            scp.WhenWait = [=]() { PostCallback([=]() { Ctrl::ProcessEvents(); }); };
             bool success = false;
             std::thread job([&]() {
                 success = scp.LoadFile(fout, remote);

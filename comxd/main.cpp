@@ -2,6 +2,7 @@
 // (C) 2020 chiv
 //
 #include "resource.h"
+#include "CodecTool.h"
 #include "ConnCreateFactory.h"
 
 // main window
@@ -155,6 +156,9 @@ protected:
         bar.ToolSeparator();
         //
         OndemandToolbar(bar);
+        //
+        bar.Separator();
+        bar.Add(t_("Codec Tool"), comxd::codec_tool(), [=]() { CodecTool d; d.Run(true); });
         //
         bar.ToolGapRight();
         bar.Add(t_("About"), comxd::about(), [=]() { PromptOK(Upp::GetTopicLNG("comxd/comxd/about")); });

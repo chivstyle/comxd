@@ -77,3 +77,13 @@ LAYOUT(InputText, 324, 36)
 	ITEM(Upp::Button, dv___1, RightPosZ(12, 56).TopPosZ(8, 20))
 END_LAYOUT
 
+LAYOUT(CodecTool, 476, 308)
+	ITEM(Upp::DocEdit, mInput, HSizePosZ(8, 8).TopPosZ(8, 88))
+	ITEM(Upp::DocEdit, mOutput, HSizePosZ(8, 8).VSizePosZ(148, 8))
+	ITEM(Upp::Button, mGenerate, SetLabel(t_("Generate")).LeftPosZ(240, 64).TopPosZ(104, 40))
+	ITEM(Upp::DropList, mOutputFmt, LeftPosZ(12, 104).TopPosZ(124, 19))
+	ITEM(Upp::Label, dv___4, SetLabel(t_("Output Format")).HSizePosZ(12, 388).TopPosZ(104, 19))
+	ITEM(Upp::DropList, mOutputEncoding, LeftPosZ(124, 108).TopPosZ(124, 19))
+	ITEM(Upp::Label, dv___6, SetLabel(t_("Output Encoding")).LeftPosZ(124, 84).TopPosZ(104, 19))
+END_LAYOUT
+
