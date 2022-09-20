@@ -121,6 +121,7 @@ void SSHPort::Download()
                 PromptOK(Upp::DeQtf(t_("The remote file is not a normal file!")));
                 return;
             }
+            filename += "/" + Upp::GetFileName(remote);
             // check
             static volatile bool should_stop = false;
             FileOut fout(filename);
