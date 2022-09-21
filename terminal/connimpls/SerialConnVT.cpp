@@ -17,6 +17,7 @@
 #define ENABLE_FIXED_LINE_HEIGHT 1
 #define ENABLE_BLANK_LINES_HINT_IN_SELECTION 1
 #define ENABLE_VT_LINE_TRUNCATION 0
+#define ENABLE_THREAD_GUI 1
 // register
 using namespace Upp;
 //----------------------------------------------------------------------------------------------
@@ -528,7 +529,7 @@ void SerialConnVT::RxProc()
         RefineTheInput(raw);
         //
         mEnableCaret = false;
-        size_t rawp = 0; const size_t kSeqsPoolSz = 100;
+        size_t rawp = 0, kMaxSeq = 100;
         while (rawp < raw.length() && !mRxShouldStop) {
             if (IsControlSeqPrefix((uint8_t)raw[rawp])) { // is prefix of some control sequence
                 if (!texts.empty()) {
@@ -565,8 +566,16 @@ void SerialConnVT::RxProc()
                 texts.push_back(raw[rawp]);
                 rawp++;
             }
-            if (seqs.size() >= kSeqsPoolSz) {
+            auto t2 = std::chrono::high_resolution_clock::now();
+            if (seqs.size() > kMaxSeq) {
                 RenderSeqs(seqs); seqs.clear();
+#if ENABLE_THREAD_GUI
+                Upp::EnterGuiMutex();
+	            this->UpdatePresentation();
+	            Upp::LeaveGuiMutex();
+#else
+                PostCallback([=]() { this->UpdatePresentation(); });
+#endif
             }
         }
         if (!texts.empty()) {
@@ -581,9 +590,15 @@ void SerialConnVT::RxProc()
         raw = raw.substr(rawp);
         if (!seqs.empty()) {
             RenderSeqs(seqs); seqs.clear();
+#if ENABLE_THREAD_GUI
+                Upp::EnterGuiMutex();
+	            this->UpdatePresentation();
+	            Upp::LeaveGuiMutex();
+#else
+                PostCallback([=]() { this->UpdatePresentation(); });
+#endif
         }
         mEnableCaret = true;
-        PostCallback([=]() { this->UpdatePresentation(); });
     }
 }
 // This routine guarantee that the width of any char is integral multiple

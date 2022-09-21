@@ -169,9 +169,7 @@ int ControlSeqFactory::IsControlSeq(const char* input, size_t input_sz, size_t& 
         case ControlSeq::No:
             ret = (int)p_begin;
             break;
-        default:
-            abort();
-            break;
+        default:continue;
         }
         if (ret < 0)
             continue; // It's not a valid parameter, continue to try
