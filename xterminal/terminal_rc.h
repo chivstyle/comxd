@@ -7,14 +7,14 @@
 #include <CtrlLib/CtrlLib.h>
 using namespace Upp;
 
-#define LAYOUTFILE <terminal/terminal.lay>
+#define LAYOUTFILE <terminal.lay>
 #include <CtrlCore/lay.h>
 
-#define TFILE <terminal/terminal.t>
+#define TFILE <terminal.t>
 #include <Core/t.h>
 
 #define IMAGECLASS terminal
-#define IMAGEFILE <terminal/terminal.iml>
+#define IMAGEFILE <terminal.iml>
 #include <Draw/iml_header.h>
 
 #ifndef ARRAYSIZE

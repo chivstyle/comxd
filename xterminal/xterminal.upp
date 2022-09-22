@@ -41,6 +41,8 @@ file
 	proto/ProtoSs.cpp,
 	proto/ProtoSs.h,
 	CodecFactory.h,
+	connimpls\SerialConnVersatileTerm.cpp,
+	connimpls\SerialConnVersatileTerm.h,
 	CodecFactory.cpp,
 	Codec.h,
 	codec/CodecLatin1.cpp,

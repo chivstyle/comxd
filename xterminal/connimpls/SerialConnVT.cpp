@@ -44,7 +44,6 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
     , mVtSize(Size(0, 0))
     , mVwSize(Size(0, 0))
 {
-    WantFocus(true);
     // double buffer
     BackPaint();
     // default font
@@ -1968,7 +1967,7 @@ Rect SerialConnVT::GetCaret() const
 	    int py = mPy + (mSbV.GetTotal() - mSbV.Get() - mSbV.GetPage());
 	    return Rect(px, py, px+2, py+mFontH);
 	}
-	return Rect(-1,-1,0,0); // return a invisible position
+	return Null; // return a invisible position
 }
 
 void SerialConnVT::Paint(Draw& draw)
