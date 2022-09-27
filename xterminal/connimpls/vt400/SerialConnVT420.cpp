@@ -7,9 +7,10 @@
 #include "VT420Charset.h"
 #include "VT420ControlSeq.h"
 
-REGISTER_CONN_INSTANCE("vt420 by chiv", "vt420", SerialConnVT420);
-
 using namespace Upp;
+using namespace xvt;
+
+REGISTER_CONN_INSTANCE("vt420 by chiv", "vt420", SerialConnVT420);
 
 SerialConnVT420::SerialConnVT420(std::shared_ptr<SerialIo> io)
     : SerialConnVT320(io)

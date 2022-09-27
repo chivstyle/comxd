@@ -3,6 +3,8 @@
 //
 #include "VTModes.h"
 
+using namespace xvt;
+
 VTModes::VTModes()
 {
 }

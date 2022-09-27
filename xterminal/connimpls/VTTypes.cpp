@@ -3,6 +3,8 @@
 //
 #include "VTTypes.h"
 #include "ColorTable.h"
+//
+using namespace xvt;
 // default style
 VTStyle::VTStyle()
     : FontStyle(eVisible)

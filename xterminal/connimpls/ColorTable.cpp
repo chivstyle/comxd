@@ -3,6 +3,7 @@
 //
 #include "ColorTable.h"
 
+using namespace xvt;
 using namespace Upp;
 
 VTColorTable::VTColorTable()

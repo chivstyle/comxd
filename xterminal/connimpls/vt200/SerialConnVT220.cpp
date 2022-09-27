@@ -7,9 +7,9 @@
 #include "VT220Charset.h"
 #include "VT220ControlSeq.h"
 
-//REGISTER_CONN_INSTANCE("vt220 by chiv", "vt220", SerialConnVT220);
-
 using namespace Upp;
+using namespace xvt;
+//REGISTER_CONN_INSTANCE("vt220 by chiv", "vt220", SerialConnVT220);
 
 SerialConnVT220::SerialConnVT220(std::shared_ptr<SerialIo> io)
     : SerialConnVT100(io)

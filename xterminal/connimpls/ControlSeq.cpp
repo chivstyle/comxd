@@ -2,6 +2,8 @@
 // (c) 2020 chiv
 //
 #include "ControlSeq.h"
+
+using namespace xvt;
 ///
 /// return - <0 Failed
 ///        - =0 Need more

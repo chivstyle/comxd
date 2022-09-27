@@ -6,6 +6,7 @@
 #include "Ecma48ControlSeq.h"
 
 using namespace Upp;
+using namespace xvt;
 
 SerialConnEcma48::SerialConnEcma48(std::shared_ptr<SerialIo> io)
     : Superclass(io)

@@ -6,6 +6,8 @@
 //
 #include <CtrlLib/CtrlLib.h>
 #include <unordered_map>
+
+namespace xvt {
 // COLOR TABLE
 class VTColorTable {
 public:
@@ -52,5 +54,6 @@ private:
     void InitXterm256Colors();
     void InitNamedColors();
 };
+}
 
 #endif

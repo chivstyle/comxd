@@ -8,6 +8,7 @@
 // OSC           "\033]
 // DEC private   "\033[?"
 //
+namespace xvt {
 void AddXtermControlSeqs(ControlSeqFactory* factory)
 {
     REGISTER_SEQ(factory, XTWINOPS, "\033[", Ps, 0, "t");
@@ -52,4 +53,5 @@ void AddXtermControlSeqs(ControlSeqFactory* factory)
     REGISTER_SEQ(factory, XTIGNORE, "\033[<", Ps, 0, "M");
     REGISTER_SEQ(factory, XTIGNORE, "\033[<", Ps, 0, "m");
     REGISTER_SEQ(factory, XTIGNORE, "\033[M", Gn, 3, "");
+}
 }

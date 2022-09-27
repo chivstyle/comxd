@@ -6,6 +6,7 @@
 
 #include "connimpls/vt400/SerialConnVT420.h"
 
+namespace xvt {
 class SerialConnVT520 : public SerialConnVT420 {
 public:
     SerialConnVT520(std::shared_ptr<SerialIo> io);
@@ -34,3 +35,4 @@ private:
 	void LoadDefaultModes();
     void InstallFunctions();
 };
+}

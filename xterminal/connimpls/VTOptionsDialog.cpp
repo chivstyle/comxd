@@ -4,7 +4,7 @@
 #include "terminal_rc.h"
 #include "VTOptionsDialog.h"
 
-using namespace Upp;
+using namespace xvt;
 //
 struct FontFaceDisplay : Display {
     virtual void Paint(Draw& w, const Rect& r, const Value& q,

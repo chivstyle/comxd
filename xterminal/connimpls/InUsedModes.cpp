@@ -5,7 +5,7 @@
 #include "InUsedModes.h"
 #include "VTModes.h"
 
-using namespace Upp;
+using namespace xvt;
 //
 class ModeOption : public Option {
 public:

@@ -7,6 +7,8 @@
 #define kDEC "\x1b[?"
 #define kSS3 "\x1bO"
 
+namespace xvt {
+
 void AddVT320ControlSeqs(ControlSeqFactory* factory)
 {
     REGISTER_SEQ(factory, DECSASD, kCSI, Ps, 0, "$}");
@@ -24,4 +26,5 @@ void AddVT320ControlSeqs(ControlSeqFactory* factory)
     REGISTER_SEQ(factory, G2_CS96, "\033.", Gn, 2, "");
     REGISTER_SEQ(factory, G1_CS96, "\033/", Gn, 1, "");
     REGISTER_SEQ(factory, G1_CS96, "\033/", Gn, 2, "");
+}
 }

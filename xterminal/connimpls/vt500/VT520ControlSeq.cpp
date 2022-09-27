@@ -8,6 +8,7 @@
 #define kDEC "\033[?"
 #define kSS3 "\033O"
 
+namespace xvt {
 void AddVT520ControlSeqs(ControlSeqFactory* factory)
 {
     REGISTER_SEQ(factory, DDD1, "\033)1", No, 0, "");
@@ -59,4 +60,5 @@ void AddVT520ControlSeqs(ControlSeqFactory* factory)
     REGISTER_SEQ(factory, DECTID, "\033[", Ps, 1, ",q");
     REGISTER_SEQ(factory, DECTME, "\033[", Ps, 1, " ~");
     REGISTER_SEQ(factory, DECUS, "\033[", Ps, 1, " ,y");
+}
 }

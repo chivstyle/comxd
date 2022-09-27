@@ -6,6 +6,8 @@
 
 #include <CtrlLib/CtrlLib.h>
 
+namespace xvt {
+
 class VTOptionsDialog : public WithVTOptions<Upp::TopWindow> {
 public:
     typedef VTOptionsDialog CLASSNAME;
@@ -31,5 +33,7 @@ protected:
 private:
     void InstallActions();
 };
+
+}
 
 #endif

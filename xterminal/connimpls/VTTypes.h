@@ -77,6 +77,7 @@ static inline void SplitString(std::string&& s, const char* delim, std::function
     }
 }
 //----------------------------------------------------------------------------------------------
+namespace xvt {
 struct VTStyle {
     enum FontStyle {
         eBold = 0x01,
@@ -213,5 +214,5 @@ private:
     int mHeight;
     bool mHasSuccesiveLines;
 };
-
+}
 #endif

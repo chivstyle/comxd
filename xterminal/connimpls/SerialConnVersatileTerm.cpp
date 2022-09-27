@@ -10,6 +10,8 @@
 #include "ProtoFactory.h"
 #include "ColorTable.h"
 
+using namespace xvt;
+
 REGISTER_CONN_INSTANCE("versatile xterm", "xterm-256color", SerialConnVersatileTerm);
 
 SerialConnVersatileTerm::SerialConnVersatileTerm(std::shared_ptr<SerialIo> io)

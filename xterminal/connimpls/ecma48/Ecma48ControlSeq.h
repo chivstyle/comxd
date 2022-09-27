@@ -7,6 +7,8 @@
 
 #include "connimpls/ControlSeq.h"
 #include <string>
+
+namespace xvt {
 //
 enum Ecma48SeqType {
     // C0
@@ -177,3 +179,5 @@ enum Ecma48SeqType {
 static_assert(ECMA48_SEQ_MAX < ECMA48_SEQ_END, "You should define ECMA48_SEQ_MAX_COUNT big enough");
 
 void AddEcma48ControlSeqs(ControlSeqFactory* factory);
+
+}

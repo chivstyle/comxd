@@ -5,6 +5,8 @@
 
 #include <CtrlLib/CtrlLib.h>
 #include <functional>
+
+namespace xvt {
 class VTModes;
 class InUsedModes : public WithInUsedModes<Upp::TopWindow> {
 public:
@@ -20,3 +22,4 @@ private:
 	
     void InstallActions();
 };
+}

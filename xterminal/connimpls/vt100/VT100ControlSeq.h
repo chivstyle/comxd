@@ -5,7 +5,8 @@
 
 #include "connimpls/ControlSeq.h"
 #include <string>
-//
+
+namespace xvt {
 enum VT100SeqType {
     // DEC Private Modes, others were included in ECMA-48
     DECSM = VT100_SEQ_BEGIN,
@@ -60,3 +61,4 @@ enum VT100SeqType {
 static_assert(VT100_SEQ_MAX < VT100_SEQ_END, "You should define VT100_SEQ_MAX_COUNT big enough");
 
 void AddVT100ControlSeqs(ControlSeqFactory* factory);
+}

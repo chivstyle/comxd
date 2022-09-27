@@ -6,6 +6,8 @@
 #pragma once
 //
 #include <map>
+
+namespace xvt {
 // ECMA-048
 enum AnsiCompatibleMode {
     GATM = 1,
@@ -266,3 +268,5 @@ private:
 	std::map<int, int> mAnsiModes;
 	std::map<int, int> mDecpModes;
 };
+
+}

@@ -7,6 +7,7 @@
 
 #include "connimpls/vt100/SerialConnVT100.h"
 
+namespace xvt {
 class SerialConnVT220 : public SerialConnVT100 {
 public:
     SerialConnVT220(std::shared_ptr<SerialIo> io);
@@ -62,3 +63,4 @@ private:
     void LoadDefaultModes();
     void InstallFunctions();
 };
+}

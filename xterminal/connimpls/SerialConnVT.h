@@ -72,7 +72,7 @@ namespace Upp {
 }
 #define ENABLE_THREAD_CHECK 0
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
-#if ENABLE_THREAD_CHECK
+#if ENABLE_THREAD_CHECK && !ENABLE_THREAD_GUI
 #define CHECK_GUI_THREAD() do { \
     if (GetOwnerId() != std::this_thread::get_id()) { \
         std::string report = std::string("You must invoke ") + __FUNCTION__ + " from GUI thread"; \
@@ -92,6 +92,7 @@ namespace Upp {
 #define CHECK_LOCK_VT()
 #endif
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
+namespace xvt {
 class ControlSeqFactory;
 class SerialConnVT : public SerialConn {
 public:
@@ -172,8 +173,8 @@ protected:
     VTStyle mStyle; // current style
     VTColorTable mColorTbl;
     bool mBlinkSignal; // 0,1,0,1,0,1, 2 Hz
-    std::deque<VTLine> mLinesBuffer;
-    std::deque<VTLine> mLines; //<! Text on current screen, treat is as virtual screen
+    std::deque<xvt::VTLine> mLinesBuffer;
+    std::deque<xvt::VTLine> mLines; //<! Text on current screen, treat is as virtual screen
     Upp::Size          mVtSize; // size of virtual terminal, in CELLs
     Upp::Size          mVwSize; // size of View, in Pixels
     Upp::Size GetConsoleSize() const { return mVtSize; }
@@ -241,7 +242,7 @@ protected:
     // push to lines buffer and check
     // NOTE: If you want push one line to lines buffer, please use this routine.
     //       DO NOT use push_back directly.
-    void PushToLinesBufferAndCheck(const VTLine& vline);
+    void PushToLinesBufferAndCheck(const xvt::VTLine& vline);
     bool ProcessOverflowLines();
     bool ProcessOverflowChars();
     virtual bool ProcessOverflowLines(const struct Seq& seq);
@@ -401,5 +402,5 @@ private:
     //
     void InstallUserActions();
 };
-
+}
 #endif

@@ -8,6 +8,7 @@
 #include "VT100ControlSeq.h"
 
 using namespace Upp;
+using namespace xvt;
 
 REGISTER_CONN_INSTANCE("vt100", "vt100", SerialConnVT100);
 

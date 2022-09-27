@@ -6,6 +6,7 @@
 #include "connimpls/ControlSeq.h"
 #include <string>
 //
+namespace xvt {
 enum VT420SeqType {
     // DECDMAC, A DCS STRING
     DECINVM = VT300_SEQ_BEGIN,
@@ -48,3 +49,4 @@ enum VT420SeqType {
 static_assert(VT420_SEQ_MAX < VT400_SEQ_END, "You should define VT400_SEQ_MAX_COUNT big enough");
 
 void AddVT420ControlSeqs(ControlSeqFactory* factory);
+}

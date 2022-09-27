@@ -8,6 +8,8 @@
 #define kDEC "\033[?"
 #define kSS3 "\033O"
 
+namespace xvt {
+
 void AddVT420ControlSeqs(ControlSeqFactory* factory)
 {
     REGISTER_SEQ(factory, ANSI_CONFORMANCE_LEVEL_1, "\033 ", No, 0, "L");
@@ -43,4 +45,5 @@ void AddVT420ControlSeqs(ControlSeqFactory* factory)
     //
     REGISTER_SEQ(factory, DECES, kCSI, No, 0, "&x");
     REGISTER_SEQ(factory, DECINVM, kCSI, Pn, 1, "*z");
+}
 }

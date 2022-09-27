@@ -7,6 +7,7 @@
 #include "connimpls/Charset.h"
 #include <stdint.h>
 
+namespace xvt {
 enum VT320Charset {
     CS_DEC_SUPPLEMENTAL_VT320 = VT300_CS_BEGIN,
     CS_USER_PREFERED_SUPPLEMENTAL,
@@ -19,3 +20,4 @@ static_assert(VT320_CS_MAX < VT300_CS_END, "please define VT300_CS_COUNT big eno
 uint32_t VT320_RemapL(uint32_t uc, int cs);
 uint32_t VT320_RemapR(uint32_t uc, int cs);
 uint32_t VT320_RemapCharacter(uint32_t uc, int cs, int extended_cs);
+}

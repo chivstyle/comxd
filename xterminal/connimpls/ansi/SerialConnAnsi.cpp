@@ -7,6 +7,8 @@
 #include "AnsiControlSeq.h"
 #include "ConnFactory.h"
 
+using namespace xvt;
+
 REGISTER_CONN_INSTANCE("ansi", "ansi", SerialConnAnsi);
 
 SerialConnAnsi::SerialConnAnsi(std::shared_ptr<SerialIo> io)

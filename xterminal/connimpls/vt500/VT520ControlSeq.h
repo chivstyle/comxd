@@ -6,6 +6,7 @@
 #include "connimpls/ControlSeq.h"
 #include <string>
 //
+namespace xvt {
 enum VT520SeqType {
     // Ignore these please
     DDD1,
@@ -62,3 +63,4 @@ enum VT520SeqType {
 static_assert(VT520_SEQ_MAX < VT500_SEQ_END, "You should define VT500_SEQ_MAX_COUNT big enough");
 
 void AddVT520ControlSeqs(ControlSeqFactory* factory);
+}

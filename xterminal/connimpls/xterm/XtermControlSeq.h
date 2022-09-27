@@ -5,6 +5,8 @@
 
 #include "connimpls/ControlSeq.h"
 #include <string>
+
+namespace xvt {
 //
 enum XtermSeqType {
     XTPUSHCOLORS = XTERM_SEQ_BEGIN,
@@ -39,3 +41,5 @@ enum XtermSeqType {
 static_assert(Xterm_SEQ_MAX < XTERM_SEQ_END, "You should define XTERM_SEQ_MAX_COUNT big enough");
 
 void AddXtermControlSeqs(ControlSeqFactory* factory);
+
+}

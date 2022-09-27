@@ -6,6 +6,8 @@
 
 #include "connimpls/vt100/SerialConnVT100.h"
 
+namespace xvt {
+
 class SerialConnAnsi : public SerialConnVT100 {
 public:
     SerialConnAnsi(std::shared_ptr<SerialIo> io);
@@ -19,3 +21,5 @@ protected:
 private:
     void InstallFunctions();
 };
+
+}

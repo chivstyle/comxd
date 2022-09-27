@@ -7,6 +7,8 @@
 #include "connimpls/vt500/SerialConnVT520.h"
 #include <map>
 
+namespace xvt {
+
 class SerialConnXterm : public SerialConnVT520 {
 public:
     SerialConnXterm(std::shared_ptr<SerialIo> io);
@@ -53,3 +55,4 @@ private:
 	void LoadDefaultModes();
     void InstallFunctions();
 };
+}

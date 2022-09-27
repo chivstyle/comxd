@@ -5,6 +5,8 @@
 #include "VT220Charset.h"
 #include "connimpls/vt100/VT100Charset.h"
 
+namespace xvt {
+
 static const uint32_t kDecSupplementalGs[] = {
     // C1 CODES
     '?', '?', '?', '?', '?', '?', '?', '?',
@@ -282,4 +284,5 @@ uint32_t VT220_RemapCharacter(uint32_t uc, int cs, int extended_cs)
         return VT220_RemapR(uc, extended_cs);
     else
         return uc;
+}
 }

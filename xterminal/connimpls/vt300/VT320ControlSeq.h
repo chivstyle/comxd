@@ -6,6 +6,7 @@
 #include "connimpls/ControlSeq.h"
 #include <string>
 //
+namespace xvt {
 enum VT320SeqType {
     DECSASD = VT300_SEQ_BEGIN,
     DECSSDT,
@@ -23,3 +24,4 @@ enum VT320SeqType {
 static_assert(VT320_SEQ_MAX < VT300_SEQ_END, "You should define VT300_SEQ_MAX_COUNT big enough");
 
 void AddVT320ControlSeqs(ControlSeqFactory* factory);
+}

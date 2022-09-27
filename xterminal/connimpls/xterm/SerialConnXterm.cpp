@@ -7,9 +7,10 @@
 #include "XtermCharset.h"
 #include "XtermControlSeq.h"
 
-REGISTER_CONN_INSTANCE("xterm", "xterm-256color", SerialConnXterm);
-
 using namespace Upp;
+using namespace xvt;
+
+REGISTER_CONN_INSTANCE("xterm", "xterm-256color", SerialConnXterm);
 
 SerialConnXterm::SerialConnXterm(std::shared_ptr<SerialIo> io)
     : SerialConnVT520(io)

@@ -16,8 +16,8 @@ public:
 	virtual ~SerialConnVersatileTerm();
 	
 	// classic methods
-	bool Start();
-	void Stop();
+	bool Start() override;
+	void Stop() override;
 	
 	void GotFocus() override;
 	

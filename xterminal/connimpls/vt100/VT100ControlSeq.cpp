@@ -6,6 +6,7 @@
 #define kESC "\033"
 #define kCSI "\033["
 
+namespace xvt {
 void AddVT100ControlSeqs(ControlSeqFactory* factory)
 {
     REGISTER_SEQ(factory, DECSM, "\033[?", Pn, 1, "h");
@@ -59,4 +60,5 @@ void AddVT100ControlSeqs(ControlSeqFactory* factory)
     REGISTER_SEQ(factory, VT52_EXIT_PRINTER_CONTROLLER_MODE, kESC, No, 0, "X");
     REGISTER_SEQ(factory, VT52_PRTSC, kESC, No, 0, "]");
     REGISTER_SEQ(factory, VT52_PRTCL, kESC, No, 0, "V");
+}
 }

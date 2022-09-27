@@ -5,6 +5,8 @@
 #include "VT320Charset.h"
 #include "connimpls/vt200/VT220Charset.h"
 
+namespace xvt {
+
 uint32_t VT320_RemapL(uint32_t uc, int cs)
 {
     switch (cs) {
@@ -65,4 +67,5 @@ uint32_t VT320_RemapCharacter(uint32_t uc, int cs, int extended_cs)
         return VT320_RemapR(uc, extended_cs);
     else
         return uc;
+}
 }

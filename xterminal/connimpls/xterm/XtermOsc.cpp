@@ -6,6 +6,7 @@
 #include "SerialConnXterm.h"
 
 using namespace Upp;
+using namespace xvt;
 
 static inline Color XParseColor(const std::string& spec)
 {

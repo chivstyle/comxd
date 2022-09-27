@@ -8,6 +8,7 @@
 
 #include "connimpls/ecma48/SerialConnEcma48.h"
 // vt100, include the typical vt102
+namespace xvt {
 class SerialConnVT100 : public SerialConnEcma48 {
 public:
     SerialConnVT100(std::shared_ptr<SerialIo> io);
@@ -66,3 +67,4 @@ private:
     void LoadDefaultModes();
     void InstallFunctions();
 };
+}

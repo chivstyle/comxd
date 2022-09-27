@@ -8,6 +8,8 @@
 #define kDEC "\033[?"
 #define kSS3 "\033O"
 
+namespace xvt {
+
 void AddVT220ControlSeqs(ControlSeqFactory* factory)
 {
     REGISTER_SEQ(factory, DECSCL, kCSI, Ps, 0, "\"p");
@@ -35,4 +37,5 @@ void AddVT220ControlSeqs(ControlSeqFactory* factory)
     REGISTER_SEQ(factory, PRINTING, kDEC, Ps, 0, "i");
     REGISTER_SEQ(factory, SecondaryDA, "\033[>", Ps, 0, "c");
     REGISTER_SEQ(factory, DECSTR, kCSI, No, 0, "!p");
+}
 }

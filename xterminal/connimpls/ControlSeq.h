@@ -46,6 +46,8 @@
 //
 #define VTFLG_S8C  (0x1 << 16)
 #define VTFLG_VTx  0xffff
+
+namespace xvt {
 enum VTOperatingLevel {
     VT100_S7C = 0x100,
     VT200_S7C = 0x200,
@@ -113,5 +115,7 @@ protected:
 
 #define REGISTER_SEQ(factory, type, head, ptyp, pnum, tail) \
     factory->Add(type, head, ControlSeq::ptyp, pnum, tail)
+
+}
 
 #endif

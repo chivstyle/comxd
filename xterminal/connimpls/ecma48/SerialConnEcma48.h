@@ -3,6 +3,7 @@
 //
 #include "connimpls/SerialConnVT.h"
 
+namespace xvt {
 class Ecma48ControlSeqFactory;
 class SerialConnEcma48 : public virtual SerialConnVT {
     using Superclass = SerialConnVT;
@@ -210,3 +211,5 @@ private:
     void InstallFunctions();
     void LoadDefaultModes();
 };
+
+}

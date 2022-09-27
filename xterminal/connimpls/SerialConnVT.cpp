@@ -11,16 +11,18 @@
 #include "InUsedModes.h"
 #include "ProtoFactory.h"
 #include <algorithm>
-//
+// configuration
 #define ENABLE_H_SCROLLBAR 1
 #define ENABLE_BLINK_TEXT 1
 #define ENABLE_FIXED_LINE_HEIGHT 1
 #define ENABLE_BLANK_LINES_HINT_IN_SELECTION 1
 #define ENABLE_VT_LINE_TRUNCATION 0
-#define ENABLE_THREAD_GUI 1
+#define ENABLE_THREAD_GUI 0
 // register
-using namespace Upp;
+using namespace xvt;
 //----------------------------------------------------------------------------------------------
+#define AUTO_LOCK_VT() DebugMutex::Lock _(mLockVt)
+//
 SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
     : SerialConn(io)
     , mPx(0)
@@ -139,7 +141,7 @@ void SerialConnVT::ShowVTOptions()
     opt.SetOptions(options);
     int ret = opt.Run();
     if (ret == IDOK) {
-        DebugMutex::Lock _(mLockVt);
+        AUTO_LOCK_VT();
         //
         options = opt.GetOptions();
         this->mFont = options.Font;
@@ -316,7 +318,7 @@ void SerialConnVT::Clear()
 {
     CHECK_GUI_THREAD();
     //
-    DebugMutex::Lock _(mLockVt);
+    AUTO_LOCK_VT();
     //
     ClearVt();
     //
@@ -399,7 +401,7 @@ void SerialConnVT::RenderSeq(const Seq& seq)
 //
 void SerialConnVT::RenderSeqs(const std::deque<Seq>& seqs)
 {
-    DebugMutex::Lock _(mLockVt);
+    AUTO_LOCK_VT();
     //
     for (auto it = seqs.begin(); it != seqs.end(); ++it) {
         RenderSeq(*it);
@@ -529,6 +531,7 @@ void SerialConnVT::RxProc()
         //
         mEnableCaret = false;
         size_t rawp = 0, kMaxSeq = 100;
+        auto t1 = std::chrono::high_resolution_clock::now();
         while (rawp < raw.length() && !mRxShouldStop) {
             if (IsControlSeqPrefix((uint8_t)raw[rawp])) { // is prefix of some control sequence
                 if (!texts.empty()) {
@@ -566,7 +569,8 @@ void SerialConnVT::RxProc()
                 rawp++;
             }
             auto t2 = std::chrono::high_resolution_clock::now();
-            if (seqs.size() > kMaxSeq) {
+            auto ts = std::chrono::duration<double>(t2 - t1).count();
+            if (ts > 0.017) {
                 RenderSeqs(seqs); seqs.clear();
 #if ENABLE_THREAD_GUI
                 Upp::EnterGuiMutex();
@@ -575,6 +579,7 @@ void SerialConnVT::RxProc()
 #else
                 PostCallback([=]() { this->UpdatePresentation(); });
 #endif
+                t1 = std::chrono::high_resolution_clock::now();
             }
         }
         if (!texts.empty()) {
@@ -1026,7 +1031,7 @@ int SerialConnVT::GetLineHeight(int vy) const
 
 void SerialConnVT::MouseMove(Point p, dword)
 {
-    DebugMutex::Lock _(mLockVt);
+    AUTO_LOCK_VT();
     if (mPressed) {
         // scroll over
         if (p.y < 0) {
@@ -1056,7 +1061,7 @@ void SerialConnVT::MouseMove(Point p, dword)
 
 void SerialConnVT::LeftDown(Point p, dword)
 {
-    DebugMutex::Lock _(mLockVt);
+    AUTO_LOCK_VT();
     //
     mPressed = true;
     int lx = mSbH.Get() + p.x, ly = mSbV.Get() + p.y;
@@ -1077,7 +1082,7 @@ void SerialConnVT::LeftDown(Point p, dword)
 
 void SerialConnVT::LeftDouble(Point p, dword)
 {
-    DebugMutex::Lock _(mLockVt);
+    AUTO_LOCK_VT();
     // Select the word under the caret
     int lx = mSbH.Get() + p.x, ly = mSbV.Get() + p.y;
     int px, next_px, py, next_py;
@@ -1135,7 +1140,7 @@ void SerialConnVT::LeftDouble(Point p, dword)
 
 void SerialConnVT::LeftTriple(Point p, dword)
 {
-    DebugMutex::Lock _(mLockVt);
+    AUTO_LOCK_VT();
     //
     int lx = mSbH.Get() + p.x, ly = mSbV.Get() + p.y;
     int px, next_px, py, next_py;
@@ -1189,7 +1194,7 @@ void SerialConnVT::Copy()
 {
     CHECK_GUI_THREAD();
     //
-    DebugMutex::Lock _(mLockVt);
+    AUTO_LOCK_VT();
     //
     WriteClipboardText(GetSelectedText());
 }
@@ -1198,7 +1203,7 @@ void SerialConnVT::SelectAll()
 {
     CHECK_GUI_THREAD();
     //
-    DebugMutex::Lock _(mLockVt);
+    AUTO_LOCK_VT();
     //
     if (!mLines.empty()) {
         mSelectionSpan.X0 = 0;
@@ -1493,7 +1498,7 @@ void SerialConnVT::Layout()
 {
     CHECK_GUI_THREAD();
     //
-    DebugMutex::Lock _(mLockVt);
+    AUTO_LOCK_VT();
     //
     Size vsz = GetSize();
     Size csz = Size(vsz.cx / mFontW, vsz.cy / mFontH);
@@ -1819,7 +1824,7 @@ void SerialConnVT::UpdateVScrollbar()
 {
     CHECK_GUI_THREAD();
     //
-    DebugMutex::Lock _(mLockVt);
+    AUTO_LOCK_VT();
     //
     int vmax = (int)(GetVTLinesHeight(mLines) + GetVTLinesHeight(mLinesBuffer));
     Size csz = GetConsoleSize();
@@ -1834,7 +1839,7 @@ void SerialConnVT::UpdateHScrollbar()
 {
     CHECK_GUI_THREAD();
     //
-    DebugMutex::Lock _(mLockVt);
+    AUTO_LOCK_VT();
 #if ENABLE_H_SCROLLBAR
     int lx = 0, ly = mSbV.Get();
     int px, next_px, py, next_py;
@@ -1935,7 +1940,7 @@ void SerialConnVT::Render(Draw& draw)
 {
     CHECK_GUI_THREAD();
     //
-    DebugMutex::Lock _(mLockVt);
+    AUTO_LOCK_VT();
     // draw background
     draw.DrawRect(GetRect(), mColorTbl.GetColor(VTColorTable::kColorId_Paper));
     //

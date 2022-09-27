@@ -13,6 +13,7 @@
 #define kSOS "\x1b\x58"
 #define kST "\x1b\x5c"
 
+namespace xvt {
 void AddEcma48ControlSeqs(ControlSeqFactory* factory)
 {
     REGISTER_SEQ(factory, ECMA48_ACK, "\x06", No, 0, "");
@@ -177,4 +178,5 @@ void AddEcma48ControlSeqs(ControlSeqFactory* factory)
     REGISTER_SEQ(factory, ECMA48_VPR, kCSI, Pn, 0, "\x65");
     REGISTER_SEQ(factory, ECMA48_VT, "\x0b", No, 0, "");
     REGISTER_SEQ(factory, ECMA48_VTS, kESC, No, 0, "\x4a");
+}
 }
