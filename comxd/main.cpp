@@ -155,9 +155,11 @@ protected:
         //
         bar.ToolSeparator();
         //
+        int icnt = bar.GetChildCount();
         OndemandToolbar(bar);
-        //
-        bar.Separator();
+        if (icnt != bar.GetChildCount()) {
+            bar.Separator();
+        }
         bar.Add(t_("Codec Tool"), comxd::codec_tool(), [=]() { CodecTool d; d.Run(true); });
         //
         bar.ToolGapRight();

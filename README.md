@@ -1,10 +1,11 @@
-[TOC]
-
 # comxd
 
 Another serial port tool
 
 This is my practice work with [U++](http://www.ultimatepp.org/).
+
+comxd has a internal virtual terminal as described below. We adopted a versatile [terminal](https://github.com/ismail-yilmaz/Terminal) implementation from v2.2.18.
+We'll maintain the internal terminal, but it should be deprecated someday.
 
 ## ECMA-48
 

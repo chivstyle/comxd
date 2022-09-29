@@ -17,7 +17,7 @@
 #define ENABLE_FIXED_LINE_HEIGHT 1
 #define ENABLE_BLANK_LINES_HINT_IN_SELECTION 1
 #define ENABLE_VT_LINE_TRUNCATION 0
-#define ENABLE_THREAD_GUI 0
+#define ENABLE_THREAD_GUI 1
 // register
 using namespace xvt;
 //----------------------------------------------------------------------------------------------
@@ -570,7 +570,7 @@ void SerialConnVT::RxProc()
             }
             auto t2 = std::chrono::high_resolution_clock::now();
             auto ts = std::chrono::duration<double>(t2 - t1).count();
-            if (ts > 0.017) {
+            if (ts > 0.016) {
                 RenderSeqs(seqs); seqs.clear();
 #if ENABLE_THREAD_GUI
                 Upp::EnterGuiMutex();
