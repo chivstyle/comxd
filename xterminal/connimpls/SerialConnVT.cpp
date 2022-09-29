@@ -108,7 +108,7 @@ bool SerialConnVT::Start()
 {
     mRxShouldStop = false;
     mRxThr = std::thread([=]() { RxProc(); });
-    PostCallback([=] { Layout(); });
+    PostCallback([=] { SetFocus(); Layout(); });
     //
     return true;
 }
@@ -615,7 +615,7 @@ int SerialConnVT::GetCharWidth(const VTChar& c) const
     return cx*cz;
 }
 //
-VTLine* SerialConnVT::GetVTLine(int vy)
+xvt::VTLine* SerialConnVT::GetVTLine(int vy)
 {
     CHECK_LOCK_VT();
     //
@@ -629,11 +629,11 @@ VTLine* SerialConnVT::GetVTLine(int vy)
     }
     return vline;
 }
-const VTLine* SerialConnVT::GetVTLine(int vy) const
+const xvt::VTLine* SerialConnVT::GetVTLine(int vy) const
 {
     CHECK_LOCK_VT();
     //
-    const VTLine* vline = nullptr;
+    const xvt::VTLine* vline = nullptr;
     if (vy >= 0 && vy < (int)(mLinesBuffer.size() + mLines.size())) {
         if (vy < (int)mLinesBuffer.size()) {
             vline = &mLinesBuffer[vy];

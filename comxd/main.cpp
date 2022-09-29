@@ -182,6 +182,7 @@ protected:
             auto conn = dynamic_cast<SerialConn*>(mDevsTab.GetItem(mDevsTab.Get()).GetSlave());
             if (conn) {
                 bar.Add(t_("Reconnect"), comxd::reconnect(), [=]() {
+                    this->Disable();
                     conn->Stop();
                     conn->GetIo()->Stop();
                     if (!conn->GetIo()->Start()) {
@@ -191,6 +192,7 @@ protected:
                     } else {
                         conn->Start();
                     }
+                    this->Enable();
 	            }).Help(t_("Reconnect to the I/O device"));
                 // Actions of serial device
                 conn->GetIo()->WhenUsrBar(bar);

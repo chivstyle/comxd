@@ -168,7 +168,7 @@ bool SerialConnVersatileTerm::Start()
 {
 	mRxShouldStop = false;
     mRxThr = std::thread([=]() { RxProc(); });
-    Upp::PostCallback([=] { Layout(); });
+    Upp::PostCallback([=] { Layout(); mVt.WhenResize(); });
     //
     return true;
 }
