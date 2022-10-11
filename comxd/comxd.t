@@ -93,9 +93,6 @@ zhCN("\350\277\234\347\250\213\346\226\207\344\273\266")
 T_("Transmition was failed!")
 zhCN("\344\274\240\350\276\223\345\244\261\350\264\245!")
 
-T_("Transmition was completed!")
-zhCN("\344\274\240\350\276\223\345\256\214\346\210\220!")
-
 T_("The remote file is not a normal file!")
 zhCN("\350\277\234\347\250\213\346\226\207\344\273\266\344\270\215\346\230\257\344\270\200\344\270\252\346\231\256\351\200\232\346\226\207\344\273\266!")
 
@@ -149,3 +146,107 @@ zhCN("\351\207\215\346\226\260\350\277\236\346\216\245\345\210\260I/O\350\256\27
 
 T_("Welcom to comxd!")
 zhCN("\346\254\242\350\277\216\344\275\277\347\224\250comxd!")
+
+// Terminal.cpp
+
+T_("Options")
+zhCN("")
+
+T_("Read only")
+zhCN("")
+
+T_("Copy")
+zhCN("")
+
+T_("Paste")
+zhCN("")
+
+T_("Select all")
+zhCN("")
+
+T_("Copy link to clipboard")
+zhCN("")
+
+T_("Open link...")
+zhCN("")
+
+T_("Copy image to clipboard")
+zhCN("")
+
+T_("Open image...")
+zhCN("")
+
+T_("Cursor style")
+zhCN("")
+
+T_("Block")
+zhCN("")
+
+T_("Beam")
+zhCN("")
+
+T_("Underline")
+zhCN("")
+
+T_("Blinking")
+zhCN("")
+
+T_("Locked")
+zhCN("")
+
+T_("Scrollbar")
+zhCN("")
+
+T_("Auto-hide mouse cursor")
+zhCN("")
+
+T_("Alternate scroll")
+zhCN("")
+
+T_("Key navigation")
+zhCN("")
+
+T_("PC-style function keys")
+zhCN("")
+
+T_("Dynamic colors")
+zhCN("")
+
+T_("Light colors")
+zhCN("")
+
+T_("Adjust to dark themes")
+zhCN("")
+
+T_("Blinking text")
+zhCN("")
+
+T_("Hyperlinks")
+zhCN("")
+
+T_("Inline images")
+zhCN("")
+
+T_("Size hint")
+zhCN("")
+
+T_("Buffered refresh")
+zhCN("")
+
+T_("Lazy resize")
+zhCN("")
+
+
+// Colors.cpp
+
+T_("Bad hash color text format")
+zhCN("")
+
+T_("Bad color value")
+zhCN("")
+
+T_("Bad rgb/a color text format")
+zhCN("")
+
+T_("Bad cmy/k color text format")
+zhCN("")

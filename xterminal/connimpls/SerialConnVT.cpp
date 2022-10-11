@@ -17,7 +17,7 @@
 #define ENABLE_FIXED_LINE_HEIGHT 1
 #define ENABLE_BLANK_LINES_HINT_IN_SELECTION 1
 #define ENABLE_VT_LINE_TRUNCATION 0
-#define ENABLE_THREAD_GUI 1
+#define ENABLE_THREAD_GUI 0
 // register
 using namespace xvt;
 //----------------------------------------------------------------------------------------------
@@ -46,8 +46,11 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
     , mVtSize(Size(0, 0))
     , mVwSize(Size(0, 0))
 {
+	WantFocus();
     // double buffer
     BackPaint();
+    // good look
+    SetFrame(FieldFrame());
     // default font
     mFont = VTOptionsDialog::DefaultFont();
     // handlers
@@ -512,13 +515,24 @@ void SerialConnVT::RxProc()
     std::string raw, texts; // before the loop, define these two vars firstly.
     texts.reserve(32768);
     std::deque<Seq> seqs;
+    auto t1 = std::chrono::high_resolution_clock::now();
     while (!mRxShouldStop) {
         int sz = GetIo()->Available();
         if (sz < 0) {
             PostCallback([=]() { PromptOK(DeQtf(this->ConnName() + ":" + t_("I/O device was disconnected"))); });
             break;
         } else if (sz == 0) {
-            std::this_thread::sleep_for(std::chrono::duration<double>(0.001));
+                    if (!seqs.empty()) {
+            RenderSeqs(seqs); seqs.clear();
+#if ENABLE_THREAD_GUI
+            Upp::EnterGuiMutex();
+            this->UpdatePresentation();
+            Upp::LeaveGuiMutex();
+#else
+            PostCallback([=]() { this->UpdatePresentation(); });
+#endif
+        }
+            std::this_thread::sleep_for(std::chrono::duration<double>(0.017));
             continue;
         }
         // read raw, not string, so, we could read NUL from the device.
@@ -529,9 +543,7 @@ void SerialConnVT::RxProc()
         }
         RefineTheInput(raw);
         //
-        mEnableCaret = false;
-        size_t rawp = 0, kMaxSeq = 100;
-        auto t1 = std::chrono::high_resolution_clock::now();
+        size_t rawp = 0;
         while (rawp < raw.length() && !mRxShouldStop) {
             if (IsControlSeqPrefix((uint8_t)raw[rawp])) { // is prefix of some control sequence
                 if (!texts.empty()) {
@@ -570,7 +582,7 @@ void SerialConnVT::RxProc()
             }
             auto t2 = std::chrono::high_resolution_clock::now();
             auto ts = std::chrono::duration<double>(t2 - t1).count();
-            if (ts > 0.016) {
+            if (ts > 0.017) { // 60Hz
                 RenderSeqs(seqs); seqs.clear();
 #if ENABLE_THREAD_GUI
                 Upp::EnterGuiMutex();
@@ -592,17 +604,6 @@ void SerialConnVT::RxProc()
         }
         //
         raw = raw.substr(rawp);
-        if (!seqs.empty()) {
-            RenderSeqs(seqs); seqs.clear();
-#if ENABLE_THREAD_GUI
-                Upp::EnterGuiMutex();
-	            this->UpdatePresentation();
-	            Upp::LeaveGuiMutex();
-#else
-                PostCallback([=]() { this->UpdatePresentation(); });
-#endif
-        }
-        mEnableCaret = true;
     }
 }
 // This routine guarantee that the width of any char is integral multiple
@@ -856,7 +857,6 @@ void SerialConnVT::PushToLinesBufferAndCheck(const VTLine& vline)
     mLinesBuffer.push_back(std::move(buff));
     if (mLinesBuffer.size() > mMaxLinesBufferSize) {
         mLinesBuffer.erase(mLinesBuffer.begin());
-#if 1
         // we should move the selection span up
         if (mSelectionSpan.Y0 > 0) {
             mSelectionSpan.Y0 -= 1;
@@ -868,7 +868,6 @@ void SerialConnVT::PushToLinesBufferAndCheck(const VTLine& vline)
         else {
             mSelectionSpan.Valid = false;
         }
-#endif
     }
 }
 //
@@ -924,7 +923,6 @@ bool SerialConnVT::ProcessOverflowLines()
     if (mVy < 0)
         mVy = 0;
     int yn = mVy - bot;
-    // I tested mintty, we buffer lines like that.
     if (yn == 1) {
         if (top == 0) {
             this->PushToLinesBufferAndCheck(std::move(mLines[top]));
@@ -975,9 +973,9 @@ void SerialConnVT::RenderText(const std::vector<uint32_t>& s)
                 // insert or move to next line.
                 mVy++;
                 mVx = 0;
-                if (this->ProcessOverflowLines()) {
-                    UpdatePresentationPos();
-                }
+                // If you changed the Vy, check it.
+                ProcessOverflowLines();
+                // point to last line
                 vline = &mLines[mVy];
             }
         }
@@ -995,10 +993,7 @@ void SerialConnVT::RenderText(const std::vector<uint32_t>& s)
         mVx++;
         if (mVx >= (int)vline->size()) {
             // extend vline
-            vline->insert(vline->end(), 8, mBlankChar);
-        }
-        if (mWrapLine) {
-            UpdatePresentationPos(0x1);
+            vline->insert(vline->end(), mVx - (int)vline->size() + 1, mBlankChar);
         }
     }
 }

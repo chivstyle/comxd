@@ -9,6 +9,8 @@
 #include "Conn.h"
 #include "TerminalCtrl/Terminal/Terminal.h"
 #include <thread>
+#include <deque>
+#include <string>
 
 class SerialConnVersatileTerm : public SerialConn {
 public:
@@ -29,6 +31,8 @@ private:
 	//
 	volatile bool mRxShouldStop;
 	std::thread mRxThr;
+	Upp::Mutex mMtx;
+	std::deque<std::string> mBuffer;
 	//
 	void InstallUserActions();
 	void ShowVTOptions();

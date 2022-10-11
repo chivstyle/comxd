@@ -24,7 +24,7 @@ public:
     int Available() const;
     size_t Read(unsigned char* buf, size_t sz);
     size_t Write(const unsigned char* buf, size_t sz);
-    std::string DeviceName() const { return mHost.ToStd(); }
+    std::string DeviceName() const { return "SSH/" + mHost.ToStd(); }
     // in chars
     void SetConsoleSize(const Upp::Size& csz);
     //

@@ -138,7 +138,6 @@ void SerialConnVersatileTerm::InstallUserActions()
 // receiver
 void SerialConnVersatileTerm::RxProc()
 {
-    std::string raw;
     while (!mRxShouldStop) {
         int sz = GetIo()->Available();
         if (sz < 0) {
@@ -148,19 +147,20 @@ void SerialConnVersatileTerm::RxProc()
             std::this_thread::sleep_for(std::chrono::duration<double>(0.001));
             continue;
         }
-        // read raw, not string, so, we could read NUL from the device.
-        std::vector<byte> buff = GetIo()->ReadRaw(sz);
-        for (size_t k = 0; k < buff.size(); ++k) {
-            if (buff[k] != 0) // IGNORE NULL
-                raw.push_back(buff[k]);
-        }
+        auto buff = GetIo()->ReadRaw(sz);
         // Transcode to UTF8
-        auto s = this->GetCodec()->TranscodeToUTF8(buff.data(), buff.size());
-        raw.clear();
-        //
-        Upp::EnterGuiMutex();
-        mVt.WriteUtf8(s);
-        Upp::LeaveGuiMutex();
+        auto text = this->GetCodec()->TranscodeFromUTF8(buff.data(), buff.size());
+        mMtx.Enter();
+        mBuffer.push_back(text);
+        mMtx.Leave();
+        PostCallback([=]() {
+            mMtx.Enter();
+            for (size_t k = 0; k < mBuffer.size(); ++k) {
+                this->mVt.WriteUtf8(mBuffer[k]);
+            }
+            mBuffer.clear();
+            mMtx.Leave();
+        });
     }
 }
 

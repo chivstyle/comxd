@@ -81,9 +81,9 @@ void SSHPort::Upload()
             bar.Run(true);
             job.join();
             if (!should_stop) {
-	            PostCallback([=]() {
-	                PromptOK(success ? Upp::DeQtf(t_("Transmition was failed!")) : Upp::DeQtf(t_("Transmition was completed!")));
-	            });
+                if (!success) {
+	                PromptOK(Upp::DeQtf(t_("Transmition was failed!")));
+                }
             }
         }
     }
@@ -147,9 +147,9 @@ void SSHPort::Download()
             bar.Run(true);
             job.join();
             if (!should_stop) {
-	            PostCallback([=]() {
-	                PromptOK(success ? Upp::DeQtf(t_("Transmition was failed!")) : Upp::DeQtf(t_("Transmition was completed!")));
-	            });
+                if (!success) {
+	                PromptOK(Upp::DeQtf(t_("Transmition was failed!")));
+                }
             }
         }
     }
