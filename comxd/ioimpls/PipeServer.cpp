@@ -4,9 +4,9 @@
 */
 #include "PipeServer.h"
 
-using namespace Upp;
-
 #ifdef _WIN32
+
+using namespace Upp;
 
 NamedPipeServer::NamedPipeServer(const String& pipe_name, int in_buffer_sz, int out_buffer_sz,
     int timeout, int number_of_instances)

@@ -8,6 +8,7 @@
 #include <thread>
 #include <mutex>
 #include <deque>
+#include <memory>
 
 class TcpClient : public SerialIo {
 public:

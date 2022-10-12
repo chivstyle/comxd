@@ -4,9 +4,9 @@
 */
 #include "PipeClient.h"
 
-using namespace Upp;
-
 #ifdef _WIN32
+
+using namespace Upp;
 
 NamedPipeClient::NamedPipeClient(const String& pipe_name)
     : mName(pipe_name)
