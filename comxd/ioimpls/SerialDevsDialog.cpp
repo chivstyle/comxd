@@ -204,9 +204,10 @@ void SerialDevsDialog::CreateConn()
             (serial::stopbits_t)mStopBits.GetData().To<int>(),
             (serial::flowcontrol_t)mFlowCtrl.GetData().To<int>());
         if (serial) {
+            serial->open(); // open it
             auto port = std::make_shared<SerialPort>(serial);
             port->Start();
-            auto conn = ConnFactory::Inst()->CreateInst(~mTypes, port);
+            SerialConn* conn = ConnFactory::Inst()->CreateInst(~mTypes, port);
             if (!conn) {
                 Upp::PromptOK(DeQtf(t_("Dose not support:") + (String)~mTypes));
             } else {

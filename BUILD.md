@@ -1,7 +1,7 @@
 # Requirements
 
-- upp 16270 or later
-- visual studio 2017 or later [ optional ]
+- latest upp
+- visual studio 2017 or later \[ optional \]
 
 # How to build
 

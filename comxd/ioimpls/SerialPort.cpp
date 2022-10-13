@@ -14,7 +14,7 @@ bool SerialPort::Start()
 {
 	if (!mSerial->isOpen()) {
 		SerialDevsDialog d;
-		d.Reconnect(this);
+		return d.Reconnect(this);
 	}
 	return true;
 }
