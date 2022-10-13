@@ -972,7 +972,7 @@ void SerialConnVT::RenderText(const std::vector<uint32_t>& s)
                 mLines[mVy].HasSuccessiveLines(true);
                 // insert or move to next line.
                 mVy++;
-                mVx = 0;
+                mVx = 0; mPx = 0;
                 // If you changed the Vy, check it.
                 ProcessOverflowLines();
                 // point to last line
@@ -990,7 +990,7 @@ void SerialConnVT::RenderText(const std::vector<uint32_t>& s)
             // extend the vline
             vline->push_back(chr);
         }
-        mVx++;
+        mVx++; mPx += GetCharWidth(chr.Code());
         if (mVx >= (int)vline->size()) {
             // extend vline
             vline->insert(vline->end(), mVx - (int)vline->size() + 1, mBlankChar);
