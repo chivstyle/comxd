@@ -2,10 +2,30 @@
 
 Another serial port tool
 
-This is my practice work with [U++](http://www.ultimatepp.org/).
+This is my practice work with [U++](http://www.ultimatepp.org/) at the very beginning.
+Now, it helps me a lot, not a toy again. I hope it helps more people.
 
 comxd has a internal virtual terminal as described below. We adopted a versatile [terminal](https://github.com/ismail-yilmaz/Terminal) implementation from v2.2.18.
 We'll maintain the internal terminal, but it should be deprecated someday.
+
+![comxd](images/comxd_je5Fd8NuLT.png)
+
+comxd was designed for hardware engineers. It supports
+
+- serial port
+- SSH
+- TCP Client
+- Pipe Client [ Windows only ]
+- Pipe Server [ Windows only ]
+
+We call these devices as serial I/O, they are popular on smart devices.
+Virtual terminal is not the main function of comxd, but "Assistant".
+![assistant](images/comxd_JvNgjKs5pK.png)
+
+Most of hardware engineers could use it expertly without any help. comxd is a
+convinient tool for our engineers, we use it to download firmware, debug communication
+protocol, deploy softwares to target board, .etc. I'll show some ocassions to use comxd later.
+It's a plesure if this tool helps you.
 
 ## ECMA-48
 

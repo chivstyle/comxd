@@ -1,2 +1,0 @@
-1. optimize the ControlSeq
-2. vt200
