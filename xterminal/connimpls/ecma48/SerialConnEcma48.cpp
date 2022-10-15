@@ -306,6 +306,7 @@ void SerialConnEcma48::ProcessFF(const std::string&)
 void SerialConnEcma48::ProcessCR(const std::string&)
 {
     mVx = 0;
+    mPx = 0;
 }
 // C0, Shift in
 void SerialConnEcma48::ProcessSI(const std::string&)

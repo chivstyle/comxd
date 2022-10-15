@@ -18,6 +18,7 @@
 #define ENABLE_BLANK_LINES_HINT_IN_SELECTION 1
 #define ENABLE_VT_LINE_TRUNCATION 0
 #define ENABLE_THREAD_GUI 0
+static const double kTimeThreshold = 0.08;
 // register
 using namespace xvt;
 //----------------------------------------------------------------------------------------------
@@ -46,16 +47,14 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
     , mVtSize(Size(0, 0))
     , mVwSize(Size(0, 0))
 {
-	WantFocus();
-    // double buffer
-    BackPaint();
-    // good look
-    SetFrame(FieldFrame());
     // default font
     mFont = VTOptionsDialog::DefaultFont();
     // handlers
     mFontW = std::max(mFont.GetWidth('M'), mFont.GetWidth('W'));
     mFontH = mFont.GetLineHeight();
+    // good look
+    SetFrame(FieldFrame());
+    WantFocus();
     // default style
     mBlankChar.SetCode(' ');
 #if ENABLE_H_SCROLLBAR
@@ -82,13 +81,6 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
         this->UpdatePresentation();
         Refresh();
     };
-#if ENABLE_BLINK_TEXT
-    // blink timer
-    mBlinkTimer.Set(-500, [&]() {
-        mBlinkSignal = !mBlinkSignal;
-        PostCallback([=]() { this->Refresh(); });
-    });
-#endif
     // initialize size
     VTLine vline = VTLine(80, mBlankChar).SetHeight(mFontH);
     mLines.insert(mLines.begin(), 30, vline);
@@ -96,6 +88,13 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
     PostCallback([=] {
         Layout();
     });
+#if ENABLE_BLINK_TEXT
+    // blink timer
+    mBlinkTimer.Set(-500, [&]() {
+        mBlinkSignal = !mBlinkSignal;
+        PostCallback([=]() { this->UpdatePresentationPos(); });
+    });
+#endif
     //
     InstallUserActions();
 }
@@ -111,7 +110,7 @@ bool SerialConnVT::Start()
 {
     mRxShouldStop = false;
     mRxThr = std::thread([=]() { RxProc(); });
-    PostCallback([=] { SetFocus(); Layout(); });
+    Upp::PostCallback([=] { Layout(); WhenSizeChanged(GetConsoleSize()); });
     //
     return true;
 }
@@ -367,13 +366,13 @@ void SerialConnVT::RenderSeq(const Seq& seq)
         }
         break;
     }
-    //--------------------------------------------------------------------------------------
     if (ProcessOverflowLines(seq)) {
         flags |= 0x1;
     }
     if (ProcessOverflowChars(seq)) {
         flags |= 0x2;
     } // fix vx/vy
+    if (seq.Type == Seq::CTRL_SEQ) {
     // Update vx/vy
     if (mPx != px && mPy != py) {
         UpdateDataPos();
@@ -388,6 +387,7 @@ void SerialConnVT::RenderSeq(const Seq& seq)
         UpdateDataPos(0x2);
         vy = mVy;
         flags |= 0x4;
+    }
     }
     // update px/py
     if (mVx != vx && mVy != vy) {
@@ -522,17 +522,17 @@ void SerialConnVT::RxProc()
             PostCallback([=]() { PromptOK(DeQtf(this->ConnName() + ":" + t_("I/O device was disconnected"))); });
             break;
         } else if (sz == 0) {
-                    if (!seqs.empty()) {
-            RenderSeqs(seqs); seqs.clear();
+            if (!seqs.empty()) {
+                RenderSeqs(seqs); seqs.clear();
 #if ENABLE_THREAD_GUI
-            Upp::EnterGuiMutex();
-            this->UpdatePresentation();
-            Upp::LeaveGuiMutex();
+	            Upp::EnterGuiMutex();
+	            this->UpdatePresentation();
+	            Upp::LeaveGuiMutex();
 #else
-            PostCallback([=]() { this->UpdatePresentation(); });
+                PostCallback([=]() { this->UpdatePresentation(); });
 #endif
-        }
-            std::this_thread::sleep_for(std::chrono::duration<double>(0.017));
+            }
+            std::this_thread::sleep_for(std::chrono::duration<double>(kTimeThreshold));
             continue;
         }
         // read raw, not string, so, we could read NUL from the device.
@@ -582,7 +582,7 @@ void SerialConnVT::RxProc()
             }
             auto t2 = std::chrono::high_resolution_clock::now();
             auto ts = std::chrono::duration<double>(t2 - t1).count();
-            if (ts > 0.017) { // 60Hz
+            if (ts > kTimeThreshold) {
                 RenderSeqs(seqs); seqs.clear();
 #if ENABLE_THREAD_GUI
                 Upp::EnterGuiMutex();
@@ -1720,6 +1720,11 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
     for (i = vx; i < (int)vline.size() && x < r_margin; ++i) {
         int vchar_cx = GetCharWidth(vline[i]);
         UseStyle(vline[i], mFont, fg_color, bg_color, blink, visible);
+#if 0
+        if (!_IsBlank(vline[i]) && visible) {
+            DrawVTChar(draw, x, y, vline[i], mFont, fg_color);
+        }
+#else
         bool is_selected = line_selected ? true : IsCharInSelectionSpan(i, vy);
         if (is_selected) {
             std::swap(bg_color, fg_color);
@@ -1728,6 +1733,7 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
 #if ENABLE_FIXED_LINE_HEIGHT == 0
 		int line_height = vline.GetHeight();
 #endif
+#if ENABLE_BLINK_TEXT
         if (blink) {
             if (mBlinkSignal) {
                 draw.DrawRect(x, y, vchar_cx, line_height, paper_color);
@@ -1742,6 +1748,7 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
                 }
             }
         } else {
+#endif
             if (bg_color != paper_color) {
                 draw.DrawRect(x, y, vchar_cx, line_height, bg_color);
             }
@@ -1750,11 +1757,14 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
                     DrawVTChar(draw, x, y, vline[i], mFont, fg_color);
                 }
             }
+#if ENABLE_BLINK_TEXT
         }
-        x += vchar_cx;
-        if (is_selected) { // restore color
+#endif
+       if (is_selected) { // restore color
             std::swap(bg_color, fg_color);
         }
+#endif
+        x += vchar_cx;
     }
 #if ENABLE_BLANK_LINES_HINT_IN_SELECTION && ENABLE_FIXED_LINE_HEIGHT
 	if (i < csz.cx && !vline.HasSuccessiveLines()) {
