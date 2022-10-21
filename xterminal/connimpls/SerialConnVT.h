@@ -222,6 +222,9 @@ protected:
     //
     size_t ParseSeqs(const char* input, size_t input_sz, std::deque<struct Seq>& seqs);
     //
+    std::deque<Seq> mSeqs;
+    void RenderSeqs();
+    //
     virtual void RenderSeq(const Seq& seq);
     virtual void RenderSeqs(const std::deque<Seq>& seqs);
     //
@@ -383,6 +386,7 @@ private:
     bool mScrollToEnd;
     bool mPressed;
     bool mShowCursor;
+    bool mHasBlink;
     volatile bool mEnableCaret;
     int mBackgroundColorId;
     int mForegroundColorId;

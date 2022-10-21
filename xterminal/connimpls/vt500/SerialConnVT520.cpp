@@ -10,7 +10,7 @@
 using namespace Upp;
 using namespace xvt;
 
-REGISTER_CONN_INSTANCE("vt520 by chiv", "vt520", SerialConnVT520);
+//REGISTER_CONN_INSTANCE("vt520 by chiv", "vt520", SerialConnVT520);
 
 SerialConnVT520::SerialConnVT520(std::shared_ptr<SerialIo> io)
     : SerialConnVT420(io)

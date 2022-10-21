@@ -15,10 +15,10 @@
 #define ENABLE_H_SCROLLBAR 1
 #define ENABLE_BLINK_TEXT 1
 #define ENABLE_FIXED_LINE_HEIGHT 1
-#define ENABLE_BLANK_LINES_HINT_IN_SELECTION 1
+#define ENABLE_BLANK_LINES_HINT_IN_SELECTION 0
 #define ENABLE_VT_LINE_TRUNCATION 0
 #define ENABLE_THREAD_GUI 0
-static const double kTimeThreshold = 0.08;
+static const double kTimeThreshold = 0.017;
 // register
 using namespace xvt;
 //----------------------------------------------------------------------------------------------
@@ -64,7 +64,6 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
     AddFrame(mSbH);
     mSbH.WhenScroll = [=]() {
         this->UpdatePresentation();
-        Refresh();
     };
 #endif
     // vertical
@@ -79,7 +78,6 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
             mScrollToEnd = false;
         }
         this->UpdatePresentation();
-        Refresh();
     };
     // initialize size
     VTLine vline = VTLine(80, mBlankChar).SetHeight(mFontH);
@@ -92,7 +90,9 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
     // blink timer
     mBlinkTimer.Set(-500, [&]() {
         mBlinkSignal = !mBlinkSignal;
-        PostCallback([=]() { this->UpdatePresentationPos(); });
+        if (mHasBlink) {
+            PostCallback([=]() { this->Refresh(); });
+        }
     });
 #endif
     //
@@ -346,6 +346,7 @@ bool SerialConnVT::ProcessControlSeq(int seq_type, const std::string& p)
     }
     return false;
 }
+//
 void SerialConnVT::RenderSeq(const Seq& seq)
 {
     CHECK_LOCK_VT();
@@ -409,6 +410,14 @@ void SerialConnVT::RenderSeqs(const std::deque<Seq>& seqs)
     for (auto it = seqs.begin(); it != seqs.end(); ++it) {
         RenderSeq(*it);
     }
+}
+void SerialConnVT::RenderSeqs()
+{
+	AUTO_LOCK_VT();
+	if (!mSeqs.empty()) {
+		RenderSeqs(mSeqs); mSeqs.clear();
+		UpdatePresentation();
+	}
 }
 //
 bool SerialConnVT::IsControlSeqPrefix(uint8_t c)
@@ -514,23 +523,15 @@ void SerialConnVT::RxProc()
 {
     std::string raw, texts; // before the loop, define these two vars firstly.
     texts.reserve(32768);
-    std::deque<Seq> seqs;
-    auto t1 = std::chrono::high_resolution_clock::now();
+    std::deque<Seq>& seqs = mSeqs;
     while (!mRxShouldStop) {
         int sz = GetIo()->Available();
         if (sz < 0) {
             PostCallback([=]() { PromptOK(DeQtf(this->ConnName() + ":" + t_("I/O device was disconnected"))); });
             break;
         } else if (sz == 0) {
-            if (!seqs.empty()) {
-                RenderSeqs(seqs); seqs.clear();
-#if ENABLE_THREAD_GUI
-	            Upp::EnterGuiMutex();
-	            this->UpdatePresentation();
-	            Upp::LeaveGuiMutex();
-#else
-                PostCallback([=]() { this->UpdatePresentation(); });
-#endif
+            if (!mSeqs.empty()) {
+                PostCallback([=]() { RenderSeqs(); });
             }
             std::this_thread::sleep_for(std::chrono::duration<double>(kTimeThreshold));
             continue;
@@ -543,6 +544,7 @@ void SerialConnVT::RxProc()
         }
         RefineTheInput(raw);
         //
+        AUTO_LOCK_VT();
         size_t rawp = 0;
         while (rawp < raw.length() && !mRxShouldStop) {
             if (IsControlSeqPrefix((uint8_t)raw[rawp])) { // is prefix of some control sequence
@@ -580,19 +582,6 @@ void SerialConnVT::RxProc()
                 texts.push_back(raw[rawp]);
                 rawp++;
             }
-            auto t2 = std::chrono::high_resolution_clock::now();
-            auto ts = std::chrono::duration<double>(t2 - t1).count();
-            if (ts > kTimeThreshold) {
-                RenderSeqs(seqs); seqs.clear();
-#if ENABLE_THREAD_GUI
-                Upp::EnterGuiMutex();
-	            this->UpdatePresentation();
-	            Upp::LeaveGuiMutex();
-#else
-                PostCallback([=]() { this->UpdatePresentation(); });
-#endif
-                t1 = std::chrono::high_resolution_clock::now();
-            }
         }
         if (!texts.empty()) {
             size_t ep;
@@ -602,6 +591,7 @@ void SerialConnVT::RxProc()
                 seqs.emplace_back(std::move(s));
             }
         }
+        PostCallback([=]() { RenderSeqs(); });
         //
         raw = raw.substr(rawp);
     }
@@ -990,7 +980,7 @@ void SerialConnVT::RenderText(const std::vector<uint32_t>& s)
             // extend the vline
             vline->push_back(chr);
         }
-        mVx++; mPx += GetCharWidth(chr.Code());
+        mVx++;
         if (mVx >= (int)vline->size()) {
             // extend vline
             vline->insert(vline->end(), mVx - (int)vline->size() + 1, mBlankChar);
@@ -1034,12 +1024,17 @@ void SerialConnVT::MouseMove(Point p, dword)
         } else if (p.y > GetSize().cy) {
             mSbV.NextLine();
         }
+#if ENABLE_H_SCROLLBAR
         if (p.x < 0) {
             mSbH.PrevLine();
         } else if (p.x > GetSize().cx) {
             mSbH.NextLine();
         }
-        int lx = mSbH.Get() + p.x, ly = mSbV.Get() + p.y;
+        int lx = mSbH.Get() + p.x;
+#else
+        int lx = p.x;
+#endif
+        int ly = mSbV.Get() + p.y;
         int px, next_px, py, next_py;
         // lx - cursor position.x
         // px - font base position.x
@@ -1059,7 +1054,12 @@ void SerialConnVT::LeftDown(Point p, dword)
     AUTO_LOCK_VT();
     //
     mPressed = true;
-    int lx = mSbH.Get() + p.x, ly = mSbV.Get() + p.y;
+#if ENABLE_H_SCROLLBAR
+    int lx = mSbH.Get() + p.x;
+#else
+    int lx = p.x;
+#endif
+    int ly = mSbV.Get() + p.y;
     int px, next_px, py, next_py;
     Point vpos = LogicToVirtual(lx, ly, px, next_px, py, next_py);
     if (next_px != 0)
@@ -1079,7 +1079,12 @@ void SerialConnVT::LeftDouble(Point p, dword)
 {
     AUTO_LOCK_VT();
     // Select the word under the caret
-    int lx = mSbH.Get() + p.x, ly = mSbV.Get() + p.y;
+#if ENABLE_H_SCROLLBAR
+    int lx = mSbH.Get() + p.x;
+#else
+    int lx = p.x;
+#endif
+    int ly = mSbV.Get() + p.y;
     int px, next_px, py, next_py;
     Point vpos = LogicToVirtual(lx, ly, px, next_px, py, next_py);
     VTLine* vline = this->GetVTLine(vpos.y);
@@ -1137,7 +1142,12 @@ void SerialConnVT::LeftTriple(Point p, dword)
 {
     AUTO_LOCK_VT();
     //
-    int lx = mSbH.Get() + p.x, ly = mSbV.Get() + p.y;
+#if ENABLE_H_SCROLLBAR
+    int lx = mSbH.Get() + p.x;
+#else
+    int lx = p.x;
+#endif
+    int ly = mSbV.Get() + p.y;
     int px, next_px, py, next_py;
     Point vpos = LogicToVirtual(lx, ly, px, next_px, py, next_py);
     VTLine* vline = this->GetVTLine(vpos.y);
@@ -1295,8 +1305,11 @@ bool SerialConnVT::ProcessKeyUp(dword key, dword flags)
 
 bool SerialConnVT::ProcessChar(dword cc)
 {
-    GetIo()->Write(GetCodec()->TranscodeFromUTF32(cc));
-    //
+    if (cc < 0x80) {
+        GetIo()->Write((unsigned char*)&cc, 1);
+    } else {
+        GetIo()->Write(GetCodec()->TranscodeFromUTF32(cc));
+	}
     return true;
 }
 
@@ -1499,7 +1512,9 @@ void SerialConnVT::Layout()
     Size csz = Size(vsz.cx / mFontW, vsz.cy / mFontH);
     //
     mSbV.SetPage(mFontH * csz.cy);
+#if ENABLE_H_SCROLLBAR
     mSbH.SetPage(mFontW * csz.cx);
+#endif
     // update the size of virtual terminal
     ResizeVt(csz);
     // update the size of view
@@ -1639,7 +1654,11 @@ void SerialConnVT::DrawCursor(Draw& draw)
     //
     if (!mShowCursor)
         return;
+#if ENABLE_H_SCROLLBAR
     int px = mPx - mSbH.Get();
+#else
+    int px = mPx;
+#endif
     int py = mPy + (mSbV.GetTotal() - mSbV.Get() - mSbV.GetPage());
     Size usz = GetSize();
     if (px >= 0 && py < usz.cx && py >= 0 && py < usz.cy) {
@@ -1735,6 +1754,7 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
 #endif
 #if ENABLE_BLINK_TEXT
         if (blink) {
+            mHasBlink = true;
             if (mBlinkSignal) {
                 draw.DrawRect(x, y, vchar_cx, line_height, paper_color);
             } else {
@@ -1899,7 +1919,9 @@ void SerialConnVT::UpdatePresentation()
     CHECK_GUI_THREAD();
     //
     this->UpdateVScrollbar();
+#if ENABLE_H_SCROLLBAR
     this->UpdateHScrollbar();
+#endif
     this->Refresh();
 }
 // invoked by Render
@@ -1907,13 +1929,19 @@ void SerialConnVT::DrawVT(Draw& draw)
 {
     CHECK_GUI_THREAD();
     // calculate offset
-    int lx = mSbH.Get(), ly = mSbV.Get();
+#if ENABLE_H_SCROLLBAR
+    int lx = mSbH.Get();
+#else
+    int lx = 0;
+#endif
+    int ly = mSbV.Get();
     int px, next_px, py, next_py;
     Point vpos = LogicToVirtual(lx, ly, px, next_px, py, next_py);
     if (vpos.x < 0 || vpos.y < 0)
         return;
     int lyoff = py - ly;
     //--------------------------------------------------------------
+    mHasBlink = false;
     // draw lines, and calculate the presentation information
     Size usz = GetSize();
     int vy = vpos.y;
@@ -1965,15 +1993,19 @@ void SerialConnVT::DrawVTChar(Draw& draw, int x, int y, const VTChar& c,
 {
     CHECK_GUI_THREAD();
     // UPP begins to support full unicode
-    wchar f[] = {c.Code(), 0};
-    draw.DrawText(x, y, f, font, cr);
+    wchar f[] = { c.Code(), 0 };
+    draw.DrawTextOp(x, y, 0, f, mFont, cr, 1, NULL);
 }
 
 Rect SerialConnVT::GetCaret() const
 {
 	CHECK_GUI_THREAD();
 	if (mEnableCaret && mShowCursor) {
+#if ENABLE_H_SCROLLBAR
 		int px = mPx - mSbH.Get();
+#else
+        int px = mPx;
+#endif
 	    int py = mPy + (mSbV.GetTotal() - mSbV.Get() - mSbV.GetPage());
 	    return Rect(px, py, px+2, py+mFontH);
 	}
