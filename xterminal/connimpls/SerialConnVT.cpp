@@ -18,7 +18,7 @@
 #define ENABLE_BLANK_LINES_HINT_IN_SELECTION 1
 #define ENABLE_VT_LINE_TRUNCATION 0
 #define ENABLE_THREAD_GUI 0
-static const double kTimeThreshold = 0.08;
+static const double kTimeThreshold = 0.017;
 // register
 using namespace xvt;
 //----------------------------------------------------------------------------------------------
@@ -79,7 +79,6 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
             mScrollToEnd = false;
         }
         this->UpdatePresentation();
-        Refresh();
     };
     // initialize size
     VTLine vline = VTLine(80, mBlankChar).SetHeight(mFontH);
@@ -92,7 +91,7 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
     // blink timer
     mBlinkTimer.Set(-500, [&]() {
         mBlinkSignal = !mBlinkSignal;
-        PostCallback([=]() { this->UpdatePresentationPos(); });
+        PostCallback([=]() { this->UpdatePresentation(); });
     });
 #endif
     //
