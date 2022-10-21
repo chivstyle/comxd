@@ -10,7 +10,7 @@ struct FontFaceDisplay : Display {
     virtual void Paint(Draw& w, const Rect& r, const Value& q,
         Color ink, Color paper, dword style) const
     {
-        Font fnt = Font(q, 14);
+        Font fnt = FontZ(q, 12);
         String txt = Font::GetFaceName(q);
         w.DrawRect(r, paper);
         w.DrawText(r.left + 2, r.top + (r.Height() - GetTextSize(txt, fnt).cy) / 2, txt, fnt, ink);
@@ -92,7 +92,7 @@ Font VTOptionsDialog::DefaultFont()
     }
     if (sel < 0)
         sel = 0;
-    return Font(sel, 12);
+    return FontZ(sel, 12);
 }
 
 void VTOptionsDialog::PreviewFont()

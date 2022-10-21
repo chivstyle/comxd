@@ -25,6 +25,7 @@ SerialConnVersatileTerm::SerialConnVersatileTerm(std::shared_ptr<SerialIo> io)
 	mVt.WhenResize = [=]() { this->WhenSizeChanged(mVt.GetPageSize()); };
 	mVt.InlineImages().Hyperlinks().WindowOps();
 	mVt.ShowScrollBar(true);
+	mVt.SetFont(VTOptionsDialog::DefaultFont());
 	// set the color table
 	VTColorTable tbl;
 	mVt.SetColor(TerminalCtrl::COLOR_BLACK, tbl.GetColor(VTColorTable::kColorId_Black));

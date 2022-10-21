@@ -15,10 +15,10 @@
 #define ENABLE_H_SCROLLBAR 1
 #define ENABLE_BLINK_TEXT 1
 #define ENABLE_FIXED_LINE_HEIGHT 1
-#define ENABLE_BLANK_LINES_HINT_IN_SELECTION 1
+#define ENABLE_BLANK_LINES_HINT_IN_SELECTION 0
 #define ENABLE_VT_LINE_TRUNCATION 0
 #define ENABLE_THREAD_GUI 0
-static const double kTimeThreshold = 0.08;
+static const double kTimeThreshold = 0.017;
 // register
 using namespace xvt;
 //----------------------------------------------------------------------------------------------
@@ -90,13 +90,13 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
     // blink timer
     mBlinkTimer.Set(-500, [&]() {
         mBlinkSignal = !mBlinkSignal;
-        PostCallback([=]() {
-#if ENABLE_FIXED_LINE_HEIGHT == 0
-            this->UpdatePresentationPos();
-#else
-            this->Refresh();
-#endif
-        });
+<<<<<<< HEAD
+        PostCallback([=]() { this->UpdatePresentation(); });
+=======
+        if (mHasBlink) {
+            PostCallback([=]() { this->Refresh(); });
+        }
+>>>>>>> 6a466893cc16fa2a2f0512cdb76185a1d5487b3b
     });
 #endif
     //
@@ -350,6 +350,7 @@ bool SerialConnVT::ProcessControlSeq(int seq_type, const std::string& p)
     }
     return false;
 }
+//
 void SerialConnVT::RenderSeq(const Seq& seq)
 {
     CHECK_LOCK_VT();
@@ -376,6 +377,7 @@ void SerialConnVT::RenderSeq(const Seq& seq)
     if (ProcessOverflowChars(seq)) {
         flags |= 0x2;
     } // fix vx/vy
+    if (seq.Type == Seq::CTRL_SEQ) {
     // Update vx/vy
     if (mPx != px && mPy != py) {
         UpdateDataPos();
@@ -390,6 +392,7 @@ void SerialConnVT::RenderSeq(const Seq& seq)
         UpdateDataPos(0x2);
         vy = mVy;
         flags |= 0x4;
+    }
     }
     // update px/py
     if (mVx != vx && mVy != vy) {
@@ -583,8 +586,6 @@ void SerialConnVT::RxProc()
                 texts.push_back(raw[rawp]);
                 rawp++;
             }
-
-
         }
         if (!texts.empty()) {
             size_t ep;
@@ -1757,6 +1758,7 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
 #endif
 #if ENABLE_BLINK_TEXT
         if (blink) {
+            mHasBlink = true;
             if (mBlinkSignal) {
                 draw.DrawRect(x, y, vchar_cx, line_height, paper_color);
             } else {
@@ -1810,11 +1812,7 @@ void SerialConnVT::UpdateDataPos(int flags)
     } else if (flags & 0x1) {
         mVx = this->LogicToVirtual(mLines[mVy], mPx, px, next_px, false);
     } else if (flags & 0x2) {
-#if ENABLE_FIXED_LINE_HEIGHT
-        mVy = mPy / mFontH;
-#else
-        this->LogicToVirtual(mLines, 0, mPy, px, next_px, py, next_py, false).y;
-#endif
+        mVy = this->LogicToVirtual(mLines, 0, mPy, px, next_px, py, next_py, false).y;
     }
 }
 
@@ -1947,6 +1945,7 @@ void SerialConnVT::DrawVT(Draw& draw)
         return;
     int lyoff = py - ly;
     //--------------------------------------------------------------
+    mHasBlink = false;
     // draw lines, and calculate the presentation information
     Size usz = GetSize();
     int vy = vpos.y;
