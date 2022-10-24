@@ -18,7 +18,7 @@
 #define ENABLE_BLANK_LINES_HINT_IN_SELECTION 1
 #define ENABLE_VT_LINE_TRUNCATION 0
 #define ENABLE_THREAD_GUI 0
-static const double kTimeThreshold = 0.08;
+static const double kTimeThreshold = 0.017;
 // register
 using namespace xvt;
 //----------------------------------------------------------------------------------------------
@@ -1193,9 +1193,10 @@ void SerialConnVT::LeftUp(Point p, dword)
 
 void SerialConnVT::Paste()
 {
-    String text = ReadClipboardUnicodeText().ToString();
-    text.Replace("\r\n", "\n");
-    GetIo()->Write(text.ToStd());
+    WString text = ReadClipboardUnicodeText();
+    static_assert(sizeof(wchar) == sizeof(uint32_t), "Please update your upp to latest version");
+    String out = GetCodec()->TranscodeFromUTF32((uint32_t*)text.Begin(), text.GetLength());
+    GetIo()->Write((unsigned char*)out.Begin(), out.GetLength());
 }
 
 void SerialConnVT::Copy()
