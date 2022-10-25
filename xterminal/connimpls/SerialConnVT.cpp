@@ -63,7 +63,8 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
     mSbH.Set(0);
     AddFrame(mSbH);
     mSbH.WhenScroll = [=]() {
-        this->UpdatePresentation();
+        this->UpdatePresentationPos();
+        this->Refresh();
     };
 #endif
     // vertical
@@ -77,7 +78,8 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
         } else {
             mScrollToEnd = false;
         }
-        this->UpdatePresentation();
+        this->UpdatePresentationPos();
+        this->Refresh();
     };
     // initialize size
     VTLine vline = VTLine(80, mBlankChar).SetHeight(mFontH);
@@ -2000,7 +2002,7 @@ void SerialConnVT::DrawVTChar(Draw& draw, int x, int y, const VTChar& c,
     CHECK_GUI_THREAD();
     // UPP begins to support full unicode
     wchar f[] = { c.Code(), 0 };
-    draw.DrawTextOp(x, y, 0, f, mFont, cr, 1, NULL);
+    draw.DrawText(x, y, 0, f, mFont, cr, 1, NULL);
 }
 
 Rect SerialConnVT::GetCaret() const
