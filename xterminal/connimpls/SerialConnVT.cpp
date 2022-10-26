@@ -963,7 +963,7 @@ void SerialConnVT::RenderText(const std::vector<uint32_t>& s)
         VTChar chr = RemapCharacter(s[k], mCharset);
         chr.SetStyle(mStyle);
         if (mWrapLine) {
-            if (mVx >= csz.cx || mPx >= mFontW * csz.cx) { // wrap line
+            if (mVx >= csz.cx || mPx >= mFontW*csz.cx) { // wrap line
                 mLines[mVy].HasSuccessiveLines(true);
                 // insert or move to next line.
                 mVy++;
@@ -985,7 +985,7 @@ void SerialConnVT::RenderText(const std::vector<uint32_t>& s)
             // extend the vline
             vline->push_back(chr);
         }
-        mVx++;
+        mVx++; mPx += GetCharWidth(chr.Code());
         if (mVx >= (int)vline->size()) {
             // extend vline
             vline->insert(vline->end(), mVx - (int)vline->size() + 1, mBlankChar);
