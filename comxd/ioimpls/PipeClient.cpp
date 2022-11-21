@@ -137,18 +137,23 @@ size_t NamedPipeClient::Write(const unsigned char* buf, size_t sz)
 bool NamedPipeClient::Start()
 {
     Vector<char16> dname = ToUtf16(mName); dname.push_back(0);
-    mPipe = CreateFileW(
-         (const WCHAR*)dname.begin(),   // pipe name
-         GENERIC_READ |  // read and write access
-         GENERIC_WRITE,
-         0,              // no sharing
-         NULL,           // default security attributes
-         OPEN_EXISTING,  // opens existing pipe
-         FILE_FLAG_OVERLAPPED,   // default attributes
-         NULL);          // no template file
-    if (mPipe == INVALID_HANDLE_VALUE) {
-        return false;
+    // try
+    for (int k = 0; k < 3; ++k) {
+	    mPipe = CreateFileW(
+	         (const WCHAR*)dname.begin(),   // pipe name
+	         GENERIC_READ |  // read and write access
+	         GENERIC_WRITE,
+	         0,              // no sharing
+	         NULL,           // default security attributes
+	         OPEN_EXISTING,  // opens existing pipe
+	         FILE_FLAG_OVERLAPPED,   // default attributes
+	         NULL);          // no template file
+	    if (mPipe != INVALID_HANDLE_VALUE) {
+	        break;
+	    }
+	    Sleep(100);
     }
+    if (mPipe == INVALID_HANDLE_VALUE) return false;
     // we need to wait for the clients
     mEventIn = CreateEvent(NULL, TRUE, TRUE, NULL);
     mEventOut = CreateEvent(NULL, TRUE, TRUE, NULL);

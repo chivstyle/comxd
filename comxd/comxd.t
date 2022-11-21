@@ -147,7 +147,8 @@ zhCN("\351\207\215\346\226\260\350\277\236\346\216\245\345\210\260I/O\350\256\27
 T_("Welcom to comxd!")
 zhCN("\346\254\242\350\277\216\344\275\277\347\224\250comxd!")
 
-// Terminal.cpp
+
+// PACKAGE 'Terminal' FILE 'Terminal.cpp'
 
 T_("Options")
 zhCN("")
@@ -237,7 +238,7 @@ T_("Lazy resize")
 zhCN("")
 
 
-// Colors.cpp
+// PACKAGE 'Terminal' FILE 'Colors.cpp'
 
 T_("Bad hash color text format")
 zhCN("")

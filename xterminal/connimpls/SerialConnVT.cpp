@@ -1338,7 +1338,8 @@ bool SerialConnVT::Key(dword key, int)
             processed = ProcessKeyDown(d_key, flags);
         }
     } else {
-        if (key < 0xffff) {
+        // code point
+        if (key <= 0x10ffff) {
             processed = ProcessKeyDown(key, flags);
             if (!processed) {
                 // key is UCS-2, not UTF-16, so we can't support full UNICODE. If the upp

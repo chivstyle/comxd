@@ -211,8 +211,6 @@ protected:
 
 GUI_APP_MAIN
 {
-    Upp::SetLanguage(GetSystemLNG());
-    //
     MainWindow win;
     win.SetRect(0, 0, 800, 600);
     win.Run();
