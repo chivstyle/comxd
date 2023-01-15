@@ -10,6 +10,7 @@
 class SerialPort : public SerialIo {
 public:
     SerialPort(std::shared_ptr<serial::Serial> serial);
+    static const char* kDeviceType;
     //
     bool Start() override;
     void Stop() override;
@@ -53,6 +54,7 @@ public:
         }
         return name;
     }
+    std::string DeviceType() const { return kDeviceType; }
     //
     serial::Serial* GetNativeDevice() const { return mSerial.get(); }
     //

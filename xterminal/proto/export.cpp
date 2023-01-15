@@ -31,3 +31,7 @@ int ProgressDialog::Run(bool modal)
 {
 	return mImpl->Run(modal);
 }
+void ProgressDialog::Title(const Upp::String& title)
+{
+	mImpl->Title(title);
+}

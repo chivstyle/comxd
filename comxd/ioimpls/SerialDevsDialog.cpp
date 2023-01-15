@@ -12,7 +12,7 @@ class __class_to_create_conn_serial {
 public:
     __class_to_create_conn_serial()
     {
-        ConnCreateFactory::Inst()->RegisterInstanceFunc("Serial", "Serial Port", [=]() { return comxd::new_serial(); }, [=]() {
+        ConnCreateFactory::Inst()->RegisterInstanceFunc(SerialPort::kDeviceType, "Serial Port", [=]() { return comxd::new_serial(); }, [=]() {
             SerialDevsDialog d;
             return d.RequestConn();
         });

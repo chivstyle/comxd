@@ -8,6 +8,8 @@
 
 using namespace Upp;
 
+const char* NamedPipeServer::kDeviceType = "PipeServer";
+
 NamedPipeServer::NamedPipeServer(const String& pipe_name, int in_buffer_sz, int out_buffer_sz,
     int timeout, int number_of_instances)
     : mName(pipe_name)

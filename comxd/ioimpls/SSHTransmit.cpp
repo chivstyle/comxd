@@ -39,7 +39,7 @@ void SSHPort::Upload()
         d.SetRect(0, 0, Zx(324), Zy(36));
         d.Add(es.HSizePosZ(12, 76).TopPosZ(8, 19));
         d.Add(btn_ok.RightPosZ(12, 56).TopPosZ(8, 20));
-        d.Acceptor(btn_ok, IDOK);
+        btn_ok.Ok() << d.Acceptor(IDOK);
         d.WhenClose = [&]() {
             d.RejectBreak(IDCANCEL);
         };
@@ -78,6 +78,8 @@ void SSHPort::Upload()
                 success = scp.SaveFile(remote, fin);
                 PostCallback([&]() { bar.Close(); });
             });
+            String title = t_("Uploading:") + filename;
+            bar.Title(title);
             bar.Run(true);
             job.join();
             if (!should_stop) {
@@ -103,7 +105,7 @@ void SSHPort::Download()
         d.SetRect(0, 0, Zx(324), Zy(36));
         d.Add(es.HSizePosZ(12, 76).TopPosZ(8, 19));
         d.Add(btn_ok.RightPosZ(12, 56).TopPosZ(8, 20));
-        d.Acceptor(btn_ok, IDOK);
+        btn_ok.Ok() << d.Acceptor(IDOK);
         d.WhenClose = [&]() {
             d.RejectBreak(IDCANCEL);
         };
@@ -144,6 +146,8 @@ void SSHPort::Download()
                 success = scp.LoadFile(fout, remote);
                 PostCallback([&]() { bar.Close(); });
             });
+            String title = t_("Downloading:") + filename;
+            bar.Title(title);
             bar.Run(true);
             job.join();
             if (!should_stop) {

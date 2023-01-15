@@ -16,6 +16,7 @@ class NamedPipeClient : public SerialIo {
 public:
 	NamedPipeClient(const Upp::String& pipe_name);
 	~NamedPipeClient();
+	static const char* kDeviceType;
 	
 	bool Start();
 	void Stop();
@@ -23,6 +24,7 @@ public:
     size_t Read(unsigned char* buf, size_t sz);
     size_t Write(const unsigned char* buf, size_t sz);
     std::string DeviceName() const;
+    std::string DeviceType() const { return kDeviceType; }
     
 protected:
     void RxProc();

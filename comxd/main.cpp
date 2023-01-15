@@ -119,6 +119,8 @@ protected:
     ToolBar mToolbar;
     StatusBar mStatusbar;
     RichTextCtrl mAbout;
+    //
+    static const int kConnAttrType = 0;
     // Add a toolbar for window
     void MainToolbar(Bar& bar)
     {
@@ -136,14 +138,10 @@ protected:
                         auto btn_close = new TabCloseBtn(conn, &mDevsTab, &mAbout);
                         btn_close->SetImage(comxd::close_little());
                         btn_close->SetRect(0, 0, 16, 16);
-                        mDevsTab.Add(conn->SizePos(), it->second.Icon(), conn->ConnName()).SetCtrl(btn_close);
-#if 0
-                        conn->WhenTitle = [=](String title) {
-                            auto item = FindConnItem(conn);
-                            if (item)
-                                item->Text(title);
+                        TabCtrl::Item& item = mDevsTab.Add(conn->SizePos(), it->second.Icon(), conn->ConnName()).Control(btn_close);
+                        conn->WhenException = [=, &item]() {
+                            item.SetImage(comxd::exception());
                         };
-#endif
                         // set current to conn
                         mDevsTab.Set(*conn);
                         //
@@ -171,7 +169,7 @@ protected:
         int cnt = mDevsTab.GetCount();
         for (int i = 0; i < cnt; ++i) {
             TabCtrl::Item& item = mDevsTab.GetItem(i);
-            auto conn = dynamic_cast<SerialConn*>(item.GetSlave());
+            auto conn = static_cast<SerialConn*>(item.GetSlave());
             if (conn == conn_)
                 return &item;
         }
@@ -187,12 +185,19 @@ protected:
                     this->Disable();
                     conn->Stop();
                     conn->GetIo()->Stop();
-                    if (!conn->GetIo()->Start()) {
-                        String text = t_("Can't start the I/O deivce:");
-                        text += conn->GetIo()->DeviceName();
-                        PromptOK(Upp::DeQtf(text));
-                    } else {
+                    if (conn->GetIo()->Start()) {
                         conn->Start();
+                        TabCtrl::Item* item = FindConnItem(conn);
+                        if (item) {
+                            auto& conns = ConnCreateFactory::Inst()->GetSupportedConnIntroductions();
+                            String type = conn->GetIo()->DeviceType();
+                            auto it = conns.find(type);
+                            if (it != conns.end()) {
+                                item->SetImage(it->second.Icon());
+                            }
+                        }
+                    } else {
+                        // the user close the I/O, do nothing here
                     }
                     this->Enable();
 	            }).Help(t_("Reconnect to the I/O device"));
@@ -211,6 +216,7 @@ protected:
 
 GUI_APP_MAIN
 {
+	SetLanguage(GetSystemLNG());
     MainWindow win;
     win.SetRect(0, 0, 800, 600);
     win.Run();

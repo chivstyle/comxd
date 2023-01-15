@@ -505,7 +505,7 @@ void SerialConnRaw::RxProc()
     while (!mRxShouldStop) {
         int sz = GetIo()->Available();
         if (sz < 0) {
-            PostCallback([=]() { PromptOK(DeQtf(this->ConnName() + ":" + t_("I/O device was disconnected"))); });
+            PostCallback([=]() { WhenException(); });
             break;
         } else if (sz == 0) {
             std::this_thread::sleep_for(std::chrono::duration<double>(0.01));

@@ -25,6 +25,7 @@ public:
     virtual size_t Read(unsigned char* buff, size_t sz) = 0;
     virtual size_t Write(const unsigned char* buff, size_t sz) = 0;
     virtual std::string DeviceName() const = 0;
+    virtual std::string DeviceType() const = 0;
     // help
     std::vector<unsigned char> ReadRaw(size_t sz);
     std::string Read(size_t sz);

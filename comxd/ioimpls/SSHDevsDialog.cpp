@@ -16,7 +16,7 @@ class __class_to_create_conn_ssh {
 public:
     __class_to_create_conn_ssh()
     {
-        ConnCreateFactory::Inst()->RegisterInstanceFunc("SSH", "SSH Shell", [=]() { return comxd::new_ssh(); }, [=]() {
+        ConnCreateFactory::Inst()->RegisterInstanceFunc(SSHPort::kDeviceType, "SSH Shell", [=]() { return comxd::new_ssh(); }, [=]() {
             SSHDevsDialog d;
             return d.RequestConn();
         });

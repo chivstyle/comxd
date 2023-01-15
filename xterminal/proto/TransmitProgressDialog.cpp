@@ -19,7 +19,7 @@ void TransmitProgressDialog::SetTotal(int64 total)
 
 void TransmitProgressDialog::Update(int64 count, double tx_rate)
 {
-	int curr = count * 1000 / mTotal;
+	int curr = int(count * 1000 / mTotal);
 	mProgress.Set(curr, 1000);
     // tx rate
     char buff[256]; // 256 is large enough for double.2

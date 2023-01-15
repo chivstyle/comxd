@@ -8,6 +8,8 @@
 
 using namespace Upp;
 
+const char* NamedPipeClient::kDeviceType = "PipeClient";
+
 NamedPipeClient::NamedPipeClient(const String& pipe_name)
     : mName(pipe_name)
     , mPipe(INVALID_HANDLE_VALUE)

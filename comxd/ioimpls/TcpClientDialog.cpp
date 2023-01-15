@@ -16,7 +16,7 @@ class __class_to_create_conn_tcp {
 public:
     __class_to_create_conn_tcp()
     {
-        ConnCreateFactory::Inst()->RegisterInstanceFunc("TcpClient", "TCP Client", [=]() { return comxd::tcp_client(); }, [=]() {
+        ConnCreateFactory::Inst()->RegisterInstanceFunc(TcpClient::kDeviceType, "TCP Client", [=]() { return comxd::tcp_client(); }, [=]() {
             TcpClientDialog d;
             return d.RequestConn();
         });

@@ -22,10 +22,7 @@ public:
     //
     void SetCodec(const char* codec_name);
     //
-    Upp::String ConnName() const
-    {
-        return mIo->DeviceName();
-    }
+    Upp::String ConnName() const { return mIo->DeviceName(); }
     void SetConnDescription(const Upp::String& desc) { mDesc = desc; }
     const Upp::String& GetConnDescription() const { return mDesc; }
     void SetTitle(const Upp::String& title) { mTitle = title; }
@@ -38,6 +35,7 @@ public:
     Upp::Event<Upp::Bar&> WhenUsrBar;
     Upp::Event<Upp::String> WhenTitle;
     Upp::Event<Upp::String> WhenWarning;
+    Upp::Event<> WhenException;
 protected:
     std::shared_ptr<SerialIo> mIo;
     std::shared_ptr<Codec> mCodec;

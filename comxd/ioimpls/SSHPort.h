@@ -15,6 +15,7 @@ class SSHPort : public SerialIo {
 public:
     SSHPort(std::shared_ptr<Upp::SshSession> session, Upp::String host, int port, Upp::String user, Upp::String term = "vt100");
     virtual ~SSHPort();
+    static const char* kDeviceType;
     //
     bool Start();
     void Stop();
@@ -25,6 +26,7 @@ public:
     size_t Read(unsigned char* buf, size_t sz);
     size_t Write(const unsigned char* buf, size_t sz);
     std::string DeviceName() const { return "SSH/" + mHost.ToStd(); }
+    std::string DeviceType() const { return kDeviceType; }
     // in chars
     void SetConsoleSize(const Upp::Size& csz);
     //
@@ -50,5 +52,6 @@ private:
     mutable std::mutex mLock;
     std::vector<unsigned char> mRxBuffer;
     volatile bool mShouldExit;
+    volatile bool mRunning;
     std::thread mJob;
 };

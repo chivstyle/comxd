@@ -9,6 +9,7 @@ SerialPort::SerialPort(std::shared_ptr<serial::Serial> serial)
     : mSerial(serial)
 {
 }
+const char* SerialPort::kDeviceType = "Serial";
 
 bool SerialPort::Start()
 {

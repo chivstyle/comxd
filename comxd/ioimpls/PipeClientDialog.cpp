@@ -16,7 +16,7 @@ class __class_to_create_conn_pipeclient {
 public:
     __class_to_create_conn_pipeclient()
     {
-        ConnCreateFactory::Inst()->RegisterInstanceFunc("PipeC", "Pipe Client", [=]() { return comxd::pipe_client(); }, [=]() {
+        ConnCreateFactory::Inst()->RegisterInstanceFunc(NamedPipeClient::kDeviceType, "Pipe Client", [=]() { return comxd::pipe_client(); }, [=]() {
             PipeClientDialog d;
             return d.RequestConn();
         });

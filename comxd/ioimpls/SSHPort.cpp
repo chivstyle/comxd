@@ -7,6 +7,8 @@
 
 using namespace Upp;
 
+const char* SSHPort::kDeviceType = "SSH";
+
 SSHPort::SSHPort(std::shared_ptr<Upp::SshSession> session, Upp::String host, int port, Upp::String user, Upp::String term)
     : mSession(session)
     , mHost(host)
@@ -14,6 +16,7 @@ SSHPort::SSHPort(std::shared_ptr<Upp::SshSession> session, Upp::String host, int
     , mUser(user)
     , mTerm(term)
     , mShouldExit(false)
+    , mRunning(false)
 {
 	mShell = CreateShell();
 	//
@@ -83,13 +86,19 @@ bool SSHPort::Start()
 	    mShouldExit = false;
 	    if (!mShell) {
 	        SSHDevsDialog d;
-	        d.Reconnect(this);
-	        mShell = CreateShell();
+	        if (!d.Reconnect(this)) {
+			    return false;
+	        }
 	    }
-	    mJob = std::thread([=]() {
-	        mShell->Run(mTerm, 80, 34, Null);
-	    });
 	}
+	// before start the job, set the running to true
+	mRunning = true;
+	// start the job
+    mShell = CreateShell();
+    mJob = std::thread([=]() {
+        mShell->Run(mTerm, 80, 34, Null);
+        mRunning = false;
+    });
     return true;
 }
 
@@ -102,6 +111,7 @@ void SSHPort::SetConsoleSize(const Size& csz)
 
 int SSHPort::Available() const
 {
+	if (!mShell || !mRunning) return -1;
     std::lock_guard<std::mutex> _(mLock);
     return (int)mRxBuffer.size();
 }

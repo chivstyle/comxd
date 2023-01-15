@@ -14,6 +14,7 @@ class TcpClient : public SerialIo {
 public:
 	TcpClient(std::shared_ptr<Upp::TcpSocket> tcp, const Upp::String& host, int port);
 	~TcpClient();
+	static const char* kDeviceType;
 	
 	Upp::String Host() { return mHost; }
 	int Port() { return mPort; }
@@ -25,6 +26,7 @@ public:
     size_t Read(unsigned char* buf, size_t sz);
     size_t Write(const unsigned char* buf, size_t sz);
     std::string DeviceName() const;
+    std::string DeviceType() const { return kDeviceType; }
     
 protected:
 	std::shared_ptr<Upp::TcpSocket> mTcp;

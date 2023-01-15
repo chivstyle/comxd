@@ -17,6 +17,7 @@ public:
 	NamedPipeServer(const Upp::String& pipe_name, int in_buffer_sz, int out_buffer_sz,
         int timeout, int number_of_instances);
 	~NamedPipeServer();
+	static const char* kDeviceType;
 	
 	bool Start();
 	void Stop();
@@ -24,6 +25,7 @@ public:
     size_t Read(unsigned char* buf, size_t sz);
     size_t Write(const unsigned char* buf, size_t sz);
     std::string DeviceName() const;
+    std::string DeviceType() const { return kDeviceType; }
     
 protected:
     void RxProc();

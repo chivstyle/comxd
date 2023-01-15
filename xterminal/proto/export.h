@@ -9,6 +9,7 @@ class ProgressDialog {
 public:
 	ProgressDialog();
 	virtual ~ProgressDialog();
+	void Title(const Upp::String& title);
 	void SetTotal(Upp::int64);
 	void Update(Upp::int64 bytes, double rate);
 	void Close();

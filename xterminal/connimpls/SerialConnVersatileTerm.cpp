@@ -142,7 +142,7 @@ void SerialConnVersatileTerm::RxProc()
     while (!mRxShouldStop) {
         int sz = GetIo()->Available();
         if (sz < 0) {
-            Upp::PostCallback([=]() { PromptOK(DeQtf(this->ConnName() + ":" + t_("I/O device was disconnected"))); });
+            Upp::PostCallback([=]() { WhenException(); });
             break;
         } else if (sz == 0) {
             std::this_thread::sleep_for(std::chrono::duration<double>(0.001));

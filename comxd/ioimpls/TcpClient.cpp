@@ -8,6 +8,7 @@
 
 using namespace Upp;
 
+const char* TcpClient::kDeviceType = "TcpClient";
 
 TcpClient::TcpClient(std::shared_ptr<Upp::TcpSocket> tcp, const Upp::String& host, int port)
     : mTcp(tcp)
