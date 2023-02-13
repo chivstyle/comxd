@@ -203,7 +203,7 @@ void SerialDevsDialog::CreateConn()
             (serial::parity_t)mParity.GetData().To<int>(),
             (serial::stopbits_t)mStopBits.GetData().To<int>(),
             (serial::flowcontrol_t)mFlowCtrl.GetData().To<int>());
-        if (serial) {
+        if (serial && serial->isOpen()) {
             auto port = std::make_shared<SerialPort>(serial);
             port->Start();
             SerialConn* conn = ConnFactory::Inst()->CreateInst(~mTypes, port);

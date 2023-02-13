@@ -4,6 +4,8 @@ uses
 	Core/SSH,
 	TerminalCtrl/Terminal;
 
+library(WIN32) icu;
+
 include
 	.;
 
@@ -50,6 +52,8 @@ file
 	codec/CodecLatin1.h,
 	codec/CodecUTF8.cpp,
 	codec/CodecUTF8.h,
+	codec\CodecGB18030.cpp,
+	codec\CodecGB18030.h,
 	Codec.cpp,
 	connimpls\Charset.h,
 	connimpls\InUsedModes.cpp,
