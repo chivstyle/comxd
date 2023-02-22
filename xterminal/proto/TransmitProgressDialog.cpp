@@ -21,10 +21,25 @@ void TransmitProgressDialog::Update(int64 count, double tx_rate)
 {
 	int curr = int(count * 1000 / mTotal);
 	mProgress.Set(curr, 1000);
+	// human readable
+	std::string unit;
+	double rate;
+	if (tx_rate < 1024.) {
+		unit = "B/s";
+	} else if (tx_rate < 1024*1024.) {
+		rate = tx_rate / 1024;
+		unit = "KiB/s";
+	} else if (tx_rate < 1024*1024*1024.) {
+		rate = tx_rate / 1024 / 1024;
+		unit = "MiB/s";
+	} else {
+		rate = tx_rate / 1024 / 1024 / 1024;
+		unit = "GiB/s";
+	}
     // tx rate
     char buff[256]; // 256 is large enough for double.2
-    sprintf(buff, "%.2lf", tx_rate / 1024);
-    mTxRate.SetText((std::string(t_("Tx Rate:")) + buff + "KiB/s").c_str());
+    sprintf(buff, "%.2lf", rate);
+    mTxRate.SetText((std::string(t_("Tx Rate:")) + buff + unit).c_str());
     // left time
     if (tx_rate == 0.) tx_rate = 1.;
     double time = (mTotal - count) / tx_rate;
