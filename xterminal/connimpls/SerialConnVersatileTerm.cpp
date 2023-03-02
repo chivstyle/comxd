@@ -85,7 +85,9 @@ void SerialConnVersatileTerm::InstallUserActions()
            TextCodecsDialog d(GetCodec()->GetName().c_str());
            int ret = d.Run();
            if (ret == IDOK) {
+               mMtx.Enter();
                this->SetCodec(d.GetCodecName());
+               mMtx.Leave();
                Refresh();
            }
         }).Help(t_("Select a text codec"));
@@ -150,10 +152,12 @@ void SerialConnVersatileTerm::RxProc()
         }
         auto buff = GetIo()->ReadRaw(sz);
         // Transcode to UTF8
-        auto text = this->GetCodec()->TranscodeFromUTF8(buff.data(), buff.size());
         mMtx.Enter();
+        // we should protect codec
+        auto text = this->GetCodec()->TranscodeToUTF8(buff.data(), buff.size());
         mBuffer.push_back(text);
         mMtx.Leave();
+        //
         PostCallback([=]() {
             mMtx.Enter();
             for (size_t k = 0; k < mBuffer.size(); ++k) {

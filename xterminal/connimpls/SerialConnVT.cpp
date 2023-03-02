@@ -194,6 +194,7 @@ void SerialConnVT::InstallUserActions()
            TextCodecsDialog d(GetCodec()->GetName().c_str());
            int ret = d.Run();
            if (ret == IDOK) {
+               AUTO_LOCK_VT();
                this->SetCodec(d.GetCodecName());
                Refresh();
            }
@@ -585,8 +586,6 @@ void SerialConnVT::RxProc()
                 texts.push_back(raw[rawp]);
                 rawp++;
             }
-
-
         }
         if (!texts.empty()) {
             size_t ep;
