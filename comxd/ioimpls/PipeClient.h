@@ -20,6 +20,7 @@ public:
 	
 	bool Start();
 	void Stop();
+	bool Reconnect();
 	int Available() const;
     size_t Read(unsigned char* buf, size_t sz);
     size_t Write(const unsigned char* buf, size_t sz);

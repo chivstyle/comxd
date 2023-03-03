@@ -16,6 +16,7 @@ public:
     //
     virtual bool Start() { return true; }
     virtual void Stop() { }
+    virtual bool Reconnect() = 0;
     /// Was data available?
     /// @return
     ///  - <0 Error, device was corrupted

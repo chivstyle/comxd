@@ -206,4 +206,10 @@ bool NamedPipeServer::Start()
     return true;
 }
 
+bool NamedPipeServer::Reconnect()
+{
+    Stop();
+    return Start();
+}
+
 #endif

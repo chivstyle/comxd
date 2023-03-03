@@ -141,6 +141,8 @@ void SerialConnVersatileTerm::InstallUserActions()
 // receiver
 void SerialConnVersatileTerm::RxProc()
 {
+    std::vector<unsigned char> raw;
+    raw.reserve(32768);
     while (!mRxShouldStop) {
         int sz = GetIo()->Available();
         if (sz < 0) {
@@ -151,10 +153,16 @@ void SerialConnVersatileTerm::RxProc()
             continue;
         }
         auto buff = GetIo()->ReadRaw(sz);
+        raw.insert(raw.end(), buff.begin(), buff.end());
+        if (raw.size() > 32768) {
+            raw.clear();
+        }
         // Transcode to UTF8
         mMtx.Enter();
         // we should protect codec
-        auto text = this->GetCodec()->TranscodeToUTF8(buff.data(), buff.size());
+        size_t ep;
+        auto text = this->GetCodec()->TranscodeToUTF8(raw.data(), raw.size(), &ep);
+        raw.erase(raw.begin(), raw.begin() + ep);
         mBuffer.push_back(text);
         mMtx.Leave();
         //
@@ -183,4 +191,7 @@ void SerialConnVersatileTerm::Stop()
     if (mRxThr.joinable()) {
         mRxThr.join();
     }
+    // ugly, why should we Update here? Flush the commands to avoid
+    // callback after the vt was destroyed.
+    mVt.Update();
 }

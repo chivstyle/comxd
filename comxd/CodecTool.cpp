@@ -85,7 +85,8 @@ void CodecTool::Genereate()
 	int code = mOutputFmt.GetKey(mOutputFmt.GetIndex());
 	Codec* codec = CodecFactory::Inst()->CreateInst((String)mOutputEncoding.GetData());
 	if (codec) {
-		std::string bit = codec->TranscodeFromUTF8((const unsigned char*)input.data(), input.length());
+	    size_t ep;
+		std::string bit = codec->TranscodeFromUTF8((const unsigned char*)input.data(), input.length(), &ep);
 		switch (code) {
 		case OutputFormat::FC_C:
 			mOutput.SetData(Generate_C(bit));

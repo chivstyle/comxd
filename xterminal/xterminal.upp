@@ -6,6 +6,9 @@ uses
 
 library(WIN32) icu;
 
+options
+	-DWITHOUT_ICU;
+
 include
 	.;
 

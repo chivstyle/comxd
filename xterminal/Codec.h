@@ -105,18 +105,18 @@ public:
     //
     const std::string& GetName() const { return mName; }
     void SetName(const char* name) { mName = name; }
-    // Raw to UTF-32
-    virtual std::vector<uint32_t> TranscodeToUTF32(const unsigned char* data, size_t sz, size_t& ep) = 0;
-    // Raw to UTF-8
-    virtual std::string TranscodeToUTF8(const unsigned char* data, size_t sz) = 0;
-    // UTF-32 To this
+    // current to UTF-32
+    virtual std::vector<uint32_t> TranscodeToUTF32(const unsigned char* data, size_t sz, size_t* ep) = 0;
+    // current to UTF-8
+    virtual std::string TranscodeToUTF8(const unsigned char* data, size_t sz, size_t* ep) = 0;
+    // UTF-32 To current
     virtual std::string TranscodeFromUTF32(const uint32_t* data, size_t sz) = 0;
     inline std::string TranscodeFromUTF32(const uint32_t& cc)
     {
         return TranscodeFromUTF32(&cc, 1);
     }
-    //
-    virtual std::string TranscodeFromUTF8(const unsigned char* data, size_t sz) = 0;
+    // UTF-8 to current
+    virtual std::string TranscodeFromUTF8(const unsigned char* data, size_t sz, size_t* ep) = 0;
     //
 private:
     std::string mName;

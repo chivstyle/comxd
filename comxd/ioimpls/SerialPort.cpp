@@ -13,14 +13,28 @@ const char* SerialPort::kDeviceType = "Serial";
 
 bool SerialPort::Start()
 {
-	if (!mSerial->isOpen()) {
-		SerialDevsDialog d;
-		return d.Reconnect(this);
-	}
-	return true;
+    try {
+        if (!mSerial->isOpen()) {
+            mSerial->open();
+        }
+        return true;
+    } catch (const std::exception& ex) {
+        (void)ex;
+    }
+    return false;
 }
 
 void SerialPort::Stop()
 {
 	mSerial->close();
+}
+
+bool SerialPort::Reconnect()
+{
+    Stop();
+    //
+    SerialDevsDialog d;
+	if (d.Reconnect(this)) {
+	    return Start();
+	}
 }

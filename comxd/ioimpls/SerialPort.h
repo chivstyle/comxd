@@ -14,6 +14,7 @@ public:
     //
     bool Start() override;
     void Stop() override;
+    bool Reconnect() override;
     //
     int Available() const override
     {

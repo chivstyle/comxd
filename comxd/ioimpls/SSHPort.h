@@ -19,6 +19,7 @@ public:
     //
     bool Start();
     void Stop();
+    bool Reconnect();
     //
     Upp::SshShell* CreateShell();
     //

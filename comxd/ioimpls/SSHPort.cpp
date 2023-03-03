@@ -10,7 +10,8 @@ using namespace Upp;
 const char* SSHPort::kDeviceType = "SSH";
 
 SSHPort::SSHPort(std::shared_ptr<Upp::SshSession> session, Upp::String host, int port, Upp::String user, Upp::String term)
-    : mSession(session)
+    : mShell(nullptr)
+    , mSession(session)
     , mHost(host)
     , mPort(port)
     , mUser(user)
@@ -18,8 +19,6 @@ SSHPort::SSHPort(std::shared_ptr<Upp::SshSession> session, Upp::String host, int
     , mShouldExit(false)
     , mRunning(false)
 {
-	mShell = CreateShell();
-	//
 	WhenUsrBar = [=](Bar& bar) {
 		bar.Add("Upload", comxd::upload(), [=]() {
 			Upload();
@@ -80,21 +79,27 @@ void SSHPort::Stop()
 	}
 }
 
+bool SSHPort::Reconnect()
+{
+    Stop();
+    //
+    SSHDevsDialog d;
+    if (d.Reconnect(this)) {
+        return Start();
+    }
+}
+
 bool SSHPort::Start()
 {
-	if (!mJob.joinable()) {
-	    mShouldExit = false;
-	    if (!mShell) {
-	        SSHDevsDialog d;
-	        if (!d.Reconnect(this)) {
-			    return false;
-	        }
-	    }
-	}
+    if (mShell) {
+        return true;
+    }
 	// before start the job, set the running to true
 	mRunning = true;
-	// start the job
+	// create a shell
     mShell = CreateShell();
+    // create the job
+    mShouldExit = false;
     mJob = std::thread([=]() {
         mShell->Run(mTerm, 80, 34, Null);
         mRunning = false;

@@ -181,13 +181,13 @@ protected:
         if (mDevsTab.GetCount()) {
             auto conn = dynamic_cast<SerialConn*>(mDevsTab.GetItem(mDevsTab.Get()).GetSlave());
             if (conn) {
+                TabCtrl::Item* item = FindConnItem(conn);
                 bar.Add(t_("Reconnect"), comxd::reconnect(), [=]() {
                     this->Disable();
                     conn->Stop();
-                    conn->GetIo()->Stop();
-                    if (conn->GetIo()->Start()) {
+                    // restart the I/O
+                    if (conn->GetIo()->Reconnect()) {
                         conn->Start();
-                        TabCtrl::Item* item = FindConnItem(conn);
                         if (item) {
                             auto& conns = ConnCreateFactory::Inst()->GetSupportedConnIntroductions();
                             String type = conn->GetIo()->DeviceType();
@@ -197,7 +197,8 @@ protected:
                             }
                         }
                     } else {
-                        // the user close the I/O, do nothing here
+                        // failed to reconnect the I/O device, report error
+                        item->SetImage(comxd::exception);
                     }
                     this->Enable();
 	            }).Help(t_("Reconnect to the I/O device"));

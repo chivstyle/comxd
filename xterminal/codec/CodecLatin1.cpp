@@ -7,23 +7,25 @@
 
 REGISTER_CODEC_INSTANCE("Latin1 (ISO-8859-1)", CodecLatin1);
 
-std::vector<uint32_t> CodecLatin1::TranscodeToUTF32(const unsigned char* data, size_t sz, size_t& ep)
+std::vector<uint32_t> CodecLatin1::TranscodeToUTF32(const unsigned char* data, size_t sz, size_t* ep)
 {
     std::vector<uint32_t> out(sz);
     std::copy(data, data + sz, out.begin());
-    ep = sz;
+    if (ep) *ep = sz;
     return std::move(out);
 }
 
-std::string CodecLatin1::TranscodeToUTF8(const unsigned char* data, size_t sz)
+std::string CodecLatin1::TranscodeToUTF8(const unsigned char* data, size_t sz, size_t* ep)
 {
     Upp::String raw(data, (int)sz);
+    if (ep) *ep = sz;
     return Upp::ToCharset(CHARSET_UTF8, raw, Upp::CHARSET_ISO8859_1).ToStd();
 }
 
-std::string CodecLatin1::TranscodeFromUTF8(const unsigned char* data, size_t sz)
+std::string CodecLatin1::TranscodeFromUTF8(const unsigned char* data, size_t sz, size_t* ep)
 {
     Upp::String raw(data, (int)sz);
+    if (ep) *ep = sz;
     return Upp::ToCharset(Upp::CHARSET_ISO8859_1, raw, CHARSET_UTF8).ToStd();
 }
 

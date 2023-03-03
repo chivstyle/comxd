@@ -85,13 +85,22 @@ size_t TcpClient::Write(const unsigned char* buf, size_t sz)
 
 bool TcpClient::Start()
 {
-	if (!mTcp->IsOpen()) {
-		TcpClientDialog d;
-		d.Reconnect(this);
+	if (mTcp->IsOpen()) {
+		return true;
 	}
 	mTcp->Timeout(0); // NON BLOCK
 	mShouldStop = false;
     mRx = std::thread([=]() { RxProc(); });
 	
     return true;
+}
+
+bool TcpClient::Reconnect()
+{
+    Stop();
+    //
+	TcpClientDialog d;
+	if (d.Reconnect(this)) {
+	    return Start();
+	}
 }

@@ -1993,7 +1993,7 @@ void SerialConnVT::Render(Draw& draw)
 
 std::vector<uint32_t> SerialConnVT::TranscodeToUTF32(const std::string& s, size_t& ep)
 {
-    return GetCodec()->TranscodeToUTF32((const unsigned char*)s.c_str(), s.length(), ep);
+    return GetCodec()->TranscodeToUTF32((const unsigned char*)s.c_str(), s.length(), &ep);
 }
 
 void SerialConnVT::DrawVTChar(Draw& draw, int x, int y, const VTChar& c,

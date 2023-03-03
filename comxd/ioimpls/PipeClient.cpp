@@ -168,4 +168,10 @@ bool NamedPipeClient::Start()
     return true;
 }
 
+bool NamedPipeClient::Reconnect()
+{
+    Stop();
+    return Start();
+}
+
 #endif

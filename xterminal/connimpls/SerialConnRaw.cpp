@@ -391,7 +391,7 @@ void SerialConnRaw::Set_TxInHex()
 {
     std::string tx = mTx.GetData().ToString().ToStd();
     std::string refine_tx = mEnableEscape.Get() ? TranslateEscapeChars(tx) : tx;
-    std::string tx_codec = GetCodec()->TranscodeFromUTF8((const unsigned char*)refine_tx.data(), refine_tx.length());
+    std::string tx_codec = GetCodec()->TranscodeFromUTF8((const unsigned char*)refine_tx.data(), refine_tx.length(), nullptr);
     mTx.Set(ToHexString_(tx_codec));
     // use filter to disable invalid chars.
     mTx.SetFilter(_HexFilter);
@@ -403,7 +403,7 @@ void SerialConnRaw::Set_TxInTxt()
 {
     std::string tx = mTx.GetData().ToString().ToStd();
     std::vector<unsigned char> out = ToHex_(tx);
-    mTx.Set(GetCodec()->TranscodeToUTF8(out.data(), out.size()));
+    mTx.Set(GetCodec()->TranscodeToUTF8(out.data(), out.size(), nullptr));
     //
     mTx.SetFilter(nullptr);
     //
@@ -440,7 +440,7 @@ void SerialConnRaw::OnSend()
             }
         } else {
             auto tmp = ReplaceLineBreak_(text, mLineBreaks.GetKey(mLineBreaks.GetIndex()).To<int>());
-            ret = (int)GetIo()->Write(GetCodec()->TranscodeFromUTF8((const unsigned char*)tmp.c_str(), tmp.length()));
+            ret = (int)GetIo()->Write(GetCodec()->TranscodeFromUTF8((const unsigned char*)tmp.c_str(), tmp.length(), nullptr));
         }
     }
     WhenWarning(errmsg.c_str());
@@ -454,7 +454,7 @@ void SerialConnRaw::OnSend()
 void SerialConnRaw::UpdateAsTxt()
 {
     const auto& buf = mRxBuffer;
-    mRx.Set(GetCodec()->TranscodeToUTF8(buf.data(), buf.size()));
+    mRx.Set(GetCodec()->TranscodeToUTF8(buf.data(), buf.size(), nullptr));
 }
 
 void SerialConnRaw::UpdateAsHex()

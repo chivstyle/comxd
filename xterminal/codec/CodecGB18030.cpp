@@ -3,6 +3,9 @@
 //
 #include "CodecGB18030.h"
 #include "CodecFactory.h"
+
+#ifndef WITHOUT_ICU
+
 #ifdef _WIN32
 #include <Windows.h>
 #if WINVER >= 0x0A00
@@ -11,76 +14,128 @@
 
 REGISTER_CODEC_INSTANCE("GB18030", CodecGB18030);
 
-std::vector<uint32_t> CodecGB18030::TranscodeToUTF32(const unsigned char* data, size_t sz, size_t& ep)
+CodecGB18030::CodecGB18030()
 {
 	UErrorCode ec = U_ZERO_ERROR;
-	std::vector<uint32_t> s;
-	ep = 0;
-    int32_t rc = ucnv_convert("UTF32", "GB18030", (char*)s.data(), 0, (const char*)data, (int32_t)sz, &ec);
-    if (ec == U_BUFFER_OVERFLOW_ERROR) {
-        s.resize(rc / 4);
-        ec = U_ZERO_ERROR;
-        rc = ucnv_convert("UTF32", "GB18030", (char*)s.data(), (int32_t)(sizeof(uint32_t)*s.size()), (const char*)data, (int32_t)sz, &ec);
-        if (rc > 0) {
-            s.erase(s.begin()); // remove the 'Non character( 0xfffe )'
-            ep = sz; // TODO: how to process the incomplete character sequences
-            return s;
-        }
-    }
-    return std::vector<uint32_t>(1, '?');
+    mUtf8Cnv = ucnv_open("UTF8", &ec);
+    ec = U_ZERO_ERROR;
+    mGb18030Cnv = ucnv_open("GB18030", &ec);
 }
-// TODO: how to process the incomplete character sequences
-std::string CodecGB18030::TranscodeToUTF8(const unsigned char* data, size_t sz)
+
+CodecGB18030::~CodecGB18030()
 {
-	UErrorCode ec = U_ZERO_ERROR;
-	std::vector<char> s;
-    int32_t rc = ucnv_convert("UTF8", "GB18030", s.data(), 0, (const char*)data, (int32_t)sz, &ec);
-    if (ec == U_BUFFER_OVERFLOW_ERROR) {
-        s.resize(rc + 1);
-        ec = U_ZERO_ERROR;
-        rc = ucnv_convert("UTF8", "GB18030", s.data(), (int32_t)s.size(), (const char*)data, (int32_t)sz, &ec);
-        if (rc > 0) {
-            s[rc] = '\0';
-            return s.data();
-        }
-    }
-    return "?";
+	if (mUtf8Cnv) {
+		ucnv_close(mUtf8Cnv);
+	}
+	if (mGb18030Cnv) {
+		ucnv_close(mGb18030Cnv);
+	}
 }
-// TODO: how to process the incomplete character sequences
-std::string CodecGB18030::TranscodeFromUTF8(const unsigned char* data, size_t sz)
+
+std::vector<uint32_t> CodecGB18030::TranscodeToUTF32(const unsigned char* data, size_t sz, size_t* ep)
 {
-	UErrorCode ec = U_ZERO_ERROR;
-	std::vector<char> s;
-    int32_t rc = ucnv_convert("GB18030", "UTF8", s.data(), 0, (const char*)data, (int32_t)sz, &ec);
-    if (ec == U_BUFFER_OVERFLOW_ERROR) {
-        s.resize(rc + 1);
-        ec = U_ZERO_ERROR;
-        rc = ucnv_convert("GB18030", "UTF8", s.data(), (int32_t)s.size(), (const char*)data, (int32_t)sz, &ec);
-        if (rc > 0) {
-            s[rc] = '\0';
-            return s.data();
-        }
-    }
-    return "?";
+	std::vector<uint32_t> out;
+	if (ep) *ep = sz;
+	if (mGb18030Cnv) {
+		UErrorCode ec = U_ZERO_ERROR;
+		const char* in = (const char*)data;
+		UChar32 uc = ucnv_getNextUChar(mGb18030Cnv, &in, (const char*)data + sz, &ec);
+		while (ec != U_INDEX_OUTOFBOUNDS_ERROR) {
+			out.push_back(uc);
+			uc = ucnv_getNextUChar(mGb18030Cnv, &in, (const char*)data + sz, &ec);
+		}
+		if (ep) *ep = size_t(in - (const char*)data);
+	}
+	return out;
 }
-// TODO: how to process the incomplete character sequences
+//
+std::string CodecGB18030::TranscodeToUTF8(const unsigned char* data, size_t sz, size_t* ep)
+{
+	std::string out;
+	if (ep) *ep = sz;
+	if (mGb18030Cnv) {
+		UErrorCode ec = U_ZERO_ERROR;
+		const char* in = (const char*)data;
+		UChar32 uc = ucnv_getNextUChar(mGb18030Cnv, &in, in + sz, &ec);
+		while (ec != U_INDEX_OUTOFBOUNDS_ERROR) {
+			// utf32 -> utf8
+			out += UTF32ToUTF8_(uc);
+			// next
+			uc = ucnv_getNextUChar(mGb18030Cnv, &in, in + sz, &ec);
+		}
+		if (ep) *ep = size_t(in - (const char*)data);
+	}
+	return out;
+}
+//
+std::string CodecGB18030::TranscodeFromUTF8(const unsigned char* data, size_t sz, size_t* ep)
+{
+	std::string out;
+	if (ep) *ep = sz;
+	if (mUtf8Cnv) {
+		std::vector<UChar> uchars;
+		UErrorCode ec = U_ZERO_ERROR;
+		const char* in = (const char*)data;
+		UChar32 uc = ucnv_getNextUChar(mUtf8Cnv, &in, (const char*)data + sz, &ec);
+		while (ec != U_INDEX_OUTOFBOUNDS_ERROR) {
+			// utf32 -> utf16
+			if (uc <= 0xffff) {
+                uchars.push_back(uc);
+            }
+            else {
+                // Surrogate
+                uint16_t h = 0xd800 | ((uc & 0x000ffc00) >> 10);
+                uint16_t l = 0xdc00 | ((uc & 0x3ff));
+                uchars.push_back(h);
+                uchars.push_back(l);
+            }
+			// next
+			uc = ucnv_getNextUChar(mUtf8Cnv, &in, (const char*)data + sz, &ec);
+		}
+		if (ep) *ep = size_t(in - (const char*)data);
+		// utf16 -> 18030
+		if (mGb18030Cnv) {
+			ec = U_ZERO_ERROR;
+		    int32_t cnt = ucnv_fromUChars(mGb18030Cnv, 0, 0, uchars.data(), (int32_t)uchars.size(), &ec);
+		    std::vector<char> tmp((size_t)cnt+1);
+		    ec = U_ZERO_ERROR;
+		    ucnv_fromUChars(mGb18030Cnv, tmp.data(), (int32_t)tmp.size(), uchars.data(), (int32_t)uchars.size(), &ec);
+		    out.resize(tmp.size());
+            std::copy(tmp.begin(), tmp.end(), out.begin());
+		}
+	}
+	return out;
+}
+//
 std::string CodecGB18030::TranscodeFromUTF32(const uint32_t* data, size_t sz)
 {
-	UErrorCode ec = U_ZERO_ERROR;
-	std::vector<char> s;
-    int32_t rc = ucnv_convert("GB18030", "UTF32", s.data(), 0, (const char*)data, (int32_t)(sizeof(uint32_t)*sz), &ec);
-    if (ec == U_BUFFER_OVERFLOW_ERROR) {
-        s.resize(rc + 1);
-        ec = U_ZERO_ERROR;
-        rc = ucnv_convert("GB18030", "UTF32", s.data(), (int32_t)s.size(), (const char*)data, (int32_t)(sizeof(uint32_t)*sz), &ec);
-        if (rc > 0) {
-            s[rc] = '\0';
-            return s.data();
-        }
-    }
-    return "?";
+	std::string out;
+	// utf16 -> 18030
+	if (mGb18030Cnv) {
+        std::vector<UChar> uchars;
+	    for (size_t k = 0; k < sz; ++k) {
+	        if (data[k] <= 0xffff) {
+	            uchars.push_back(data[k]);
+	        } else {
+	            uint16_t h = 0xd800 | ((data[k] & 0x000ffc00) >> 10);
+                uint16_t l = 0xdc00 | ((data[k] & 0x3ff));
+                uchars.push_back(h);
+                uchars.push_back(l);
+	        }
+		}
+		UErrorCode ec = U_ZERO_ERROR;
+	    int32_t cnt = ucnv_fromUChars(mGb18030Cnv, 0, 0, uchars.data(), (int32_t)uchars.size(), &ec);
+	    std::vector<char> tmp((size_t)cnt+1);
+	    ec = U_ZERO_ERROR;
+	    ucnv_fromUChars(mGb18030Cnv, tmp.data(), (int32_t)tmp.size(), uchars.data(), (int32_t)uchars.size(), &ec);
+	    out.resize(tmp.size());
+        std::copy(tmp.begin(), tmp.end(), out.begin());
+	}
+	return out;
 }
+
 #endif
 #endif
 #endif
 
+#endif
