@@ -16,6 +16,9 @@ public:
     SSHDevsDialog();
     // create a serialconn from current settings.
     SerialConn* RequestConn();
+    //
+    bool RequestReconnect(SSHPort* sp);
+    //
     bool Reconnect(SSHPort* sp);
     //
 protected:

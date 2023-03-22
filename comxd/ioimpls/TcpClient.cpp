@@ -97,10 +97,12 @@ bool TcpClient::Start()
 
 bool TcpClient::Reconnect()
 {
-    Stop();
-    //
 	TcpClientDialog d;
-	if (d.Reconnect(this)) {
-	    return Start();
+	if (d.RequestReconnect(this)) {
+	    Stop();
+	    if (d.Reconnect(this)) {
+	        return Start();
+	    }
 	}
+	return false;
 }

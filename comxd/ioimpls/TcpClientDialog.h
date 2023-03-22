@@ -16,6 +16,8 @@ public:
     TcpClientDialog();
     // create a serialconn from current settings.
     SerialConn* RequestConn();
+    
+    bool RequestReconnect(TcpClient* sp);
     bool Reconnect(TcpClient* sp);
     //
 protected:

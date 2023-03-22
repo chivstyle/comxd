@@ -152,7 +152,7 @@ bool SerialDevsDialog::Key(Upp::dword key, int count)
     return TopWindow::Key(key, count);
 }
 
-bool SerialDevsDialog::Reconnect(SerialPort* port)
+bool SerialDevsDialog::RequestReconnect(SerialPort* port)
 {
     mBtnOk.WhenAction = [=]() { this->AcceptBreak(IDOK); };
     // load settings of serial
@@ -173,21 +173,23 @@ bool SerialDevsDialog::Reconnect(SerialPort* port)
     // only change the settings of serial, type could not be modified on running time.
     mTypes.Clear(); mTypes.Disable();
     mCodecs.Clear(); mCodecs.Disable();
-    //
-    int ret = Run(true);
-    if (ret == IDOK) {
-        try {
-            serial->close();
-            serial->setBaudrate(mBaudrate.GetData().To<int>());
-            serial->setParity((serial::parity_t)mParity.GetData().To<int>());
-            serial->setBytesize((serial::bytesize_t)mDataBits.GetData().To<int>());
-            serial->setStopbits((serial::stopbits_t)mStopBits.GetData().To<int>());
-            serial->setFlowcontrol((serial::flowcontrol_t)mFlowCtrl.GetData().To<int>());
-            serial->open();
-            return true;
-        } catch (const std::exception&) {
-            Upp::PromptOK(DeQtf(t_("Can't reconnect to serial device!")));
-        }
+    return Run(true) == IDOK;
+}
+
+bool SerialDevsDialog::Reconnect(SerialPort* port)
+{
+    auto serial = port->GetNativeDevice();
+    try {
+        serial->close();
+        serial->setBaudrate(mBaudrate.GetData().To<int>());
+        serial->setParity((serial::parity_t)mParity.GetData().To<int>());
+        serial->setBytesize((serial::bytesize_t)mDataBits.GetData().To<int>());
+        serial->setStopbits((serial::stopbits_t)mStopBits.GetData().To<int>());
+        serial->setFlowcontrol((serial::flowcontrol_t)mFlowCtrl.GetData().To<int>());
+        serial->open();
+        return true;
+    } catch (const std::exception&) {
+        Upp::PromptOK(DeQtf(t_("Can't reconnect to serial device!")));
     }
     return false;
 }

@@ -81,12 +81,14 @@ void SSHPort::Stop()
 
 bool SSHPort::Reconnect()
 {
-    Stop();
-    //
     SSHDevsDialog d;
-    if (d.Reconnect(this)) {
-        return Start();
-    }
+    if (d.RequestReconnect(this)) {
+	    Stop();
+	    if (d.Reconnect(this)) {
+	        return Start();
+	    }
+	}
+	return false;
 }
 
 bool SSHPort::Start()

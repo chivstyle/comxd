@@ -182,12 +182,18 @@ protected:
             auto conn = dynamic_cast<SerialConn*>(mDevsTab.GetItem(mDevsTab.Get()).GetSlave());
             if (conn) {
                 TabCtrl::Item* item = FindConnItem(conn);
+	            bar.Add(t_("Disconnect"), comxd::disconnect(), [=]() {
+	                this->Disable();
+	                conn->Stop();
+	                conn->GetIo()->Stop();
+	                this->Enable();
+	                item->SetImage(comxd::exception());
+	            });
                 bar.Add(t_("Reconnect"), comxd::reconnect(), [=]() {
                     this->Disable();
                     conn->Stop();
                     // restart the I/O
                     if (conn->GetIo()->Reconnect()) {
-                        conn->Start();
                         if (item) {
                             auto& conns = ConnCreateFactory::Inst()->GetSupportedConnIntroductions();
                             String type = conn->GetIo()->DeviceType();
@@ -196,10 +202,8 @@ protected:
                                 item->SetImage(it->second.Icon());
                             }
                         }
-                    } else {
-                        // failed to reconnect the I/O device, report error
-                        item->SetImage(comxd::exception);
                     }
+                    conn->Start();
                     this->Enable();
 	            }).Help(t_("Reconnect to the I/O device"));
                 // Actions of serial device

@@ -155,14 +155,19 @@ bool SSHDevsDialog::Key(Upp::dword key, int count)
     return TopWindow::Key(key, count);
 }
 
-bool SSHDevsDialog::Reconnect(SSHPort* sc)
+bool SSHDevsDialog::RequestReconnect(SSHPort* sc)
 {
-	mBtnOk.WhenAction = [=]() { AcceptBreak(IDOK); };
+    mBtnOk.WhenAction = [=]() { AcceptBreak(IDOK); };
 	mCodecs.Clear(); mCodecs.Disable();
 	mTypes.Clear(); mTypes.Disable();
 	mHost.Disable();
 	mHost.SetData(sc->Host());
 	mUser.SetData(sc->User());
+	return Run(true) == IDOK;
+}
+
+bool SSHDevsDialog::Reconnect(SSHPort* sc)
+{
 	// find the type
 	auto codec_names = CodecFactory::Inst()->GetSupportedCodecNames();
     for (size_t k = 0; k < codec_names.size(); ++k) {
@@ -173,22 +178,21 @@ bool SSHDevsDialog::Reconnect(SSHPort* sc)
         }
     }
 	mPort.SetData(sc->Port());
-	int ret = Run(true);
-    if (ret == IDOK) {
-	    auto session = sc->Session();
-	    session->WhenWait = [=]() {
-	        if (IsMainThread())
-	            ProcessEvents();
-	    };
-	    auto title = GetTitle();
-	    Title(t_("Connecting...")).Disable();
-	    if (session->Timeout(5000).Connect(~mHost, ~mPort, ~mUser, ~mPassword)) {
-	        return true;
-	    } else {
-	        PromptOK(Upp::DeQtf(session->GetErrorDesc()));
-	    }
-	    Title(title).Enable();
+    //
+    auto session = sc->Session();
+    session->WhenWait = [=]() {
+        if (IsMainThread())
+            ProcessEvents();
+    };
+    auto title = GetTitle();
+    Title(t_("Connecting...")).Disable();
+    if (session->Timeout(5000).Connect(~mHost, ~mPort, ~mUser, ~mPassword)) {
+        return true;
+    } else {
+        PromptOK(Upp::DeQtf(session->GetErrorDesc()));
     }
+    Title(title).Enable();
+    //
     return false;
 }
 

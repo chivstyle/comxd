@@ -162,30 +162,32 @@ static inline bool WaitTcpConnection(TcpSocket* s, int timeout)
 	return timeout > 0;
 }
 
-bool TcpClientDialog::Reconnect(TcpClient* sc)
+bool TcpClientDialog::RequestReconnect(TcpClient* sc)
 {
+    TcpSocket* tcp = sc->Tcp();
 	mBtnOk.WhenAction = [=]() { AcceptBreak(IDOK); };
 	mCodecs.Clear(); mCodecs.Disable();
 	mTypes.Clear(); mTypes.Disable();
 	mHost.Disable();
 	mHost.SetData(sc->Host());
 	mPort.SetData(sc->Port());
-	int ret = Run(true);
-    if (ret == IDOK) {
-	    TcpSocket* tcp = sc->Tcp();
-	    auto title = GetTitle();
-	    Title(t_("Connecting...")).Disable();
-	    Upp::String host = ~mHost;
-	    if (tcp->Timeout(2000).Connect(host, ~mPort)) {
-	        if (!WaitTcpConnection(tcp, 2000)) {
-                PromptOK(Upp::DeQtf(t_("Can't establish the connection")));
-                return false;
-            }
-	        return true;
-	    } else {
-	        PromptOK(Upp::DeQtf(tcp->GetErrorDesc()));
-	    }
-	    Title(title).Enable();
+	return Run(true) == IDOK;
+}
+
+bool TcpClientDialog::Reconnect(TcpClient* sc)
+{
+    TcpSocket* tcp = sc->Tcp();
+    auto title = GetTitle();
+    Title(t_("Connecting...")).Disable();
+    Upp::String host = ~mHost;
+    if (tcp->Timeout(2000).Connect(host, ~mPort)) {
+        if (!WaitTcpConnection(tcp, 2000)) {
+            PromptOK(Upp::DeQtf(t_("Can't establish the connection")));
+            return false;
+        }
+        return true;
+    } else {
+        PromptOK(Upp::DeQtf(tcp->GetErrorDesc()));
     }
     return false;
 }

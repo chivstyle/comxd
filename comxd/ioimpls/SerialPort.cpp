@@ -31,10 +31,12 @@ void SerialPort::Stop()
 
 bool SerialPort::Reconnect()
 {
-    Stop();
-    //
     SerialDevsDialog d;
-	if (d.Reconnect(this)) {
-	    return Start();
+	if (d.RequestReconnect(this)) {
+	    Stop();
+	    if (d.Reconnect(this)) {
+	        return Start();
+	    }
 	}
+	return false;
 }

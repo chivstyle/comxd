@@ -16,6 +16,7 @@ public:
     // create a serialconn from current settings.
     SerialConn* RequestConn();
     //
+    bool RequestReconnect(SerialPort* port);
     bool Reconnect(SerialPort* port);
     //
 protected:
