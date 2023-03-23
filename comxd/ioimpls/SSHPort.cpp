@@ -93,9 +93,7 @@ bool SSHPort::Reconnect()
 
 bool SSHPort::Start()
 {
-    if (mShell) {
-        return true;
-    }
+    if (mRunning || mJob.joinable() || mShell) return true;
 	// before start the job, set the running to true
 	mRunning = true;
 	// create a shell
@@ -118,7 +116,7 @@ void SSHPort::SetConsoleSize(const Size& csz)
 
 int SSHPort::Available() const
 {
-	if (!mShell || !mRunning) return -1;
+	if (!mJob.joinable() || !mShell || !mRunning) return -1;
     std::lock_guard<std::mutex> _(mLock);
     return (int)mRxBuffer.size();
 }

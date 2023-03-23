@@ -17,6 +17,7 @@ NamedPipeClient::NamedPipeClient(const String& pipe_name)
     , mEventOut(NULL)
     , mPending(true)
     , mShouldStop(false)
+    , mRunning(false)
 {
 }
 
@@ -48,6 +49,8 @@ void NamedPipeClient::Stop()
         CloseHandle(mPipe);
         mPipe = INVALID_HANDLE_VALUE;
     }
+    // make sure
+    mRunning = false;
 }
 
 void NamedPipeClient::RxProc()
@@ -75,17 +78,22 @@ void NamedPipeClient::RxProc()
                     // system fault, break the loop, exit the thread
                     break;
                 }
+            } else {
+                // other error
+                break;
             }
         }
         std::lock_guard<std::mutex> _(mLock);
         mRxBuffer.insert(mRxBuffer.end(), buffer.begin(), buffer.begin() + cb);
     }
+    mRunning = false;
 }
 
 int NamedPipeClient::Available() const
 {
     std::lock_guard<std::mutex> _(mLock);
-    return mRx.joinable() ? (int)mRxBuffer.size() : -1;
+    if (!mRx.joinable() || !mRunning) return -1;
+    return (int)mRxBuffer.size();
 }
 
 size_t NamedPipeClient::Read(unsigned char* buf, size_t sz)
@@ -138,6 +146,8 @@ size_t NamedPipeClient::Write(const unsigned char* buf, size_t sz)
 
 bool NamedPipeClient::Start()
 {
+    if (mRunning || mRx.joinable()) return true;
+    //
     Vector<char16> dname = ToUtf16(mName); dname.push_back(0);
     // try
     for (int k = 0; k < 3; ++k) {
@@ -163,6 +173,9 @@ bool NamedPipeClient::Start()
         return false;
     
     mShouldStop = false;
+    //
+    mRunning = true;
+    //
     mRx = std::thread([=]() { RxProc(); });
     
     return true;

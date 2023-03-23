@@ -21,6 +21,7 @@ NamedPipeServer::NamedPipeServer(const String& pipe_name, int in_buffer_sz, int 
     , mEventOut(NULL)
     , mPending(true)
     , mShouldStop(false)
+    , mRunning(false)
     , mInBufferSize(in_buffer_sz)
     , mOutBufferSize(out_buffer_sz)
 {
@@ -58,6 +59,8 @@ void NamedPipeServer::Stop()
         CloseHandle(mPipe);
         mPipe = INVALID_HANDLE_VALUE;
     }
+    // make sure the running flag is false
+    mRunning = false;
 }
 
 void NamedPipeServer::RxProc()
@@ -79,16 +82,21 @@ void NamedPipeServer::RxProc()
             BOOL bret = ReadFile(mPipe, buffer.data(), (DWORD)buffer.size(), &cb, &overlapped);
             if (!bret) {
                 DWORD dret = GetLastError();
-                while (!mShouldStop && dret == ERROR_IO_PENDING) {
-                    DWORD dret = WaitForSingleObject(mEventIn, 200);
-                    if (dret == WAIT_OBJECT_0)
-                        break;
-                    dret = GetLastError();
-                }
-                // get the result
-                BOOL bok = GetOverlappedResult(mPipe, &overlapped, &cb, FALSE);
-                if (!bok) {
-                    cb = 0; // set cb to 0, reconnect later
+                if (dret == ERROR_IO_PENDING) {
+                    while (!mShouldStop) {
+                        DWORD dret = WaitForSingleObject(mEventIn, 200);
+                        if (dret == WAIT_OBJECT_0)
+                            break;
+                        dret = GetLastError();
+                    }
+                    // get the result
+                    BOOL bok = GetOverlappedResult(mPipe, &overlapped, &cb, FALSE);
+                    if (!bok) {
+                        cb = 0; // set cb to 0, reconnect later
+                    }
+                } else {
+                    // Other error, exit the thread
+                    break;
                 }
             }
             if (cb == 0) {
@@ -100,12 +108,15 @@ void NamedPipeServer::RxProc()
             }
         }
     }
+    // set running flag to false
+    mRunning = false;
 }
 
 int NamedPipeServer::Available() const
 {
     std::lock_guard<std::mutex> _(mLock);
-    return mRx.joinable() ? (int)mRxBuffer.size() : -1;
+    if (!mRx.joinable() || !mRunning) return -1;
+    return (int)mRxBuffer.size();
 }
 
 size_t NamedPipeServer::Read(unsigned char* buf, size_t sz)
@@ -175,6 +186,8 @@ void NamedPipeServer::Connect()
 
 bool NamedPipeServer::Start()
 {
+    if (mRunning || mRx.joinable()) return true;
+    //
     Vector<char16> dname = ToUtf16(mName); dname.push_back(0);
     mPipe = CreateNamedPipeW(
             (const WCHAR*)dname.begin(),           // pipe name
@@ -201,6 +214,9 @@ bool NamedPipeServer::Start()
     Connect();
     //
     mShouldStop = false;
+    //
+    mRunning = true;
+    //
     mRx = std::thread([=]() { RxProc(); });
     
     return true;

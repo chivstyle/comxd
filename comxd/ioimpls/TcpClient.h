@@ -35,6 +35,7 @@ protected:
 	Upp::String mHost;
 	int mPort;
 	volatile bool mShouldStop;
+	volatile bool mRunning;
 	mutable std::mutex mLock;
 	std::deque<unsigned char> mRxBuffer;
 	std::thread mRx;

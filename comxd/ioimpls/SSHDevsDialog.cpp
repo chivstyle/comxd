@@ -209,8 +209,9 @@ void SSHDevsDialog::CreateConn()
         try {
             auto port = std::make_shared<SSHPort>(session, ~mHost, ~mPort, ~mUser,
                 ConnFactory::Inst()->GetConnType(~mTypes));
-            auto conn = ConnFactory::Inst()->CreateInst(~mTypes, port);
             port->Start();
+            //
+            auto conn = ConnFactory::Inst()->CreateInst(~mTypes, port);
             conn->WhenSizeChanged = [=](const Size& csz) {
                 port->SetConsoleSize(csz);
             };

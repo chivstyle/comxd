@@ -15,6 +15,7 @@ TcpClient::TcpClient(std::shared_ptr<Upp::TcpSocket> tcp, const Upp::String& hos
     , mHost(host)
     , mPort(port)
     , mShouldStop(false)
+    , mRunning(false)
 {
 }
 
@@ -50,16 +51,22 @@ void TcpClient::RxProc()
 	        std::lock_guard<std::mutex> _(mLock);
 	        mRxBuffer.insert(mRxBuffer.end(), buffer.begin(), buffer.begin() + ret);
         } else {
+            if (mTcp->IsError()) {
+                break;
+            }
             // yield cpu
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
     }
+    //
+    mRunning = false;
 }
 
 int TcpClient::Available() const
 {
     std::lock_guard<std::mutex> _(mLock);
-    return mRx.joinable() ? (int)mRxBuffer.size() : -1;
+    if (!mRx.joinable() || !mRunning) return -1;
+    return (int)mRxBuffer.size();
 }
 
 size_t TcpClient::Read(unsigned char* buf, size_t sz)
@@ -85,13 +92,16 @@ size_t TcpClient::Write(const unsigned char* buf, size_t sz)
 
 bool TcpClient::Start()
 {
-	if (mTcp->IsOpen()) {
-		return true;
-	}
+    if (mRunning || mRx.joinable()) return true;
+    //
 	mTcp->Timeout(0); // NON BLOCK
+	//
 	mShouldStop = false;
+	//
+	mRunning = true;
+	//
     mRx = std::thread([=]() { RxProc(); });
-	
+	//
     return true;
 }
 
