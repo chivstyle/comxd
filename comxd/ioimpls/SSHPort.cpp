@@ -75,6 +75,7 @@ void SSHPort::Stop()
 	    delete mShell;
 	    mShell = nullptr;
 	    //
+	    mSession->Timeout(200);
 	    mSession->Disconnect();
 	}
 }

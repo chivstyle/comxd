@@ -7,7 +7,7 @@ uses
 library(WIN32) icu;
 
 options
-	-DWITHOUT_ICU;
+	-DWITH_ICU;
 
 include
 	.;

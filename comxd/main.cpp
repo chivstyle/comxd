@@ -58,16 +58,16 @@ public:
             , mAbout(about)
         {
             *this << [&]() { //<! on clicked
-                // the callback will execute in the main thread (i.e GUI-thread), so
-                // we should save the conn and tab_bar in the instance of TabCloseBtn.
+                mTabbar->Remove(*mConn);
+                // Need more time here
+                static_cast<SerialConn*>(mConn)->Stop();
+                static_cast<SerialConn*>(mConn)->GetIo()->Stop();
+                delete mConn;
+                // If there's no conn, show the about page
+                if (mTabbar->GetCount() == 0) {
+                    mAbout->Show();
+                }
                 Upp::PostCallback([=]() {
-                    // before release the conn, we must stop the Io firstly
-                    static_cast<SerialConn*>(mConn)->GetIo()->Stop();
-                    mTabbar->Remove(*mConn);
-                    delete mConn;
-                    if (mTabbar->GetCount() == 0) {
-                        mAbout->Show();
-                    }
                     delete this; // delete myself.
                 });
             };
@@ -102,6 +102,7 @@ public:
                     TabCtrl::Item& item = mDevsTab.GetItem(i);
                     auto conn = dynamic_cast<SerialConn*>(item.GetSlave());
                     if (conn) {
+                        conn->Stop();
                         // before release the conn, we must stop the Io firstly
                         conn->GetIo()->Stop();
                     }

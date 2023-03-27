@@ -199,10 +199,12 @@ bool SSHDevsDialog::Reconnect(SSHPort* sc)
 void SSHDevsDialog::CreateConn()
 {
     std::shared_ptr<SshSession> session = std::make_shared<SshSession>();
+#if 0
     session->WhenWait = [=]() {
         if (IsMainThread())
             ProcessEvents();
     };
+#endif
     auto title = GetTitle();
     Title(t_("Connecting...")).Disable();
     if (session->Timeout(5000).Connect(~mHost, ~mPort, ~mUser, ~mPassword)) {
