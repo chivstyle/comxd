@@ -100,8 +100,7 @@ std::string CodecGB18030::TranscodeFromUTF8(const unsigned char* data, size_t sz
 		    std::vector<char> tmp((size_t)cnt+1);
 		    ec = U_ZERO_ERROR;
 		    ucnv_fromUChars(mGb18030Cnv, tmp.data(), (int32_t)tmp.size(), uchars.data(), (int32_t)uchars.size(), &ec);
-		    out.resize(tmp.size());
-            std::copy(tmp.begin(), tmp.end(), out.begin());
+		    out.insert(out.end(), tmp.begin(), tmp.begin() + cnt);
 		}
 	}
 	return out;
@@ -128,8 +127,7 @@ std::string CodecGB18030::TranscodeFromUTF32(const uint32_t* data, size_t sz)
 	    std::vector<char> tmp((size_t)cnt+1);
 	    ec = U_ZERO_ERROR;
 	    ucnv_fromUChars(mGb18030Cnv, tmp.data(), (int32_t)tmp.size(), uchars.data(), (int32_t)uchars.size(), &ec);
-	    out.resize(tmp.size());
-        std::copy(tmp.begin(), tmp.end(), out.begin());
+	    out.insert(out.end(), tmp.begin(), tmp.begin() + cnt);
 	}
 	return out;
 }

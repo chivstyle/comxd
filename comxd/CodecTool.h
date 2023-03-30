@@ -7,12 +7,19 @@
 
 #include <CtrlLib/CtrlLib.h>
 
+class Codec;
 class CodecTool : public WithCodecTool<Upp::TopWindow> {
 public:
 	typedef CodecTool CLASSNAME;
 	CodecTool();
+	virtual ~CodecTool();
 	//
-	void Genereate();
+	void Generate();
+	//
+	Codec* RequestCodec();
+	//
+private:
+    Codec* mCodec;
 };
 
 #endif

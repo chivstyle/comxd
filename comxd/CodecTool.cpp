@@ -57,6 +57,7 @@ static std::string Generate_EscapeSeqs(const std::string& input)
 }
 
 CodecTool::CodecTool()
+    : mCodec(nullptr)
 {
 	mInput.SetFrame(FieldFrame());
     mOutput.SetFrame(FieldFrame());
@@ -71,7 +72,7 @@ CodecTool::CodecTool()
 	}
 	mOutputFmt.SetIndex(0);
 	//
-	mGenerate.WhenAction = [=]() { Genereate(); };
+	mGenerate.WhenAction = [=]() { Generate(); };
 	//
 	CtrlLayout(*this);
 	this->Sizeable().Title(t_("Codec Tool"));
@@ -79,11 +80,30 @@ CodecTool::CodecTool()
 	mInput.SetFocus();
 }
 
-void CodecTool::Genereate()
+CodecTool::~CodecTool()
+{
+    delete mCodec;
+}
+
+Codec* CodecTool::RequestCodec()
+{
+    auto expect_name = ~mOutputEncoding;
+    if (mCodec && mCodec->GetName() != expect_name) {
+        delete mCodec;
+        mCodec = nullptr;
+    }
+    if (!mCodec) {
+        mCodec = CodecFactory::Inst()->CreateInst(expect_name);
+    }
+    return mCodec;
+}
+
+void CodecTool::Generate()
 {
 	std::string input = mInput.GetData().ToStd();
 	int code = mOutputFmt.GetKey(mOutputFmt.GetIndex());
-	Codec* codec = CodecFactory::Inst()->CreateInst((String)mOutputEncoding.GetData());
+	
+	Codec* codec = RequestCodec();
 	if (codec) {
 	    size_t ep;
 		std::string bit = codec->TranscodeFromUTF8((const unsigned char*)input.data(), input.length(), &ep);
