@@ -35,6 +35,10 @@ It's a plesure if this tool helps you.
 
 ![image-20230527104330656](images\assistant.png)
 
+- About ![image-20230527122008138](images\image-20230527122008138.png)
+  - Input region is encoded in UTF-8
+  - Press this button，it will transcode the UTF-8 characters to current codec stream
+
 If you have a vmware station, pipe client will help you.
 
 - Add a serial device
@@ -51,7 +55,26 @@ If you have a vmware station, pipe client will help you.
 
 ### Transmit File(s)
 
+- support xmode and kermit
 
+- support special ymodem
+
+  We have a special device that does not support standard ymodem, so do not use it.
+
+- support SCP
+
+### Codec Tool
+
+- press ![image-20230527113540954](images\image-20230527113540954.png)on the toolbar
+
+![image-20230527112732671](images\image-20230527112732671.png)
+
+### Download/Upload by SCP
+
+![image-20230527122538674](images\image-20230527122538674.png)
+
+- Press the up arrow to upload file
+- Press the down arrow to download file
 
 ## ECMA-48
 
