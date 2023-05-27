@@ -56,12 +56,12 @@ std::string CodecGB18030::TranscodeToUTF8(const unsigned char* data, size_t sz, 
 	if (mGb18030Cnv) {
 		UErrorCode ec = U_ZERO_ERROR;
 		const char* in = (const char*)data;
-		UChar32 uc = ucnv_getNextUChar(mGb18030Cnv, &in, in + sz, &ec);
+		UChar32 uc = ucnv_getNextUChar(mGb18030Cnv, &in, (const char*)data + sz, &ec);
 		while (ec != U_INDEX_OUTOFBOUNDS_ERROR) {
 			// utf32 -> utf8
 			out += UTF32ToUTF8_(uc);
 			// next
-			uc = ucnv_getNextUChar(mGb18030Cnv, &in, in + sz, &ec);
+			uc = ucnv_getNextUChar(mGb18030Cnv, &in, (const char*)data + sz, &ec);
 		}
 		if (ep) *ep = size_t(in - (const char*)data);
 	}

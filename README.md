@@ -1,3 +1,5 @@
+[TOC]
+
 # comxd
 
 Another serial port tool
@@ -26,6 +28,30 @@ Most of hardware engineers could use it expertly without any help. comxd is a
 convinient tool for our engineers, we use it to download firmware, debug communication
 protocol, deploy softwares to target board, .etc. I'll show some ocassions to use comxd later.
 It's a plesure if this tool helps you.
+
+## Usage
+
+### As a serial device
+
+![image-20230527104330656](images\assistant.png)
+
+If you have a vmware station, pipe client will help you.
+
+- Add a serial device
+
+  ![image-20230527105314883](images\image-20230527105314883.png)
+
+- Test it
+
+  ```bash
+  sudo bash -c 'echo hello world > /dev/ttyS0'
+  ```
+
+  ![image-20230527105657740](images\image-20230527105657740.png)
+
+### Transmit File(s)
+
+
 
 ## ECMA-48
 
