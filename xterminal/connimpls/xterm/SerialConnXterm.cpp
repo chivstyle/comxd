@@ -520,3 +520,13 @@ void SerialConnXterm::ProcessDECRM(const std::string& p)
         break;
     }
 }
+
+bool SerialConnXterm::ProcessKeyDown(Upp::dword key, Upp::dword flags)
+{
+    if (key == K_BACKSPACE) {
+        Put(mModes.GetDecpMode(DECBKM) == 1 ? "\x08" : "\x7f");
+        return true;
+    }
+    return SerialConnVT520::ProcessKeyDown(key, flags);
+}
+

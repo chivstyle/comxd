@@ -167,7 +167,6 @@ protected:
     virtual void RightUp(Upp::Point p, Upp::dword keyflags) override;
     virtual Upp::Image CursorImage(Upp::Point p, Upp::dword keyflags) override;
     // virtual screen resources
-    VTChar mBlankChar;
     Upp::Font mFont;
     int mFontW, mFontH;
     VTStyle mStyle; // current style
@@ -179,6 +178,9 @@ protected:
     Upp::Size          mVwSize; // size of View, in Pixels
     Upp::Size GetConsoleSize() const { return mVtSize; }
     Upp::Size GetViewSize() const { return mVwSize; }
+    
+    VTChar GetBlankChar() const;
+    VTChar GetDefaultBlankChar() const;
     //-------------------------------------------------------------------------------------------
     mutable Upp::DebugMutex mLockVt;   // protect virtual screen, before accessing VtSize, Lines, .etc
                                        // you must acquire the LockVt.

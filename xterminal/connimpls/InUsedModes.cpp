@@ -4,6 +4,7 @@
 #include "terminal_rc.h"
 #include "InUsedModes.h"
 #include "VTModes.h"
+#include "vt100/SerialConnVT100.h"
 
 using namespace xvt;
 //
@@ -18,9 +19,10 @@ private:
 	int mModeId;
 };
 //
-InUsedModes::InUsedModes(VTModes* modes, std::function<void()> lock_vt,
+InUsedModes::InUsedModes(SerialConnVT* vt, VTModes* modes, std::function<void()> lock_vt,
 	std::function<void()> unlock_vt)
-    : mModes(modes)
+    : mVt(vt)
+    , mModes(modes)
     , mOpsLock(lock_vt)
     , mOpsUnlock(unlock_vt)
 {
@@ -42,7 +44,11 @@ InUsedModes::InUsedModes(VTModes* modes, std::function<void()> lock_vt,
 	        option->Set(it->second);
 	        option->SetModeId(it->first);
 	        option->WhenAction = [=]() {
-	            modes->SetAnsiMode(option->GetModeId(), option->Get());
+	            auto vt100 = dynamic_cast<SerialConnVT100*>(vt);
+	            if (vt100) {
+	                auto mode = std::to_string(option->GetModeId());
+	                option->Get() ? vt100->ProcessSM(mode) : vt100->ProcessRM(mode);
+	            }
 	        };
 	    }
     }
@@ -57,7 +63,11 @@ InUsedModes::InUsedModes(VTModes* modes, std::function<void()> lock_vt,
 	        option->SetModeId(it->first);
 	        option->Set(it->second);
 	        option->WhenAction = [=]() {
-	            modes->SetDecpMode(option->GetModeId(), option->Get());
+	            auto vt100 = dynamic_cast<SerialConnVT100*>(vt);
+	            if (vt100) {
+	                auto mode = std::to_string(option->GetModeId());
+	                option->Get() ? vt100->ProcessDECSM(mode) : vt100->ProcessDECRM(mode);
+	            }
 	        };
 	    }
     }

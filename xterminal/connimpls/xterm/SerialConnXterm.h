@@ -36,6 +36,7 @@ protected:
     void ProcessDECRM(const std::string& p);
     void ProcessSD(const std::string& p);
     void ProcessSGR(const std::string& p);
+    bool ProcessKeyDown(Upp::dword key, Upp::dword flags);
     // override Paste to support bracketed paste.
     void Paste();
     void LeftDown(Upp::Point p, Upp::dword keyflags);

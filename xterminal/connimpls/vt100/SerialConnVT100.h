@@ -12,6 +12,12 @@ namespace xvt {
 class SerialConnVT100 : public SerialConnEcma48 {
 public:
     SerialConnVT100(std::shared_ptr<SerialIo> io);
+    // ansi modes
+    void ProcessSM(const std::string& p) override { SerialConnEcma48::ProcessSM(p); }
+    void ProcessRM(const std::string& p) override { SerialConnEcma48::ProcessRM(p); }
+    // VT100 modes, DEC private
+    virtual void ProcessDECSM(const std::string& p);
+    virtual void ProcessDECRM(const std::string& p);
 protected:
     // override ECMA48
     void ProcessDA(const std::string& p) override;
@@ -19,9 +25,6 @@ protected:
     void ProcessHVP(const std::string& p) override;
     void ProcessSI(const std::string& p) override;
     void ProcessSO(const std::string& p) override;
-    // VT100 modes, DEC private
-    virtual void ProcessDECSM(const std::string& p);
-    virtual void ProcessDECRM(const std::string& p);
     // DEC private
     virtual void ProcessDECDSR(const std::string& p);
     virtual void ProcessDECIND(const std::string& p);

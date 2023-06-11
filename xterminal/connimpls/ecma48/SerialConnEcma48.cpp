@@ -401,9 +401,10 @@ void SerialConnEcma48::ProcessCBT(const std::string& p)
 // Cancel character
 void SerialConnEcma48::ProcessCCH(const std::string& p)
 {
+    VTChar blank = GetBlankChar();
     VTLine& vline = mLines[mVy];
     if (mVx > 0) {
-        vline[mVx - 1] = mBlankChar;
+        vline[mVx - 1] = blank;
         mVx--;
     }
 }
@@ -472,7 +473,7 @@ void SerialConnEcma48::ProcessCTC(const std::string& p)
                 VTLine& vline = mLines[mVy];
                 if (vline[mVx] == '\t') {
                     vline.erase(vline.begin() + mVx);
-                    vline.push_back(mBlankChar);
+                    vline.push_back(GetBlankChar());
                 }
             }
             break;
@@ -487,7 +488,7 @@ void SerialConnEcma48::ProcessCTC(const std::string& p)
                         vline.insert(vline.begin() + mVx,
                             vline_next.begin(), vline_next.end());
                         mLines.erase(mLines.begin() + mVy);
-                        mLines.push_back(VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
+                        mLines.push_back(VTLine(csz.cx, GetBlankChar()).SetHeight(mFontH));
                     }
                 }
             }
@@ -504,7 +505,7 @@ void SerialConnEcma48::ProcessCTC(const std::string& p)
                         ++it;
                 }
                 if (ntabs)
-                    vline.insert(vline.end(), ntabs, mBlankChar);
+                    vline.insert(vline.end(), ntabs, GetBlankChar());
             }
             break;
         case 5:
@@ -529,7 +530,7 @@ void SerialConnEcma48::ProcessCTC(const std::string& p)
                     } else
                         ++it;
                 }
-                mLines.insert(mLines.end(), ntabs, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
+                mLines.insert(mLines.end(), ntabs, VTLine(csz.cx, GetBlankChar()).SetHeight(mFontH));
             }
             break;
         }
@@ -604,7 +605,7 @@ void SerialConnEcma48::ProcessDCH(const std::string& p)
         pn = (int)vline.size() - mVx;
     }
     vline.erase(vline.begin() + mVx, vline.begin() + mVx + pn);
-    vline.insert(vline.end(), pn, mBlankChar);
+    vline.insert(vline.end(), pn, GetBlankChar());
 }
 // Device control string
 void SerialConnEcma48::ProcessDCS(const std::string& p)
@@ -627,7 +628,7 @@ void SerialConnEcma48::ProcessDL(const std::string& p)
         pn = ln;
     auto it_end = mLines.begin() + bot + 1;
     Size csz = GetConsoleSize();
-    mLines.insert(it_end, pn, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
+    mLines.insert(it_end, pn, VTLine(csz.cx, GetBlankChar()).SetHeight(mFontH));
     mLines.erase(mLines.begin() + mVy, mLines.begin() + mVy + pn);
 }
 // disable manual input
@@ -685,25 +686,28 @@ void SerialConnEcma48::ProcessECH(const std::string& p)
     int pn = atoi(p.data());
     if (pn <= 0)
         pn = 1;
+    VTChar blank(' ');
+    blank.SetStyle(mStyle);
     VTLine& vline = mLines[mVy];
     for (int i = mVx; i < mVx + pn && i < (int)vline.size(); ++i) {
-        vline[i] = mBlankChar; // put to erased state
+        vline[i] = blank; // put to erased state
     }
 }
 void SerialConnEcma48::ProcessED(const std::string& p)
 {
+    VTChar blank = GetBlankChar();
     int ps = atoi(p.data());
     switch (ps) {
     case 0:
         if (1) {
             VTLine& vline = mLines[mVy];
             for (int i = mVx; i < (int)vline.size(); ++i) {
-                vline[i] = mBlankChar;
+                vline[i] = blank;
             }
             for (int j = mVy + 1; j < (int)mLines.size(); ++j) {
                 VTLine& vline = mLines[j];
                 for (int i = 0; i < (int)vline.size(); ++i) {
-                    vline[i] = mBlankChar;
+                    vline[i] = blank;
                 }
             }
         }
@@ -712,12 +716,12 @@ void SerialConnEcma48::ProcessED(const std::string& p)
         if (1) {
             VTLine& vline = mLines[mVy];
             for (int i = 0; i < (int)vline.size() && i <= mVx; ++i) {
-                vline[i] = mBlankChar;
+                vline[i] = blank;
             }
             for (int j = mVy - 1; j >= 0; --j) {
                 VTLine& vline = mLines[j];
                 for (int i = 0; i < (int)vline.size(); ++i) {
-                    vline[i] = mBlankChar;
+                    vline[i] = blank;
                 }
             }
         }
@@ -727,7 +731,7 @@ void SerialConnEcma48::ProcessED(const std::string& p)
             for (int j = 0; j < (int)mLines.size(); ++j) {
                 VTLine& vline = mLines[j];
                 for (int i = 0; i < (int)vline.size(); ++i) {
-                    vline[i] = mBlankChar;
+                    vline[i] = blank;
                 }
             }
         }
@@ -740,13 +744,14 @@ void SerialConnEcma48::ProcessEF(const std::string& p)
 }
 void SerialConnEcma48::ProcessEL(const std::string& p)
 {
+    VTChar blank = GetBlankChar();
     int ps = atoi(p.data());
     switch (ps) {
     case 0:
         if (1) {
             VTLine& vline = mLines[mVy];
             for (int i = mVx; i < (int)vline.size(); ++i) {
-                vline[i] = mBlankChar;
+                vline[i] = blank;
             }
         }
         break;
@@ -754,14 +759,14 @@ void SerialConnEcma48::ProcessEL(const std::string& p)
         if (1) {
             VTLine& vline = mLines[mVy];
             for (int i = 0; i < (int)vline.size() && i <= mVx; ++i) {
-                vline[i] = mBlankChar;
+                vline[i] = blank;
             }
         }
         break;
     case 2:
         if (1) {
             Size csz = GetConsoleSize();
-            mLines[mVy] = VTLine(csz.cx, mBlankChar).SetHeight(mFontH);
+            mLines[mVy] = VTLine(csz.cx, blank).SetHeight(mFontH);
             break;
         }
         break;
@@ -841,7 +846,7 @@ void SerialConnEcma48::ProcessICH(const std::string& p)
     if (pn <= 0)
         pn = 1;
     VTLine& vline = mLines[mVy];
-    vline.insert(vline.begin() + mVx, pn, mBlankChar);
+    vline.insert(vline.begin() + mVx, pn, GetBlankChar());
 }
 // Identify device control string
 void SerialConnEcma48::ProcessIDCS(const std::string& p)
@@ -869,7 +874,7 @@ void SerialConnEcma48::ProcessIL(const std::string& p)
     auto it_bot = mLines.begin() + bot;
     mLines.erase(it_bot - pn + 1, it_bot + 1);
     Size csz = GetConsoleSize();
-    mLines.insert(mLines.begin() + mVy, pn, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
+    mLines.insert(mLines.begin() + mVy, pn, VTLine(csz.cx, GetBlankChar()).SetHeight(mFontH));
 }
 // Interrupt
 void SerialConnEcma48::ProcessINT(const std::string& p)
@@ -918,7 +923,7 @@ void SerialConnEcma48::ProcessNEL(const std::string& p)
         Size csz = GetConsoleSize();
         auto it_end = mLines.begin() + bot + 1;
         // insert new line
-        mLines.insert(it_end, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
+        mLines.insert(it_end, VTLine(csz.cx, GetBlankChar()).SetHeight(mFontH));
         // remove the top line
         mLines.erase(mLines.begin() + top);
     }
@@ -991,7 +996,8 @@ void SerialConnEcma48::ProcessREP(const std::string& p)
     if (pn <= 0)
         pn = 1;
     VTLine& vline = mLines[mVy];
-    const VTChar& ch = mVx > 0 ? vline[mVx - 1] : mBlankChar;
+    VTChar blank = GetBlankChar();
+    const VTChar& ch = mVx > 0 ? vline[mVx - 1] : blank;
     int cn = 0;
     for (int i = mVx; i < (int)vline.size() && cn < pn; ++i) {
         vline[i] = ch;
@@ -1014,7 +1020,7 @@ void SerialConnEcma48::ProcessRI(const std::string& p)
         mLines.erase(mLines.begin() + bot); // remove the bottom line
         // insert new line to top
         Size csz = GetConsoleSize();
-        mLines.insert(mLines.begin() + top, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
+        mLines.insert(mLines.begin() + top, VTLine(csz.cx, GetBlankChar()).SetHeight(mFontH));
     }
 }
 void SerialConnEcma48::ProcessRIS(const std::string& p)
@@ -1059,7 +1065,7 @@ void SerialConnEcma48::ProcessSD(const std::string& p)
     Size csz = GetConsoleSize();
     int top = mScrollingRegion.Top;
     int bot = mScrollingRegion.Bottom;
-    mLines.insert(mLines.begin() + top, pn, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
+    mLines.insert(mLines.begin() + top, pn, VTLine(csz.cx, GetBlankChar()).SetHeight(mFontH));
     auto it_bot = mLines.begin() + bot + pn;
     mLines.erase(it_bot - pn + 1, it_bot + 1);
 }
@@ -1231,10 +1237,11 @@ void SerialConnEcma48::ProcessSL(const std::string& p)
     int pn = atoi(p.data());
     if (pn <= 0)
         pn = 1;
+    VTChar blank = GetBlankChar();
     for (size_t k = 0; k < mLines.size(); ++k) {
         VTLine& vline = mLines[k];
         vline.erase(vline.begin(), vline.begin() + pn);
-        vline.insert(vline.end(), pn, mBlankChar);
+        vline.insert(vline.end(), pn, blank);
     }
 }
 // set line home
@@ -1296,9 +1303,10 @@ void SerialConnEcma48::ProcessSR(const std::string& p)
     int pn = atoi(p.data());
     if (pn <= 0)
         pn = 1;
+    VTChar blank = GetBlankChar();
     for (size_t k = 0; k < mLines.size(); ++k) {
         VTLine& vline = mLines[k];
-        vline.insert(vline.begin(), pn, mBlankChar);
+        vline.insert(vline.begin(), pn, blank);
         for (int i = 0; i < pn; ++i)
             vline.pop_back();
     }
@@ -1354,7 +1362,7 @@ void SerialConnEcma48::ProcessSU(const std::string& p)
         bot = (int)mLines.size() - 1;
     Size csz = GetConsoleSize();
     auto it_end = mLines.begin() + bot + 1;
-    mLines.insert(it_end, pn, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
+    mLines.insert(it_end, pn, VTLine(csz.cx, GetBlankChar()).SetHeight(mFontH));
     mLines.erase(mLines.begin() + top, mLines.begin() + top + pn);
 }
 // select line spacing

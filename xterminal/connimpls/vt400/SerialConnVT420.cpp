@@ -54,10 +54,11 @@ void SerialConnVT420::ProcessDECDC(const std::string& p)
     int bot = mScrollingRegion.Bottom;
     if (bot < 0)
         bot = (int)mLines.size() - 1;
+    VTChar blank = GetBlankChar();
     for (int k = top; k <= bot; ++k) {
         if (pn <= (int)mLines[k].size()) {
             mLines[k].erase(mLines[k].begin() + pn - 1);
-            mLines[k].push_back(mBlankChar);
+            mLines[k].push_back(blank);
         }
     }
 }
@@ -69,9 +70,10 @@ void SerialConnVT420::ProcessDECIC(const std::string& p)
     int bot = mScrollingRegion.Bottom;
     if (bot < 0)
         bot = (int)mLines.size() - 1;
+    VTChar blank = GetBlankChar();
     for (int k = top; k <= bot; ++k) {
         if (pn <= (int)mLines[k].size()) {
-            mLines[k].insert(mLines[k].begin() + pn - 1, mBlankChar);
+            mLines[k].insert(mLines[k].begin() + pn - 1, blank);
         }
     }
 }

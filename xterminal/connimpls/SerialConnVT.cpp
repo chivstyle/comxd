@@ -18,6 +18,7 @@
 #define ENABLE_BLANK_LINES_HINT_IN_SELECTION 1
 #define ENABLE_VT_LINE_TRUNCATION 0
 #define ENABLE_THREAD_GUI 0
+#define ENABLE_SELECT_BLANK_CHARS 1
 static const double kTimeThreshold = 0.017;
 // register
 using namespace xvt;
@@ -55,8 +56,6 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
     // good look
     SetFrame(FieldFrame());
     WantFocus();
-    // default style
-    mBlankChar.SetCode(' ');
 #if ENABLE_H_SCROLLBAR
     // enable scroll bar
     mSbH.SetLine(mFontW);
@@ -82,7 +81,7 @@ SerialConnVT::SerialConnVT(std::shared_ptr<SerialIo> io)
         this->Refresh();
     };
     // initialize size
-    VTLine vline = VTLine(80, mBlankChar).SetHeight(mFontH);
+    VTLine vline = VTLine(80, GetBlankChar()).SetHeight(mFontH);
     mLines.insert(mLines.begin(), 30, vline);
     mVtSize = Size(80, 30);
     PostCallback([=] {
@@ -132,7 +131,7 @@ void SerialConnVT::ShowVTModes()
 {
 	CHECK_GUI_THREAD();
 	//
-	InUsedModes modes(&mModes, [=]() { mLockVt.Enter(); }, [=]() { mLockVt.Leave(); });
+	InUsedModes modes(this, &mModes, [=]() { mLockVt.Enter(); }, [=]() { mLockVt.Leave(); });
 	modes.Run();
 }
 //
@@ -438,6 +437,14 @@ void SerialConnVT::Put(const std::string& s)
 {
     GetIo()->Write(s);
 }
+//
+VTChar SerialConnVT::GetBlankChar() const
+{
+    VTChar blank(' ');
+    blank.SetStyle(mStyle);
+    return blank;
+}
+VTChar SerialConnVT::GetDefaultBlankChar() const { return VTChar(' '); }
 //
 size_t SerialConnVT::ParseSeqs(const char* input, size_t input_sz, std::deque<struct Seq>& seqs)
 {
@@ -889,10 +896,11 @@ bool SerialConnVT::ProcessOverflowChars()
         mVx = 0;
     if (mVy < 0)
         mVy = 0;
+    VTChar blank = GetDefaultBlankChar();
     if (mVy < (int)mLines.size()) {
         int dx = mVx - (int)mLines[mVy].size() + 1;
         if (dx > 0) {
-            mLines[mVy].insert(mLines[mVy].end(), dx, mBlankChar);
+            mLines[mVy].insert(mLines[mVy].end(), dx, blank);
             overflow = true;
         }
     } else {
@@ -918,6 +926,7 @@ bool SerialConnVT::ProcessOverflowLines()
         mVy = 0;
     int yn = mVy - bot;
     if (yn == 1) {
+        VTChar blank = GetDefaultBlankChar();
         if (top == 0) {
             this->PushToLinesBufferAndCheck(std::move(mLines[top]));
         }
@@ -927,7 +936,7 @@ bool SerialConnVT::ProcessOverflowLines()
         // This line is a new line absolutely, so we should clear it carefully.
         VTLine& vline = mLines[bot];
         for (size_t k = 0; k < vline.size(); ++k) {
-            vline[k] = mBlankChar;
+            vline[k] = blank;
         }
         vline.HasSuccessiveLines(false);
         // fix
@@ -974,12 +983,13 @@ void SerialConnVT::RenderText(const std::vector<uint32_t>& s)
             }
         }
         //
+        VTChar blank = GetDefaultBlankChar();
         if (mVx < (int)vline->size()) {
             vline->at(mVx) = chr;
         } else {
             // padding blanks if needed.
             for (int n = (int)vline->size() - 1; n < mVx - 1; ++n) {
-                vline->push_back(mBlankChar);
+                vline->push_back(blank);
             }
             // extend the vline
             vline->push_back(chr);
@@ -987,7 +997,7 @@ void SerialConnVT::RenderText(const std::vector<uint32_t>& s)
         mVx++; mPx += GetCharWidth(chr.Code());
         if (mVx >= (int)vline->size()) {
             // extend vline
-            vline->insert(vline->end(), mVx - (int)vline->size() + 1, mBlankChar);
+            vline->insert(vline->end(), mVx - (int)vline->size() + 1, blank);
         }
     }
 }
@@ -1044,7 +1054,11 @@ void SerialConnVT::MouseMove(Point p, dword)
         // px - font base position.x
         // next_px - next font base position.x
         // Current font width = next_px - px
-        Point vpos = LogicToVirtual(lx, ly, px, next_px, py, next_py);
+#if ENABLE_SELECT_BLANK_CHARS
+        Point vpos = LogicToVirtual(lx, ly, px, next_px, py, next_py, false);
+#else
+        Point vpos = LogicToVirtual(lx, ly, px, next_px, py, next_py, true);
+#endif
         mSelectionSpan.X1 = (lx - px) >= (next_px - px) / 2 ? vpos.x + 1 : vpos.x;
         mSelectionSpan.Y1 = vpos.y;
         mSelectionSpan.Valid = mSelectionSpan.X0 != mSelectionSpan.X1 || mSelectionSpan.Y0 != mSelectionSpan.Y1;
@@ -1065,7 +1079,11 @@ void SerialConnVT::LeftDown(Point p, dword)
 #endif
     int ly = mSbV.Get() + p.y;
     int px, next_px, py, next_py;
-    Point vpos = LogicToVirtual(lx, ly, px, next_px, py, next_py);
+#if ENABLE_SELECT_BLANK_CHARS
+    Point vpos = LogicToVirtual(lx, ly, px, next_px, py, next_py, false);
+#else
+    Point vpos = LogicToVirtual(lx, ly, px, netx_px, py, next_py, true);
+#endif
     if (next_px != 0)
         mSelectionSpan.X0 = (lx - px) > (next_px - px) / 2 ? vpos.x + 1 : vpos.x;
     else
@@ -1090,7 +1108,11 @@ void SerialConnVT::LeftDouble(Point p, dword)
 #endif
     int ly = mSbV.Get() + p.y;
     int px, next_px, py, next_py;
-    Point vpos = LogicToVirtual(lx, ly, px, next_px, py, next_py);
+#if ENABLE_SELECT_BLANK_CHARS
+    Point vpos = LogicToVirtual(lx, ly, px, next_px, py, next_py, false);
+#else
+    Point vpos = LogicToVirtual(lx, ly, px, netx_px, py, next_py, true);
+#endif
     VTLine* vline = this->GetVTLine(vpos.y);
     if (vline && vpos.x < (int)vline->size()) {
         // well, let's go
@@ -1153,7 +1175,11 @@ void SerialConnVT::LeftTriple(Point p, dword)
 #endif
     int ly = mSbV.Get() + p.y;
     int px, next_px, py, next_py;
-    Point vpos = LogicToVirtual(lx, ly, px, next_px, py, next_py);
+#if ENABLE_SELECT_BLANK_CHARS
+    Point vpos = LogicToVirtual(lx, ly, px, next_px, py, next_py, false);
+#else
+    Point vpos = LogicToVirtual(lx, ly, px, netx_px, py, next_py, true);
+#endif
     VTLine* vline = this->GetVTLine(vpos.y);
     if (vline) {
         mSelectionSpan.Y0 = vpos.y;
@@ -1409,6 +1435,7 @@ void SerialConnVT::ExtendVirtualScreen(int cx, int cy)
         bot = cy;
     }
     // 0. pull lines from lines buffer
+    VTChar blank = GetDefaultBlankChar();
     int ln = 0;
     int extcn = cy - (int)mLines.size();
     if (bot >= cy) {
@@ -1416,7 +1443,7 @@ void SerialConnVT::ExtendVirtualScreen(int cx, int cy)
             VTLine vline = *mLinesBuffer.rbegin();
             mLinesBuffer.pop_back();
             for (int n = (int)vline.size(); n < cx; ++n) {
-                vline.push_back(mBlankChar);
+                vline.push_back(blank);
             }
             mLines.insert(mLines.begin(), vline);
             ln++;
@@ -1425,7 +1452,7 @@ void SerialConnVT::ExtendVirtualScreen(int cx, int cy)
     }
     // 1. push blanks
     for (int i = ln; i < cy && i < extcn; ++i) {
-        mLines.push_back(VTLine(cx, mBlankChar).SetHeight(mFontH));
+        mLines.push_back(VTLine(cx, blank).SetHeight(mFontH));
     }
 }
 // invoked by DoLayout
@@ -1469,10 +1496,11 @@ void SerialConnVT::ResizeVt(const Size& csz)
     mVtSize = csz;
     // update page of scroll bar
     // check and fix
+    VTChar blank = GetDefaultBlankChar();
     for (size_t k = 0; k < mLines.size(); ++k) {
         VTLine& vline = mLines[k];
         for (size_t i = vline.size(); (int)i < csz.cx; ++i) {
-            vline.push_back(mBlankChar);
+            vline.push_back(blank);
         }
         int overflow_cnt = (int)vline.size() - csz.cx;
         if (overflow_cnt > 0) {
@@ -1790,6 +1818,9 @@ void SerialConnVT::DrawVTLine(Draw& draw, const VTLine& vline,
         }
 #endif
         x += vchar_cx;
+    }
+    if (tail_selected) {
+        draw.DrawRect(x, y, GetSize().cx - x, mFontH, mColorTbl.GetColor(VTColorTable::kColorId_Texts));
     }
 #if ENABLE_BLANK_LINES_HINT_IN_SELECTION && ENABLE_FIXED_LINE_HEIGHT
 	if (i < csz.cx && !vline.HasSuccessiveLines()) {

@@ -324,7 +324,7 @@ void SerialConnVT100::ProcessDECIND(const std::string&)
         Size csz = GetConsoleSize();
         auto it_end = mLines.begin() + bot + 1;
         // insert new line
-        mLines.insert(it_end, VTLine(csz.cx, mBlankChar).SetHeight(mFontH));
+        mLines.insert(it_end, VTLine(csz.cx, GetBlankChar()).SetHeight(mFontH));
         // remove the top line
         mLines.erase(mLines.begin() + top);
     }
