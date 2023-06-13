@@ -4,7 +4,6 @@
 #include "resource.h"
 #include "CodecTool.h"
 #include "ConnCreateFactory.h"
-
 // main window
 class MainWindow : public WithMainWindow<TopWindow> {
     typedef MainWindow CLASSNAME;
@@ -30,7 +29,7 @@ public:
         // conn tabs.
         mDevsTab.WhenSet = THISBACK(OnDevsTabSet);
         mDevsTab.Add(mAbout);
-        // layout
+		// layout
         Upp::CtrlLayout(*this);
     }
     ~MainWindow()
@@ -64,7 +63,7 @@ public:
                 static_cast<SerialConn*>(mConn)->GetIo()->Stop();
                 delete mConn;
                 // If there's no conn, show the about page
-                if (mTabbar->GetCount() == 0) {
+                if (mTabbar->GetCount() == 0 && mAbout) {
                     mAbout->Show();
                 }
                 Upp::PostCallback([=]() {
@@ -139,7 +138,7 @@ protected:
                         auto btn_close = new TabCloseBtn(conn, &mDevsTab, &mAbout);
                         btn_close->SetImage(comxd::close_little());
                         btn_close->SetRect(0, 0, 16, 16);
-                        TabCtrl::Item& item = mDevsTab.Add(conn->SizePos(), it->second.Icon(), conn->ConnName()).Control(btn_close);
+                        TabCtrl::Item& item = mDevsTab.Add(conn->SizePos(), comxd::active(), conn->ConnName()).Control(btn_close);
                         conn->WhenException = [=, &item]() {
                             item.SetImage(comxd::exception());
                         };
@@ -196,12 +195,7 @@ protected:
                     // restart the I/O
                     if (conn->GetIo()->Reconnect()) {
                         if (item) {
-                            auto& conns = ConnCreateFactory::Inst()->GetSupportedConnIntroductions();
-                            String type = conn->GetIo()->DeviceType();
-                            auto it = conns.find(type);
-                            if (it != conns.end()) {
-                                item->SetImage(it->second.Icon());
-                            }
+                            item->SetImage(comxd::active());
                         }
                     }
                     conn->Start();
