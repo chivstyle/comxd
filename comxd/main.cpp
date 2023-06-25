@@ -3,6 +3,7 @@
 //
 #include "resource.h"
 #include "CodecTool.h"
+#include "AboutDialog.h"
 #include "ConnCreateFactory.h"
 // main window
 class MainWindow : public WithMainWindow<TopWindow> {
@@ -161,7 +162,11 @@ protected:
         bar.Add(t_("Codec Tool"), comxd::codec_tool(), [=]() { CodecTool d; d.Run(true); });
         //
         bar.ToolGapRight();
-        bar.Add(t_("About"), comxd::about(), [=]() { PromptOK(Upp::GetTopicLNG("comxd/comxd/about")); });
+        bar.Add(t_("About"), comxd::about(), [=]() {
+            AboutDialog d;
+            d.SetQTF(Upp::GetTopicLNG("comxd/comxd/about"));
+            d.Run();
+        });
     }
     
     TabCtrl::Item* FindConnItem(const SerialConn* conn_)

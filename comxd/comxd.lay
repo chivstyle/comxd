@@ -87,3 +87,8 @@ LAYOUT(CodecTool, 476, 308)
 	ITEM(Upp::Label, dv___6, SetLabel(t_("Output Encoding")).LeftPosZ(124, 84).TopPosZ(104, 19))
 END_LAYOUT
 
+LAYOUT(AboutDialog, 460, 136)
+	ITEM(Upp::RichTextCtrl, mText, HSizePosZ(16, 12).TopPosZ(12, 76))
+	ITEM(Upp::Button, mOk, SetLabel(t_("Ok")).HCenterPosZ(92, 0).TopPosZ(100, 24))
+END_LAYOUT
+
