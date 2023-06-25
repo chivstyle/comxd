@@ -113,11 +113,9 @@ SerialConnVT::~SerialConnVT()
 //
 bool SerialConnVT::Start()
 {
-	#if 0
     mRxShouldStop = false;
     mRxThr = std::thread([=]() { RxProc(); });
     Upp::PostCallback([=] { Layout(); WhenSizeChanged(GetConsoleSize()); });
-    #endif
     //
     return true;
 }
