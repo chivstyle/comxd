@@ -113,9 +113,11 @@ SerialConnVT::~SerialConnVT()
 //
 bool SerialConnVT::Start()
 {
+	#if 0
     mRxShouldStop = false;
     mRxThr = std::thread([=]() { RxProc(); });
     Upp::PostCallback([=] { Layout(); WhenSizeChanged(GetConsoleSize()); });
+    #endif
     //
     return true;
 }
@@ -2054,4 +2056,6 @@ Rect SerialConnVT::GetCaret() const
 void SerialConnVT::Paint(Draw& draw)
 {
     Render(draw);
+    
+    SerialConn::Paint(draw);
 }
