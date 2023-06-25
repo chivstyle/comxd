@@ -26,9 +26,9 @@ static inline std::string ToHexString_(const std::string& b, size_t linesz = 16)
     for (size_t k = 0; k < b.length(); ++k) {
         char hex_[8];
         if (k + 1 == b.size()) {
-            sprintf(hex_, "%02x", (unsigned char)b[k]);
+            sprintf(hex_, "0x%02x", (unsigned char)b[k]);
         } else {
-            sprintf(hex_, "%02x,", (unsigned char)b[k]);
+            sprintf(hex_, "0x%02x,", (unsigned char)b[k]);
         }
         out += hex_;
         if (((k+1) % linesz) == 0 && (k+1 != b.size())) {
