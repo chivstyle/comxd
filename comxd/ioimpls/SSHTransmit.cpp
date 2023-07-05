@@ -58,7 +58,7 @@ void SSHPort::Upload()
                 remote += "/" + GetBasename(filename);
             }
             static volatile bool should_stop = false;
-            //
+            should_stop = false;
             std::mutex lock;
             ProgressDialog bar;
             bar.WhenClose = [&]() { should_stop = true; };
@@ -126,6 +126,7 @@ void SSHPort::Download()
             filename += "/" + Upp::GetFileName(remote);
             // check
             static volatile bool should_stop = false;
+            should_stop = false;
             FileOut fout(filename);
             ProgressDialog bar;
             bar.WhenClose = [&]() { should_stop = true; };

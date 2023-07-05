@@ -23,6 +23,7 @@ file
 	ConnCreateFactory.cpp,
 	resource.cpp,
 	resource.h,
+	main.cpp,
 	ioimpls readonly separator,
 	ioimpls/TcpClient.cpp,
 	ioimpls/TcpClient.h,
@@ -44,8 +45,7 @@ file
 	ioimpls\PipeServer.cpp,
 	ioimpls\PipeServer.h,
 	ioimpls\PipeServerDialog.cpp,
-	ioimpls\PipeServerDialog.h,
-	main.cpp;
+	ioimpls\PipeServerDialog.h;
 
 mainconfig
 	"" = "GUI";
