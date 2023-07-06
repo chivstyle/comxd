@@ -6,8 +6,14 @@
 # 2. add Toolchain
 # 3. set search path for umk
 #
-PLATFORM=windows
 OUTPUT_DIR=/d/BUILD-OUT/comxd
+if [ ! -d $OUTPUT_DIR ]; then
+	OUTPUT_DIR=$1
+fi
+if [ ! -d $OUTPUT_DIR ]||[ "$OUTPUT_DIR" = "" ]; then
+	echo "Please input a valid output dir"
+	exit 1
+fi
 
 if [ ! "$(uname -a | grep MINGW)" = "" ]; then
 	OUTPUT_EXT=.exe
