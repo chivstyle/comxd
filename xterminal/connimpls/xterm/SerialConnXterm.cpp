@@ -474,9 +474,11 @@ void SerialConnXterm::ProcessDECSM(const std::string& p)
         if (!mModes.GetDecpMode(UseAlternateScreen_47, 0) &&
             !mModes.GetDecpMode(UseAlternateScreen_1047, 0) &&
             !mModes.GetDecpMode(SaveCursorAndSwitchToAlternateScreenThenClear, 0)) {
+#if 0
             if (pn == 1049) {
                 this->ProcessDECSC("");
             }
+#endif
             this->SwapScr(mAlternateScr);
             if (pn == 1049) {
                 ClearVt();
@@ -506,9 +508,11 @@ void SerialConnXterm::ProcessDECRM(const std::string& p)
             mModes.GetDecpMode(UseAlternateScreen_1047, 0) ||
             mModes.GetDecpMode(SaveCursorAndSwitchToAlternateScreenThenClear, 0)) {
             this->SwapScr(mAlternateScr);
+ #if 0
             if (pn == 1049) {
                 this->ProcessDECRC("");
             }
+ #endif
             // clear all bits
             mModes.SetDecpMode(UseAlternateScreen_47, 0);
             mModes.SetDecpMode(UseAlternateScreen_1047, 0);
