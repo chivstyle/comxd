@@ -535,6 +535,7 @@ void SerialConnVT::RxProc()
     std::string raw, texts; // before the loop, define these two vars firstly.
     texts.reserve(32768);
     std::deque<Seq>& seqs = mSeqs;
+    auto t1 = std::chrono::steady_clock::now();
     while (!mRxShouldStop) {
         int sz = GetIo()->Available();
         if (sz < 0) {
@@ -602,7 +603,12 @@ void SerialConnVT::RxProc()
                 seqs.emplace_back(std::move(s));
             }
         }
-        PostCallback([=]() { RenderSeqs(); });
+        auto t2 = std::chrono::steady_clock::now();
+        auto ts = std::chrono::duration_cast<std::chrono::seconds>(t2 - t1);
+        if (ts.count() > kTimeThreshold) {
+            PostCallback([=]() { RenderSeqs(); });
+            t1 = std::chrono::steady_clock::now();
+        }
         //
         raw = raw.substr(rawp);
     }
