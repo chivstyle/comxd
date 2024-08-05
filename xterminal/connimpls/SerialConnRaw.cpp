@@ -48,7 +48,6 @@ SerialConnRaw::SerialConnRaw(std::shared_ptr<SerialIo> io)
     // default settings
     this->mLineSz.SetData(16);
     this->mLineSz.SetEditable(false);
-    this->mTxPeriod.SetData(100);
     this->mRxBufferSz.SetData(50000);
     this->mTxInterval.SetData(100);
     this->mLineBreaks.Add(LineBreak_::CR, "CR");
