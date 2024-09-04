@@ -571,9 +571,9 @@ void SerialConnEcma48::ProcessCUP(const std::string& p)
         pn[1] = 1;
     // check and fix
     Size csz = GetConsoleSize();
-    if (pn[0] - 1 < top) pn[0] = top + 1;
-    else if (pn[0] - 1 > bot) pn[0] = bot + 1;
-    if (pn[1] - 1 < 0) pn[1] = 1;
+    if (pn[0] < 1) pn[0] = 1;
+    else if (pn[0] > csz.cy) pn[0] = csz.cy;
+    if (pn[1] < 0) pn[1] = 1;
     else if (pn[1] > csz.cx) pn[1] = csz.cx;
     //
     mPx = mFontW * (pn[1] - 1);
