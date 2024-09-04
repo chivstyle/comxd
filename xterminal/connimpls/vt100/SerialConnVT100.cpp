@@ -298,10 +298,15 @@ void SerialConnVT100::ProcessCUP(const std::string& p)
         int bot = mScrollingRegion.Bottom;
         if (bot < 0)
             bot = (int)mLines.size() - 1;
-        if (pn[0] - 1 >= top && pn[0] - 1 <= bot) {
-            mPx = mFontW * (pn[1] - 1);
-            mVy = pn[0] - 1;
-        }
+        // check and fix
+        Size csz = GetConsoleSize();
+        if (pn[0] - 1 < top) pn[0] = top + 1;
+        else if (pn[0] - 1 > bot) pn[0] = bot + 1;
+        if (pn[1] - 1 < 0) pn[1] = 1;
+        else if (pn[1] > csz.cx) pn[1] = csz.cx;
+        
+        mPx = mFontW * (pn[1] - 1);
+        mVy = pn[0] - 1;
     }
 }
 //
