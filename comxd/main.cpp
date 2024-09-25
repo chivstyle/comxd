@@ -222,7 +222,6 @@ protected:
 GUI_APP_MAIN
 {
 	SetLanguage(GetSystemLNG());
-	StdLogSetup(LOG_COUT);
     MainWindow win;
     win.SetRect(0, 0, 800, 600);
     win.Run();

@@ -180,12 +180,10 @@ bool SSHDevsDialog::Reconnect(SSHPort* sc)
 	mPort.SetData(sc->Port());
     //
     auto session = sc->Session();
-#if 0
     session->WhenWait = [=]() {
         if (IsMainThread())
             ProcessEvents();
     };
-#endif
     auto title = GetTitle();
     Title(t_("Connecting...")).Disable();
     if (session->Timeout(5000).Connect(~mHost, ~mPort, ~mUser, ~mPassword)) {
