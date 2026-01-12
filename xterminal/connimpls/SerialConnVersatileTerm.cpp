@@ -2,6 +2,7 @@
 // (c) 2022 chiv
 //
 */
+#if ENABLE_VERSATILE_TERM
 #include "terminal_rc.h"
 #include "SerialConnVersatileTerm.h"
 #include "TextCodecsDialog.h"
@@ -196,3 +197,5 @@ void SerialConnVersatileTerm::Stop()
     // callback after the vt was destroyed.
     mVt.Update();
 }
+
+#endif

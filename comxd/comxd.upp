@@ -6,6 +6,8 @@ uses
 	Painter,
 	xterminal;
 
+library(WIN32) crypt32;
+
 include
 	.;
 
@@ -25,6 +27,12 @@ file
 	resource.h,
 	main.cpp,
 	ioimpls readonly separator,
+	ioimpls\amudp.cpp,
+	ioimpls\amudp.h,
+	ioimpls\UdpClientDialog.cpp,
+	ioimpls\UdpClientDialog.h,
+	ioimpls\UdpClient.cpp,
+	ioimpls\UdpClient.h,
 	ioimpls/TcpClient.cpp,
 	ioimpls/TcpClient.h,
 	ioimpls/SerialPort.h,

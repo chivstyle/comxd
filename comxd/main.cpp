@@ -201,6 +201,7 @@ protected:
                     if (conn->GetIo()->Reconnect()) {
                         if (item) {
                             item->SetImage(comxd::active());
+                            item->Text(conn->ConnName());
                         }
                     }
                     conn->Start();

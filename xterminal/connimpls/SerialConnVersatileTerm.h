@@ -6,6 +6,9 @@
 */
 #pragma once
 
+#define ENABLE_VERSATILE_TERM  0
+
+#if ENABLE_VERSATILE_TERM
 #include "Conn.h"
 #include "TerminalCtrl/Terminal/Terminal.h"
 #include <thread>
@@ -37,3 +40,4 @@ private:
 	void InstallUserActions();
 	void ShowVTOptions();
 };
+#endif

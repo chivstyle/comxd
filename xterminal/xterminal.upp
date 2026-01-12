@@ -1,8 +1,7 @@
 description "virtual terminal\377";
 
 uses
-	Core/SSH,
-	TerminalCtrl/Terminal;
+	Core/SSH;
 
 library(WIN32) icu;
 
