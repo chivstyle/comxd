@@ -182,7 +182,7 @@ int ControlSeqFactory::IsControlSeq(const char* input, size_t input_sz, size_t& 
                 return SEQ_PENDING;
             size_t ln = std::min(input_sz - (size_t)ret, it->Tail.length()), i = 0;
             for (; i < ln; ++i) {
-                if (input[ret + i] != it->Tail[i])
+                if (input[ret + i] != it->Tail[i] && it->Tail[i] != '*')
                     break;
             }
             if (i == it->Tail.length()) {

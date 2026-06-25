@@ -132,6 +132,8 @@ void AddEcma48ControlSeqs(ControlSeqFactory* factory)
     REGISTER_SEQ(factory, ECMA48_SDS, kCSI, Ps, 0, "\x5d");
     REGISTER_SEQ(factory, ECMA48_SEE, kCSI, Ps, 0, "\x51");
     REGISTER_SEQ(factory, ECMA48_SEF, kCSI, Ps, 0, "\x20\x59");
+    // WHAT is \E[0%m, ???
+    REGISTER_SEQ(factory, ECMA48_SGR, kCSI, Ps, 0, "%m");
     REGISTER_SEQ(factory, ECMA48_SGR, kCSI, Ps, 0, "\x6d");
     REGISTER_SEQ(factory, ECMA48_SHS, kCSI, Ps, 0, "\x20\x4b");
     // HERE is C0, 0x0f, added before

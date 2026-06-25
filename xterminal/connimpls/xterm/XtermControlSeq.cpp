@@ -53,5 +53,7 @@ void AddXtermControlSeqs(ControlSeqFactory* factory)
     REGISTER_SEQ(factory, XTIGNORE, "\033[<", Ps, 0, "M");
     REGISTER_SEQ(factory, XTIGNORE, "\033[<", Ps, 0, "m");
     REGISTER_SEQ(factory, XTIGNORE, "\033[M", Gn, 3, "");
+    // WHAT THE F**k
+    REGISTER_SEQ(factory, XTIGNORE, "\033[?", Ps, 0, "m");
 }
 }
